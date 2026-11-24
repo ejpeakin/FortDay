@@ -301,7 +301,7 @@ const Cam = {
     this.ready = a === player;
     const sprint = a.input.sprint && a.input.f > 0 && a.state === 'ground';
     const base = clamp(+Profile.d.fov || 70, 60, 100), zk = base / 70;   // field of view from Settings (70 unless changed); aiming zooms by the same amount at any setting
-    this.fov(dt, this.scoped ? (this.scopeKind === 'smg' ? 56 : 22) : (a === player && a.input.ads && !a.vehicle) ? zk * (it && it.kind === 'weapon' && wstat(it).type === 'shotgun' ? 64 : it && it.kind === 'weapon' && wstat(it).type === 'smg' ? 52 : 58) : sprint ? base + 5 : a.vehicle ? base + 5 : base);
+    this.fov(dt, this.scoped ? (this.scopeKind === 'smg' ? 50 : 22) : (a === player && a.input.ads && !a.vehicle) ? zk * (it && it.kind === 'weapon' && wstat(it).type === 'shotgun' ? 64 : it && it.kind === 'weapon' && wstat(it).type === 'smg' ? 52 : 58) : sprint ? base + 5 : a.vehicle ? base + 5 : base);
   },
   fov(dt, target) { if (player && player.longJ && !player.onGround && !this.scoped) target += 10;   // a sprint-jump widens the view for a moment
     if (Math.abs(camera.fov - target) > 0.1) { camera.fov = lerp(camera.fov, target, Math.min(1, dt * 12)); camera.updateProjectionMatrix(); } },

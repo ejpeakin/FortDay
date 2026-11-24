@@ -96,12 +96,12 @@ button:focus-visible{outline:2px solid var(--sun-2);outline-offset:2px}
 @keyframes playGlow{0%,100%{box-shadow:0 5px 0 #6e0a12,0 10px 26px rgba(255,40,60,.38)}50%{box-shadow:0 5px 0 #6e0a12,0 10px 38px rgba(255,40,60,.7)}}
 /* the season card on the Play tab: what's on now, your level, today's bonus and a featured item */
 .season-card{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;overflow:hidden;
-  background:linear-gradient(135deg,rgba(14,10,22,.95),rgba(26,10,20,.95));border:1px solid rgba(255,59,74,.3);border-left:3px solid #ff3b4a;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+  background:linear-gradient(135deg,rgba(10,18,46,.95),rgba(30,12,30,.95));border:1px solid rgba(74,155,255,.35);border-left:3px solid #ff3b4a;box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .sc-top{display:flex;justify-content:space-between;align-items:center;font:800 11px var(--f-body);letter-spacing:.12em;text-transform:uppercase}
 .sc-k{color:#ff5a66}.sc-left{color:#ffffff}
 .sc-name{font-family:var(--f-display);font-weight:900;font-style:italic;font-size:26px;line-height:1;text-transform:uppercase;letter-spacing:.01em}
 .sc-lvl{display:flex;justify-content:space-between;font:700 12.5px var(--f-body);color:#e8f1ff}.sc-lvl .num{color:var(--mute)}
-.sc-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.sc-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#ffffff,#ff3b4a);transition:width .6s}
+.sc-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.sc-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#4a9bff,#ff3b4a);transition:width .6s}
 .sc-daily{font:600 12px var(--f-body);color:#cfe9ff}.sc-daily b{color:#7dffb0}
 .sc-feat{display:flex;align-items:center;gap:8px;margin-top:2px;padding:7px 10px;border-radius:10px;border:1px solid rgba(255,59,74,.4);background:rgba(10,8,30,.45);color:#fff;font:700 12.5px var(--f-body);text-align:left;cursor:pointer}
 .sc-feat:hover{background:rgba(255,216,74,.14)}.sc-feat em{font-style:normal;color:#ffd84a;margin-left:auto;white-space:nowrap}.sc-feat i{font-style:normal;font:800 10px var(--f-body);letter-spacing:.1em;color:#ff5a66}
@@ -411,10 +411,10 @@ body.touch #chatHint,body.pad #chatHint{display:none}
 .dd{position:absolute;left:-60px;top:-160px;width:120px;height:26px;transform-origin:60px 160px;opacity:0;
   background:radial-gradient(60px 13px at 50% 100%,rgba(255,60,60,.85),transparent 70%)}
 #scope{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 0,transparent min(34vh,34vw),#000 calc(min(34vh,34vw) + 2px))}
-#scope2{position:absolute;inset:0;pointer-events:none;--R:min(26vh,26vw);animation:tkIn .12s ease-out;
-  background:radial-gradient(circle at 50% 50%,transparent calc(var(--R) * 1.25),rgba(0,0,0,.22) calc(var(--R) * 2.6))}
-#scope2 svg{position:absolute;left:50%;top:50%;width:calc(var(--R) * 2.4);height:calc(var(--R) * 2);transform:translate(-50%,-50%);overflow:visible}
-#scope2 .rd{filter:drop-shadow(0 0 3px rgba(255,40,40,.9))}
+#scope2{position:absolute;inset:0;pointer-events:none;--R:min(27vh,27vw);animation:tkIn .12s ease-out;
+  background:radial-gradient(ellipse at 50% 52%,transparent calc(var(--R) * 1.3),rgba(0,0,0,.34) calc(var(--R) * 2.7))}
+#scope2 svg{position:absolute;left:50%;top:50%;width:calc(var(--R) * 2.5);height:calc(var(--R) * 2.5);transform:translate(-50%,-50%);overflow:visible;will-change:transform}
+#scope2 .rd{filter:drop-shadow(0 0 2px rgba(255,40,40,1)) drop-shadow(0 0 6px rgba(255,40,40,.55))}
 #scope::before,#scope::after{content:"";position:absolute;background:rgba(0,0,0,.85)}
 #scope::before{left:50%;top:0;bottom:0;width:1px}
 #scope::after{top:50%;left:0;right:0;height:1px}
@@ -1013,11 +1013,28 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
   <div id="hurtVig"></div>
   <div id="downVig" hidden><b>You are down</b><span id="downTip"></span></div>
   <div id="scope" hidden></div>
-  <div id="scope2" hidden><svg viewBox="-120 -100 240 200" aria-hidden="true">
-    <rect x="-112" y="-80" width="224" height="160" rx="26" fill="rgba(120,170,200,.06)" stroke="#1b1f24" stroke-width="9" stroke-opacity=".88"/>
-    <rect x="-112" y="-80" width="224" height="160" rx="26" fill="none" stroke="#3a414a" stroke-width="2" stroke-opacity=".9"/>
-    <rect x="-34" y="-96" width="68" height="14" rx="4" fill="#1b1f24" fill-opacity=".9"/>
-    <g class="rd"><circle r="20" fill="none" stroke="#ff3434" stroke-width="1.3" stroke-opacity=".85"/><circle r="2.4" fill="#ff2a2a"/></g>
+  <div id="scope2" hidden><svg viewBox="-130 -130 260 260" aria-hidden="true">
+    <defs>
+      <linearGradient id="s2metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#555e6b"/><stop offset=".5" stop-color="#262b33"/><stop offset="1" stop-color="#0e1115"/></linearGradient>
+      <linearGradient id="s2rim" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#6b7480"/><stop offset="1" stop-color="#1a1e24"/></linearGradient>
+      <radialGradient id="s2glass" cx=".42" cy=".38" r=".75"><stop offset="0" stop-color="#bfe2ff" stop-opacity=".1"/><stop offset=".7" stop-color="#ffb86b" stop-opacity=".03"/><stop offset="1" stop-color="#0a1830" stop-opacity=".28"/></radialGradient>
+      <clipPath id="s2win"><circle r="92"/></clipPath>
+    </defs>
+    <path d="M-52 96 H52 L60 124 H-60 Z" fill="url(#s2metal)"/><g stroke="#0b0d10" stroke-width="2"><line x1="-36" y1="104" x2="-36" y2="120"/><line x1="-12" y1="104" x2="-12" y2="120"/><line x1="12" y1="104" x2="12" y2="120"/><line x1="36" y1="104" x2="36" y2="120"/></g>
+    <rect x="-128" y="-16" width="20" height="32" rx="5" fill="url(#s2metal)"/><rect x="108" y="-16" width="20" height="32" rx="5" fill="url(#s2metal)"/>
+    <g stroke="#0b0d10" stroke-width="1.6"><line x1="-124" y1="-9" x2="-112" y2="-9"/><line x1="-124" y1="-3" x2="-112" y2="-3"/><line x1="-124" y1="3" x2="-112" y2="3"/><line x1="-124" y1="9" x2="-112" y2="9"/><line x1="112" y1="-9" x2="124" y2="-9"/><line x1="112" y1="-3" x2="124" y2="-3"/><line x1="112" y1="3" x2="124" y2="3"/><line x1="112" y1="9" x2="124" y2="9"/></g>
+    <rect x="-16" y="-128" width="32" height="18" rx="4" fill="url(#s2metal)"/><circle cx="0" cy="-119" r="3.2" fill="#ff3434" opacity=".85"/>
+    <circle r="92" fill="url(#s2glass)"/>
+    <g clip-path="url(#s2win)"><polygon points="-120,-20 -60,-110 -30,-110 -90,-20" fill="#fff" opacity=".07"/><polygon points="-70,-20 -22,-110 -10,-110 -58,-20" fill="#fff" opacity=".05"/></g>
+    <circle r="104" fill="none" stroke="url(#s2metal)" stroke-width="22"/>
+    <circle r="93" fill="none" stroke="url(#s2rim)" stroke-width="3"/>
+    <circle r="115" fill="none" stroke="#0b0d10" stroke-width="1.4" stroke-opacity=".7"/>
+    <g fill="#7a838f" stroke="#1a1d22" stroke-width="1"><circle cx="-73" cy="-73" r="3.6"/><circle cx="73" cy="-73" r="3.6"/><circle cx="-73" cy="73" r="3.6"/><circle cx="73" cy="73" r="3.6"/></g>
+    <g class="rd" fill="none" stroke="#ff3434" stroke-linecap="round">
+      <circle r="20" stroke-width="1.7" stroke-dasharray="25.4 6" stroke-dashoffset="12.7" opacity=".95"/>
+      <line x1="0" y1="-20" x2="0" y2="-13" stroke-width="1.7"/><line x1="0" y1="20" x2="0" y2="13" stroke-width="1.7"/><line x1="-20" y1="0" x2="-13" y2="0" stroke-width="1.7"/><line x1="20" y1="0" x2="13" y2="0" stroke-width="1.7"/>
+      <circle r="2.1" fill="#ff4a4a" stroke="none"/>
+    </g>
   </svg></div>
   <div id="dmgNums"></div>
   <div id="killfeed"></div>
@@ -1198,7 +1215,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1124-1955';
+const BUILD_ID = '1124-2040';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -9803,7 +9820,7 @@ const Cam = {
     this.ready = a === player;
     const sprint = a.input.sprint && a.input.f > 0 && a.state === 'ground';
     const base = clamp(+Profile.d.fov || 70, 60, 100), zk = base / 70;   // field of view from Settings (70 unless changed); aiming zooms by the same amount at any setting
-    this.fov(dt, this.scoped ? (this.scopeKind === 'smg' ? 56 : 22) : (a === player && a.input.ads && !a.vehicle) ? zk * (it && it.kind === 'weapon' && wstat(it).type === 'shotgun' ? 64 : it && it.kind === 'weapon' && wstat(it).type === 'smg' ? 52 : 58) : sprint ? base + 5 : a.vehicle ? base + 5 : base);
+    this.fov(dt, this.scoped ? (this.scopeKind === 'smg' ? 50 : 22) : (a === player && a.input.ads && !a.vehicle) ? zk * (it && it.kind === 'weapon' && wstat(it).type === 'shotgun' ? 64 : it && it.kind === 'weapon' && wstat(it).type === 'smg' ? 52 : 58) : sprint ? base + 5 : a.vehicle ? base + 5 : base);
   },
   fov(dt, target) { if (player && player.longJ && !player.onGround && !this.scoped) target += 10;   // a sprint-jump widens the view for a moment
     if (Math.abs(camera.fov - target) > 0.1) { camera.fov = lerp(camera.fov, target, Math.min(1, dt * 12)); camera.updateProjectionMatrix(); } },
@@ -10361,6 +10378,11 @@ const HUD = {
     } else if (this.last.chsg !== 'no') { this.last.chsg = 'no'; ch.classList.remove('sg', 'ads', 'rd'); }
     ch.style.display = Cam.scoped || v !== a || a.state === 'bus' ? 'none' : '';
     $('scope').hidden = !(Cam.scoped && Cam.scopeKind !== 'smg'); $('scope2').hidden = !(Cam.scoped && Cam.scopeKind === 'smg');
+    if (!$('scope2').hidden) {
+      const sv = $('scope2').firstElementChild, t = performance.now() / 1000, mv = Math.min(1, Math.hypot(player.vel.x, player.vel.z) / 4);
+      const kx = Math.sin(t * 7.5) * 3 * mv, ky = Math.abs(Math.cos(t * 7.5)) * 2.5 * mv - Math.min(14, (Cam.kickOff || 0) * 900);
+      sv.style.transform = 'translate(calc(-50% + ' + kx.toFixed(1) + 'px), calc(-50% + ' + ky.toFixed(1) + 'px))';
+    }
     // prompt
     const pr = $('prompt'), c = Interact.cur;
     if (a.alive && a.state === 'bus') { pr.style.display = 'block'; pr.innerHTML = '<kbd>' + (Input.pad.on ? 'A' : Input.touch.on ? 'JUMP' : esc(Keys.of('jump')).toUpperCase()) + '</kbd>Jump from the bus'; pr.style.setProperty('--pc', '#4fb0ff'); this.last.pr = null; }
@@ -10751,15 +10773,15 @@ const Players = {
 const SKIN_SHOW = { rae: 'wave', ranger: 'jacks', moss: 'groove', comet: 'robot', siren: 'robot', toast: 'wave', nightwarden: 'micdrop', tycoon: 'groove',
   stormborn: 'groove', nova: 'airguitar', tripy: 'micdrop', uzi: 'jacks', headliner: 'airguitar', week: 'groove', bruno: 'wave' };
 // the lobby stage's colours (sky top to horizon, the two neon arches, light beams, sparkles, screen text)
-const LOBBY_PAL = { sky: ['#020207', '#08081a', '#110c26', '#2a0c18', '#6e0f18'], arcA: 0xff2a3a, arcB: 0xe8f0ff, beams: [0xff2a3a, 0xffffff], spark: [0xff3b4a, 0xffffff, 0xff8a8a, 0xbfd6ff], accent: '#ff3b4a', glow: '#ff1a2e', ring: 0xff2a3a };
+const LOBBY_PAL = { sky: ['#02040d', '#071030', '#0d1a48', '#2a0f2a', '#6e0f18'], arcA: 0xff2a3a, arcB: 0x3a8bff, beams: [0xff2a3a, 0x4a9bff], spark: [0xff3b4a, 0xffffff, 0x4a9bff, 0x8fc4ff], accent: '#ff3b4a', glow: '#2f7bff', ring: 0xff2a3a, side: 0x3a8bff };
 const Lobby = {
   scene: null, cam: null, rig: null, fake: null, t: 0, tab: 'play', cat: 'outfit', bus: null,
   init() {
-    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0c0a1c, 24, 80);
+    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0a1230, 24, 80);
     s.add(new THREE.HemisphereLight(0xb8d4ff, 0x10284f, 0.85));
     const key = new THREE.DirectionalLight(0xffd9b0, 1.05); key.position.set(3, 6, 6); s.add(key);
     const rim = new THREE.DirectionalLight(0x5a9bff, 0.9); rim.position.set(-4, 4, -6); s.add(rim);
-    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x1c1622)); plat.position.y = -0.2; s.add(plat);
+    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x161c34)); plat.position.y = -0.2; s.add(plat);
     const ring = this.ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
     this.festival(s);
     const isl = new THREE.Group(); const rock = new THREE.Mesh(new THREE.ConeGeometry(7, 9, 7), lam(0x4a5a7a)); rock.rotation.x = Math.PI; rock.position.y = -4.5; isl.add(rock);
@@ -10773,8 +10795,8 @@ const Lobby = {
     // two party spots beside you: an empty platform with a + to invite, or a friend from your room standing on it
     this.slots = [-1, 1].map(side => {
       const x = side * 2.55, z = -1.15, g = new THREE.Group(); g.position.set(x, 0, z);
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x17121c)); p.position.y = -0.15; g.add(p);
-      const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(0xe8eaf2)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x131a30)); p.position.y = -0.15; g.add(p);
+      const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(LOBBY_PAL.side)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
       s.add(g);
       const add = document.createElement('button'); add.type = 'button'; add.className = 'slot-add'; add.title = 'Invite a friend'; add.innerHTML = '<i aria-hidden="true">+</i><span>Invite</span>';
       add.addEventListener('click', () => this.openParty());

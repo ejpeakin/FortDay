@@ -92,12 +92,12 @@ button:focus-visible{outline:2px solid var(--sun-2);outline-offset:2px}
 @keyframes playGlow{0%,100%{box-shadow:0 5px 0 #6e0a12,0 10px 26px rgba(255,40,60,.38)}50%{box-shadow:0 5px 0 #6e0a12,0 10px 38px rgba(255,40,60,.7)}}
 /* the season card on the Play tab: what's on now, your level, today's bonus and a featured item */
 .season-card{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;overflow:hidden;
-  background:linear-gradient(135deg,rgba(14,10,22,.95),rgba(26,10,20,.95));border:1px solid rgba(255,59,74,.3);border-left:3px solid #ff3b4a;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+  background:linear-gradient(135deg,rgba(10,18,46,.95),rgba(30,12,30,.95));border:1px solid rgba(74,155,255,.35);border-left:3px solid #ff3b4a;box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .sc-top{display:flex;justify-content:space-between;align-items:center;font:800 11px var(--f-body);letter-spacing:.12em;text-transform:uppercase}
 .sc-k{color:#ff5a66}.sc-left{color:#ffffff}
 .sc-name{font-family:var(--f-display);font-weight:900;font-style:italic;font-size:26px;line-height:1;text-transform:uppercase;letter-spacing:.01em}
 .sc-lvl{display:flex;justify-content:space-between;font:700 12.5px var(--f-body);color:#e8f1ff}.sc-lvl .num{color:var(--mute)}
-.sc-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.sc-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#ffffff,#ff3b4a);transition:width .6s}
+.sc-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.sc-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#4a9bff,#ff3b4a);transition:width .6s}
 .sc-daily{font:600 12px var(--f-body);color:#cfe9ff}.sc-daily b{color:#7dffb0}
 .sc-feat{display:flex;align-items:center;gap:8px;margin-top:2px;padding:7px 10px;border-radius:10px;border:1px solid rgba(255,59,74,.4);background:rgba(10,8,30,.45);color:#fff;font:700 12.5px var(--f-body);text-align:left;cursor:pointer}
 .sc-feat:hover{background:rgba(255,216,74,.14)}.sc-feat em{font-style:normal;color:#ffd84a;margin-left:auto;white-space:nowrap}.sc-feat i{font-style:normal;font:800 10px var(--f-body);letter-spacing:.1em;color:#ff5a66}
@@ -407,10 +407,10 @@ body.touch #chatHint,body.pad #chatHint{display:none}
 .dd{position:absolute;left:-60px;top:-160px;width:120px;height:26px;transform-origin:60px 160px;opacity:0;
   background:radial-gradient(60px 13px at 50% 100%,rgba(255,60,60,.85),transparent 70%)}
 #scope{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 0,transparent min(34vh,34vw),#000 calc(min(34vh,34vw) + 2px))}
-#scope2{position:absolute;inset:0;pointer-events:none;--R:min(26vh,26vw);animation:tkIn .12s ease-out;
-  background:radial-gradient(circle at 50% 50%,transparent calc(var(--R) * 1.25),rgba(0,0,0,.22) calc(var(--R) * 2.6))}
-#scope2 svg{position:absolute;left:50%;top:50%;width:calc(var(--R) * 2.4);height:calc(var(--R) * 2);transform:translate(-50%,-50%);overflow:visible}
-#scope2 .rd{filter:drop-shadow(0 0 3px rgba(255,40,40,.9))}
+#scope2{position:absolute;inset:0;pointer-events:none;--R:min(27vh,27vw);animation:tkIn .12s ease-out;
+  background:radial-gradient(ellipse at 50% 52%,transparent calc(var(--R) * 1.3),rgba(0,0,0,.34) calc(var(--R) * 2.7))}
+#scope2 svg{position:absolute;left:50%;top:50%;width:calc(var(--R) * 2.5);height:calc(var(--R) * 2.5);transform:translate(-50%,-50%);overflow:visible;will-change:transform}
+#scope2 .rd{filter:drop-shadow(0 0 2px rgba(255,40,40,1)) drop-shadow(0 0 6px rgba(255,40,40,.55))}
 #scope::before,#scope::after{content:"";position:absolute;background:rgba(0,0,0,.85)}
 #scope::before{left:50%;top:0;bottom:0;width:1px}
 #scope::after{top:50%;left:0;right:0;height:1px}

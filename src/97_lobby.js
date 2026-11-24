@@ -5,15 +5,15 @@
 const SKIN_SHOW = { rae: 'wave', ranger: 'jacks', moss: 'groove', comet: 'robot', siren: 'robot', toast: 'wave', nightwarden: 'micdrop', tycoon: 'groove',
   stormborn: 'groove', nova: 'airguitar', tripy: 'micdrop', uzi: 'jacks', headliner: 'airguitar', week: 'groove', bruno: 'wave' };
 // the lobby stage's colours (sky top to horizon, the two neon arches, light beams, sparkles, screen text)
-const LOBBY_PAL = { sky: ['#020207', '#08081a', '#110c26', '#2a0c18', '#6e0f18'], arcA: 0xff2a3a, arcB: 0xe8f0ff, beams: [0xff2a3a, 0xffffff], spark: [0xff3b4a, 0xffffff, 0xff8a8a, 0xbfd6ff], accent: '#ff3b4a', glow: '#ff1a2e', ring: 0xff2a3a };
+const LOBBY_PAL = { sky: ['#02040d', '#071030', '#0d1a48', '#2a0f2a', '#6e0f18'], arcA: 0xff2a3a, arcB: 0x3a8bff, beams: [0xff2a3a, 0x4a9bff], spark: [0xff3b4a, 0xffffff, 0x4a9bff, 0x8fc4ff], accent: '#ff3b4a', glow: '#2f7bff', ring: 0xff2a3a, side: 0x3a8bff };
 const Lobby = {
   scene: null, cam: null, rig: null, fake: null, t: 0, tab: 'play', cat: 'outfit', bus: null,
   init() {
-    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0c0a1c, 24, 80);
+    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0a1230, 24, 80);
     s.add(new THREE.HemisphereLight(0xb8d4ff, 0x10284f, 0.85));
     const key = new THREE.DirectionalLight(0xffd9b0, 1.05); key.position.set(3, 6, 6); s.add(key);
     const rim = new THREE.DirectionalLight(0x5a9bff, 0.9); rim.position.set(-4, 4, -6); s.add(rim);
-    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x1c1622)); plat.position.y = -0.2; s.add(plat);
+    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x161c34)); plat.position.y = -0.2; s.add(plat);
     const ring = this.ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
     this.festival(s);
     const isl = new THREE.Group(); const rock = new THREE.Mesh(new THREE.ConeGeometry(7, 9, 7), lam(0x4a5a7a)); rock.rotation.x = Math.PI; rock.position.y = -4.5; isl.add(rock);
@@ -27,8 +27,8 @@ const Lobby = {
     // two party spots beside you: an empty platform with a + to invite, or a friend from your room standing on it
     this.slots = [-1, 1].map(side => {
       const x = side * 2.55, z = -1.15, g = new THREE.Group(); g.position.set(x, 0, z);
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x17121c)); p.position.y = -0.15; g.add(p);
-      const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(0xe8eaf2)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x131a30)); p.position.y = -0.15; g.add(p);
+      const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(LOBBY_PAL.side)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
       s.add(g);
       const add = document.createElement('button'); add.type = 'button'; add.className = 'slot-add'; add.title = 'Invite a friend'; add.innerHTML = '<i aria-hidden="true">+</i><span>Invite</span>';
       add.addEventListener('click', () => this.openParty());

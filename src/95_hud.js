@@ -125,6 +125,11 @@ const HUD = {
     } else if (this.last.chsg !== 'no') { this.last.chsg = 'no'; ch.classList.remove('sg', 'ads', 'rd'); }
     ch.style.display = Cam.scoped || v !== a || a.state === 'bus' ? 'none' : '';
     $('scope').hidden = !(Cam.scoped && Cam.scopeKind !== 'smg'); $('scope2').hidden = !(Cam.scoped && Cam.scopeKind === 'smg');
+    if (!$('scope2').hidden) {
+      const sv = $('scope2').firstElementChild, t = performance.now() / 1000, mv = Math.min(1, Math.hypot(player.vel.x, player.vel.z) / 4);
+      const kx = Math.sin(t * 7.5) * 3 * mv, ky = Math.abs(Math.cos(t * 7.5)) * 2.5 * mv - Math.min(14, (Cam.kickOff || 0) * 900);
+      sv.style.transform = 'translate(calc(-50% + ' + kx.toFixed(1) + 'px), calc(-50% + ' + ky.toFixed(1) + 'px))';
+    }
     // prompt
     const pr = $('prompt'), c = Interact.cur;
     if (a.alive && a.state === 'bus') { pr.style.display = 'block'; pr.innerHTML = '<kbd>' + (Input.pad.on ? 'A' : Input.touch.on ? 'JUMP' : esc(Keys.of('jump')).toUpperCase()) + '</kbd>Jump from the bus'; pr.style.setProperty('--pc', '#4fb0ff'); this.last.pr = null; }
