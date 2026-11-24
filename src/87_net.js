@@ -392,7 +392,7 @@ const Net = {
         for (const [cid, a] of this.humans) if (cid !== from && a.team === me.team) this.send(cid, msg);
       }
       else if (d.k === 'bye') this.dropHuman(from);
-      else if (['bp', 'bd', 'hv', 'sb', 'sl', 'shot', 'rk'].includes(d.k)) { d.id = me.id; this.applyWorld(d); this.toGuests(d, from, d.k === 'shot' || d.k === 'rk' || d.k === 'sl' ? me.pos : null, NET_RANGE); }
+      else if (['bp', 'bd', 'hv', 'sb', 'hd', 'hx', 'sl', 'shot', 'rk'].includes(d.k)) { d.id = me.id; this.applyWorld(d); this.toGuests(d, from, d.k === 'shot' || d.k === 'rk' || d.k === 'sl' ? me.pos : null, NET_RANGE); }
       return;
     }
     if (from !== this.hostId) return;
@@ -421,6 +421,8 @@ const Net = {
       else if (d.k === 'bd') { const p = Build.map.get(d.key); if (p) Build.damage(p, clamp(+d.dmg || 0, 0, 2000), null); }
       else if (d.k === 'sl') { const a = A(d.id); if (a && a !== player && a.alive) { a.slashT = 0.28; a.slashSide = d.s === -1 ? -1 : 1; FX.slash(a.pos.x + Math.sin(a.yaw) * 0.3, a.pos.y + 1.15, a.pos.z + Math.cos(a.yaw) * 0.3, a.yaw, a.slashSide); if (Sfx.vol(a.pos.x, a.pos.y, a.pos.z) > 0.2) Sfx.noise(0.14, 3600, 1.5, 0.16, 'highpass'); } }
       else if (d.k === 'sb') { if (V([d.x, d.y, d.z])) { const L = []; Grid.query(d.x - 0.2, d.z - 0.2, d.x + 0.2, d.z + 0.2, L); for (const c of L) if (!c.dead && !c.piece && !c.harv && Math.abs((c.minX + c.maxX) / 2 - d.x) < 0.02 && Math.abs((c.minY + c.maxY) / 2 - d.y) < 0.02 && Math.abs((c.minZ + c.maxZ) / 2 - d.z) < 0.02) { breakStatic(c); break; } } }
+      else if (d.k === 'hd') { const h = Number.isInteger(d.i) && W.houses[d.i]; if (h) Houses.damage(h, clamp(+d.d || 0, 0, 5000), null, null); }
+      else if (d.k === 'hx') { const h = Number.isInteger(d.i) && W.houses[d.i]; if (h) Houses.collapse(h); }
       else if (d.k === 'hv') { let best = null, bd = 4; for (const hv of W.harv) { if (hv.dead || hv.vehicle) continue; const q = (hv.x - d.x) ** 2 + (hv.z - d.z) ** 2; if (q < bd) { bd = q; best = hv; } } if (best) destroyHarv(best); }
       else if (d.k === 'shot') {
         if (!V(d.m) || !Array.isArray(d.h)) return; const a = A(d.id), col = Number.isFinite(d.c) ? d.c : 0xfff1a8;

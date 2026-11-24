@@ -202,7 +202,7 @@ function slash(a, it, st) {
   // builds, cars, rocks and creatures straight ahead
   const cp = Math.cos(a.pitch), h = raycast(a.pos.x, ey, a.pos.z, fx * cp, Math.sin(a.pitch), fz * cp, R + 0.4, a, false);
   { const ch = shotChest(a, a.pos.x, ey, a.pos.z, fx * cp, Math.sin(a.pitch), fz * cp, h.type ? h.t : R + 0.4); if (ch) { const t = ch.t; shootChest(a, ch.c, a.pos.x + fx * cp * t, ey + Math.sin(a.pitch) * t, a.pos.z + fz * cp * t); } }
-  if (h.type === 'col') { const c = h.obj; if (c.piece) Build.damage(c.piece, st.dmg * st.struct, a); else if (c.harv && c.harv.vehicle) Vehicles.damage(c.harv.vehicle, st.dmg * 0.4); FX.burst(h.x, h.y, h.z, MATS[c.mat] ? MATS[c.mat].color : 0xcccccc, 5, 3, 0.35, 0.08); }
+  if (h.type === 'col') { const c = h.obj; if (c.piece) Build.damage(c.piece, st.dmg * st.struct, a); else if (c.harv && c.harv.vehicle) Vehicles.damage(c.harv.vehicle, st.dmg * 0.4); else if (c.bld) Houses.damage(c.bld, st.dmg * st.struct, a, h); FX.burst(h.x, h.y, h.z, MATS[c.mat] ? MATS[c.mat].color : 0xcccccc, 5, 3, 0.35, 0.08); }
   { const cr = Creatures.ray(a.pos.x, ey, a.pos.z, fx, 0, fz, R + 0.6); if (cr) Creatures.damage(cr.c, st.dmg, a, { x: a.pos.x + fx * cr.t, y: ey, z: a.pos.z + fz * cr.t }); }
   FX.slash(a.pos.x + fx * 0.3, ey - 0.15, a.pos.z + fz * 0.3, a.yaw, a.slashSide);
   if (a === player || Sfx.vol(a.pos.x, a.pos.y, a.pos.z) > 0.2) { Sfx.noise(0.14, 3600, 1.5, 0.16, 'highpass'); if (hits) Sfx.tone(1900, 0.09, 'triangle', 0.07, -700); }
@@ -222,6 +222,7 @@ function applyHit(a, st, h, d, pellets) {
     const c = h.obj;
     if (c.piece) Build.damage(c.piece, st.dmg * st.struct, a);
     else if (c.harv && c.harv.vehicle) Vehicles.damage(c.harv.vehicle, st.dmg * 0.4);
+    else if (c.bld) Houses.damage(c.bld, st.dmg * st.struct, a, pellets > 1 ? null : h);
     FX.burst(h.x, h.y, h.z, MATS[c.mat] ? MATS[c.mat].color : 0x999999, 2, 3, 0.3, 0.07);
   } else if (h.type === 'terrain') FX.burst(h.x, h.y, h.z, 0x8a7a5a, 2, 3, 0.35, 0.08);
   else if (h.type === 'creature') { Creatures.damage(h.obj, st.dmg, a, h); FX.burst(h.x, h.y, h.z, 0xff4050, 3, 3, 0.3, 0.07); }
@@ -365,7 +366,7 @@ function shockBurst(x, y, z, owner, st, fxOnly) {
     damageActor(a, st.dmg * (0.5 + f * 0.5) * (a === owner ? 0.25 : 1), a === owner ? null : owner, { x: a.pos.x, y: a.pos.y + 2, z: a.pos.z, w: 'Shockwave Cannon', kx, kz });
     if (!a.remote) shockLaunch(a, kx, kz);
   }
-  Build.explode(x, y, z, st.splash, st.dmg * st.struct); blastChests(x, y, z, st.splash, owner);
+  Build.explode(x, y, z, st.splash, st.dmg * st.struct); blastChests(x, y, z, st.splash, owner); Houses.blast(x, y, z, st.splash, st.dmg * st.struct, owner);
 }
 // thrown up and away by a shockwave (no fall damage from the landing)
 function shockLaunch(a, kx, kz) {
@@ -389,7 +390,7 @@ function explode(x, y, z, owner, st, fxOnly) {
     damageActor(a, st.dmg * f * (a === owner ? 0.5 : 1), a === owner ? null : owner, { x: a.pos.x, y: a.pos.y + 2, z: a.pos.z, w: 'Thunderclap RPG' });
     const inv = 1 / Math.max(0.5, d); a.vel.x += dx * inv * 9 * f; a.vel.z += dz * inv * 9 * f; a.vel.y += 6 * f; a.onGround = false;
   }
-  Build.explode(x, y, z, st.splash + 1.5, st.dmg * st.struct); blastChests(x, y, z, st.splash, owner);
+  Build.explode(x, y, z, st.splash + 1.5, st.dmg * st.struct); blastChests(x, y, z, st.splash, owner); Houses.blast(x, y, z, st.splash + 1.5, st.dmg * st.struct, owner);
   Vehicles.blast(x, y, z, st.splash + 2, st.dmg * 1.5);
   Creatures.blast(x, y, z, st.splash, st.dmg);
 }
@@ -418,6 +419,7 @@ function swingPick(a) {
     hv.hp -= 50; if (hv.hp <= 0) destroyHarv(hv);
     return;
   }
+  if (c.bld) Houses.damage(c.bld, 50, a, null);
   if (c.sunk == null) c.sunk = c.minY < groundH((c.minX + c.maxX) / 2, (c.minZ + c.maxZ) / 2) - 1.2;   // foundations sunk into the ground stay
   if (c.tough || c.sunk || c.spent) { if (a === player) Sfx.noise(0.05, 1900, 1, 0.12); return; }   // can't be mined (or already mined out): no materials
   gainMats(a, mat, 4, h);
@@ -449,6 +451,71 @@ function flushStaticBreaks() {
   for (const [attr, [s, e]] of _dirtyAttrs) { attr.updateRange.offset = s; attr.updateRange.count = e - s; attr.needsUpdate = true; }
   _dirtyAttrs.clear();
 }
+// ---------------------------------------------------------------- destroyable houses
+// Every house and tower has health. Bullets, katana swings, the pickaxe and blasts wear it down; at zero the whole
+// building comes down in a cloud of debris and leaves a rubble pile. Chests and loot that were inside drop to the ground.
+const Houses = {
+  pend: new Map(), ft: 0,
+  reset() { this.pend.clear(); },
+  // dmg from a local shooter (or from the network when Net.applying)
+  damage(h, dmg, a, at) {
+    if (!h || h.dead || !(dmg > 0)) return;
+    h.hp -= dmg; h.hitT = Match.time;
+    if (a === player && at) HUD.dmgNum(at.x, at.y, at.z, Math.round(dmg), 'build');
+    if (Net.inMatch && !Net.applying) this.pend.set(h.i, (this.pend.get(h.i) || 0) + dmg);
+    if (h.hp <= 0) this.collapse(h);
+  },
+  // a blast hurts every building it reaches (less toward the edge)
+  blast(x, y, z, r, dmg, a) {
+    for (const h of W.houses) {
+      if (h.dead) continue;
+      const dx = Math.max(h.x0 - x, 0, x - h.x1), dz = Math.max(h.z0 - z, 0, z - h.z1), dy = Math.max(h.y0 - y, 0, y - h.y1), d = Math.hypot(dx, dy, dz);
+      if (d < r) this.damage(h, dmg * (1 - d / r * 0.5), a, null);
+    }
+  },
+  collapse(h) {
+    if (h.dead) return; h.dead = true; h.hp = 0;
+    // its triangles fold away, its hitboxes go
+    for (const [bb, s, e] of [[h.b, h.v0, h.v1], [h.eb, h.e0, h.e1]]) {
+      const m = bb && bb._mesh; if (!m || e <= s) continue;
+      const pos = m.geometry.attributes.position; pos.array.fill(0, s * 3, e * 3);
+      const d = _dirtyAttrs.get(pos); if (d) { d[0] = Math.min(d[0], s * 3); d[1] = Math.max(d[1], e * 3); } else _dirtyAttrs.set(pos, [s * 3, e * 3]);
+    }
+    for (const c of h.cols) if (!c.dead) { Grid.remove(c); c.dead = true; }
+    // a rubble pile where it stood
+    { const R = mulberry32((Math.round(h.x * 7) * 92821) ^ Math.round(h.z * 13)), rb = new Batch(), base = MATS[h.mat] ? MATS[h.mat].color : 0x9a9a9a, w = h.x1 - h.x0, d = h.z1 - h.z0;
+      for (let i = 0; i < 26; i++) {
+        const x = h.x0 + 0.6 + R() * (w - 1.2), z = h.z0 + 0.6 + R() * (d - 1.2), s = 0.35 + R() * 0.9, t = 0.15 + R() * 0.5, g = groundAt(x, z, h.y0 + 1);
+        rb.box(x - s, g - 0.1, z - s * 0.7, x + s, g + t, z + s * 0.7, shade(i % 3 ? base : 0x8a8580, 0.7 + R() * 0.4));
+      }
+      W.group.add(rb.mesh(MAT.batch, true)); }
+    // anything that was upstairs drops to the floor
+    const inside = (x, z) => x > h.x0 - 0.3 && x < h.x1 + 0.3 && z > h.z0 - 0.3 && z < h.z1 + 0.3;
+    for (const c of W.chests) if (!c.falling && inside(c.x, c.z)) { const g = groundAt(c.x, c.z, h.y0 + 0.5); if (c.y > g + 0.2) { c.y = g; c.mesh.position.y = g; c.path = []; } }
+    for (const p of Pickups.list) if (p.alive && inside(p.x, p.z)) { const g = groundAt(p.x, p.z, h.y0 + 0.5); if (p.y > g + 0.2) p.y = g; }
+    for (const a of actors) if (a.alive && inside(a.pos.x, a.pos.z) && a.state === 'ground') a.onGround = false;
+    // dust, debris and a rumble
+    const near = camera.position.distanceToSquared(_v4.set(h.x, h.y0, h.z)) < 180 * 180;
+    if (near) {
+      const col = MATS[h.mat] ? MATS[h.mat].color : 0xb5523b, n = Perf.on ? 6 : 14;
+      for (let i = 0; i < n; i++) {
+        const x = h.x0 + Math.random() * (h.x1 - h.x0), z = h.z0 + Math.random() * (h.z1 - h.z0), y = h.y0 + Math.random() * (h.y1 - h.y0) * 0.7;
+        FX.burst(x, y, z, i % 2 ? col : 0xb9b1a4, 8, 6, 1.1, 0.24, 9);
+        FX.burst(x, h.y0 + 0.5, z, 0xcfc8bc, 5, 2.5, 1.6, 0.5, -0.6);
+      }
+      const v = Sfx.vol(h.x, h.y0, h.z);
+      if (v > 0.03) { Sfx.noise(1.4, 140, 0.8, 0.9 * v, 'lowpass'); Sfx.noise(0.7, 520, 1, 0.35 * v); Sfx.harvest(h.mat); }
+      if (Math.hypot(player.pos.x - h.x, player.pos.z - h.z) < 45) Cam.shake = Math.max(Cam.shake || 0, 0.5);
+    }
+    if (Net.inMatch && !Net.applying) Net.emit({ k: 'hx', i: h.i });
+  },
+  // shared matches: send the damage we dealt a few times a second, not on every bullet
+  update(dt) {
+    if (!this.pend.size || (this.ft -= dt) > 0) return; this.ft = 0.25;
+    if (Net.inMatch) for (const [i, d] of this.pend) Net.emit({ k: 'hd', i, d: Math.round(d) });
+    this.pend.clear();
+  },
+};
 function destroyHarv(hv) {
   for (const m of hv.meshes) { m.setMatrixAt(hv.idx, ZERO_M); m.instanceMatrix.needsUpdate = true; }
   Grid.remove(hv.col); hv.dead = true;

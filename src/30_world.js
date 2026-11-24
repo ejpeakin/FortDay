@@ -184,10 +184,15 @@ class Batch {
     const m = new THREE.Mesh(g, mat); m.castShadow = shadows; m.receiveShadow = shadows; this._mesh = m; return m;
   }
 }
+// houses and towers can be shot down: everything built between beginBld and endBld belongs to that building
+let CUR_BLD = null;
+function ownCol(c) { if (CUR_BLD && c) { c.bld = CUR_BLD; CUR_BLD.cols.push(c); } return c; }
+function beginBld(b, eb, mat, hp) { CUR_BLD = { b, eb, v0: b.p.length / 3, e0: eb.p.length / 3, cols: [], chests: [], mat, hp, maxHp: hp, i: W.houses.length }; return CUR_BLD; }
+function endBld(x0, z0, x1, z1, y0, y1) { const h = CUR_BLD; CUR_BLD = null; h.v1 = h.b.p.length / 3; h.e1 = h.eb.p.length / 3; Object.assign(h, { x0, z0, x1, z1, y0, y1, x: (x0 + x1) / 2, z: (z0 + z1) / 2 }); W.houses.push(h); }
 // a box you can see and bump into; it remembers its slice of the batch so mining can break it off
 function solid(b, x0, y0, z0, x1, y1, z1, hex, mat) {
   const v0 = b.p.length / 3; b.box(x0, y0, z0, x1, y1, z1, hex);
-  return Grid.add({ minX: x0, minY: y0, minZ: z0, maxX: x1, maxY: y1, maxZ: z1, kind: 'static', mat: mat || 'brick', vb: b, v0, v1: b.p.length / 3, tough: !!b.tough });
+  return ownCol(Grid.add({ minX: x0, minY: y0, minZ: z0, maxX: x1, maxY: y1, maxZ: z1, kind: 'static', mat: mat || 'brick', vb: b, v0, v1: b.p.length / 3, tough: !!b.tough }));
 }
 function wallSeg(b, axis, a0, a1, fixed, y0, y1, th, open, hex, mat) {
   const box = (s0, s1, yy0, yy1) => {
@@ -211,7 +216,7 @@ function rampGeo(b, x0, z0, x1, z1, y0, rise, dir, hex, thick = 0.22, lift = 0) 
 }
 function addRamp(b, x0, z0, x1, z1, y0, rise, dir, hex, mat) {
   const v0 = b.p.length / 3; rampGeo(b, x0, z0, x1, z1, y0, rise, dir, hex);
-  return Grid.add({ kind: 'ramp', minX: x0, maxX: x1, minZ: z0, maxZ: z1, minY: y0, maxY: y0 + rise, y0, rise, dir, mat: mat || 'wood', vb: b, v0, v1: b.p.length / 3, tough: !!b.tough });
+  return ownCol(Grid.add({ kind: 'ramp', minX: x0, maxX: x1, minZ: z0, maxZ: z1, minY: y0, maxY: y0 + rise, y0, rise, dir, mat: mat || 'wood', vb: b, v0, v1: b.p.length / 3, tough: !!b.tough }));
 }
 
 function rollFloorLoot() {
@@ -350,6 +355,7 @@ function buildHouse(b, eb, p, cx, cz, R) {
   const ddx = p.x - cx, ddz = p.z - cz;
   const door = (two || Math.abs(ddz) >= Math.abs(ddx)) ? (ddz > 0 ? '+z' : '-z') : (ddx > 0 ? '+x' : '-x');
   const DN = DOORN[door];
+  beginBld(b, eb, mat, Math.round((two ? 1900 : 1200) * (mat === 'metal' ? 1.6 : mat === 'brick' ? 1.3 : 1) * (w * d > 100 ? 1.2 : 1)));
   solid(b, x0 - 0.25, fy - 3.2, z0 - 0.25, x1 + 0.25, fy, z1 + 0.25, st.found, 'brick');
   const floors = two ? 2 : 1;
   for (let f = 0; f < floors; f++) {
@@ -484,6 +490,7 @@ function buildHouse(b, eb, p, cx, cz, R) {
   const nl = R() < 0.5 ? 1 : 2;
   for (let i = 0; i < nl; i++) { const q = inner(false); spawnSpot(q.x, fy, q.z, pathIn); }
   if (up && R() < 0.5) { const q = upSpot(); spawnSpot(q.x, up.y, q.z, [doorOut, doorIn, rampB, rampT]); }
+  endBld(x0, z0, x1, z1, fy, fy + (two ? 8 : 4) + 3);
   // yard: a mailbox and a couple of shrubs out front
   if (style === 'town' || style === 'flood') {
     const mx = dcx + DN[0] * 4.2 + (door[1] === 'z' ? 2.4 : 0), mz = dcz + DN[1] * 4.2 + (door[1] === 'x' ? 2.4 : 0);
@@ -497,6 +504,7 @@ function buildTower(b, eb, p, cx, cz, R) {
   const st = STYLES.city;
   const w = pickR(R, [8, 12, 12]), d = pickR(R, [8, 12]), h = pickR(R, [12, 16, 20, 24, 32, 40]);
   const fy = p.h + 0.3, x0 = cx - w / 2, x1 = cx + w / 2, z0 = cz - d / 2, z1 = cz + d / 2;
+  beginBld(b, eb, 'metal', Math.round(1800 + h * 70));
   solid(b, x0, fy - 3, z0, x1, fy + h, z1, pickR(R, st.walls), 'metal');
   const nc = pickR(R, st.neon), nc2 = pickR(R, st.neon);
   for (let y = fy + 3.6; y < fy + h - 1; y += 4) {
@@ -508,6 +516,7 @@ function buildTower(b, eb, p, cx, cz, R) {
   for (const fx of [x0 + 1.5, x1 - 1.5]) { eb.box(fx - 0.1, fy + 2, z0 - 0.08, fx + 0.1, fy + h - 1, z0, nc2); eb.box(fx - 0.1, fy + 2, z1, fx + 0.1, fy + h - 1, z1 + 0.08, nc2); }
   solid(b, x0 - 0.3, fy + h, z0 - 0.3, x1 + 0.3, fy + h + 0.5, z1 + 0.3, 0x15151f, 'metal');
   if (R() < 0.6) eb.box(cx - 0.15, fy + h + 0.5, cz - 0.15, cx + 0.15, fy + h + 6, cz + 0.15, nc);
+  endBld(x0, z0, x1, z1, fy, fy + h + 6);
   const side = R() < 0.5 ? -1 : 1;
   spawnSpot(cx + side * (w / 2 + 1.6), fy, cz, null);
   if (R() < 0.5) addChest('chest', cx + 1, fy + h + 0.5, cz, R() * TAU, null, true);
@@ -674,7 +683,7 @@ function scatterChests(R) {
 }
 function addChest(kind, x, y, z, rot, path, noBot) {
   const mesh = chestMesh(kind); mesh.position.set(x, y, z); mesh.rotation.y = rot || 0; W.group.add(mesh);
-  const c = { kind, x, y, z, rot, path: path ? path.slice() : [], noBot: !!noBot, opened: false, mesh, claim: null, fails: 0 };
+  const c = { kind, x, y, z, rot, path: path ? path.slice() : [], noBot: !!noBot, opened: false, mesh, claim: null, fails: 0 }; if (CUR_BLD) CUR_BLD.chests.push(c);
   W.chests.push(c); return c;
 }
 
@@ -712,7 +721,7 @@ function clearWorld() {
   if (W.group) scene.remove(W.group);
   for (const g of W.disp) g.dispose(); W.disp = [];
   if (waterMesh) { waterMesh.material.dispose(); waterMesh = null; }
-  Grid.clear(); W.harv = []; W.chests = []; W.footprints = []; W.carList = []; W.paths = []; W.pathGrid = null; W.spots = []; W.cls = null; Nature.clear();
+  Grid.clear(); W.harv = []; W.houses = []; Houses.reset(); W.chests = []; W.footprints = []; W.carList = []; W.paths = []; W.pathGrid = null; W.spots = []; W.cls = null; Nature.clear();
   Pickups.clear(); Build.clear(); FX.clear(); Rockets.clear(); Vehicles.clear();
 }
 
