@@ -33,7 +33,7 @@ function boot() {
   { const f = clamp(+Profile.d.fov || 70, 60, 100); $('fovIn').value = f; $('fovVal').textContent = f; }
   $('fovIn').addEventListener('input', e => { Profile.d.fov = +e.target.value; $('fovVal').textContent = Profile.d.fov; Profile.save(); });
   $('shadowChk').checked = !!Profile.d.shadows; $('shadowChk').addEventListener('change', e => { Profile.d.shadows = e.target.checked; sun.castShadow = GFX.shadows(); Profile.save(); });
-  $('perfChk').checked = !!Profile.d.perf; $('perfChk').addEventListener('change', e => { Perf.set(e.target.checked); $('shadowChk').disabled = e.target.checked; $('gfxNote').textContent = e.target.checked ? 'Performance Mode is on. Edge smoothing turns off after you reload the page.' : 'Performance Mode is off. Edge smoothing comes back after you reload the page.'; });
+  $('perfChk').checked = !!Profile.d.perf; $('perfChk').addEventListener('change', e => { Profile.d.perfChosen = true; Perf.set(e.target.checked); $('shadowChk').disabled = e.target.checked; $('gfxNote').textContent = e.target.checked ? 'Performance Mode is on. Edge smoothing turns off after you reload the page.' : 'Performance Mode is off. Edge smoothing comes back after you reload the page.'; });
   $('shadowChk').disabled = !!Profile.d.perf;
   $('gfxSel').value = Profile.d.gfx || 'auto'; $('gfxSel').addEventListener('change', e => { Profile.d.gfx = e.target.value; Profile.save(); GFX.apply(); $('gfxNote').textContent = 'Saved. Grass and edge smoothing change after you reload the page.'; });
   $('fdView').addEventListener('click', () => { if (Match.state === 'play' && !Match.paused && !Input.locked) Input.requestLock(); });

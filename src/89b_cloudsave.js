@@ -4,7 +4,7 @@
 //  different link doesn't lose it. Signed out, progress stays in this browser only, as before.
 //  Device settings (controls, graphics, music, last mode picked) stay per device.
 // =====================================================================
-const CLOUD_LOCAL = ['sens', 'shadows', 'gfx', 'gfxV', 'perf', 'fov', 'keys', 'musVol', 'musOn', 'mode', 'build', 'theme', 'ranked', 'dev', 'ownerCsv', 'tutAsked', 'name', 'acct'];
+const CLOUD_LOCAL = ['sens', 'shadows', 'gfx', 'gfxV', 'perf', 'perfChosen', 'fov', 'keys', 'musVol', 'musOn', 'mode', 'build', 'theme', 'ranked', 'dev', 'ownerCsv', 'tutAsked', 'name', 'acct'];
 const CloudSave = {
   uid: null, on: false, busy: false, dirtyT: 0, lastUp: 0, timer: 0,
   // how much has been played on a save: the bigger one wins when two saves meet

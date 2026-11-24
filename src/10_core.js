@@ -15,6 +15,8 @@ const fmtTime = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) 
 const $ = id => document.getElementById(id);
 const hexCss = h => '#' + h.toString(16).padStart(6, '0');
 const IS_TOUCH = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || false;
+// Chromebooks (Chrome OS) start in Performance Mode; if the player turns it off themselves, that choice sticks
+const IS_CHROMEBOOK = /\bCrOS\b/.test(navigator.userAgent || '') || /chrome ?os/i.test((navigator.userAgentData && navigator.userAgentData.platform) || '');
 
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function weighted(list, r = Math.random) { let s = 0; for (const x of list) s += x.w; let v = r() * s; for (const x of list) { v -= x.w; if (v <= 0) return x; } return list[list.length - 1]; }
@@ -442,6 +444,7 @@ const Profile = {
 };
 Profile.fresh = JSON.parse(JSON.stringify(Profile.d)); Profile.defEq = Profile.fresh.eq;   // a brand-new player's save (CloudSave uses it)
 Profile.load(); Profile.syncSeason();
+if (IS_CHROMEBOOK && !Profile.d.perfChosen && !Profile.d.perf) { Profile.d.perf = true; Profile.save(); }
 
 // ---------------------------------------------------------------- audio (synthesised, starts after first click)
 const Sfx = {
