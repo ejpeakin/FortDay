@@ -187,9 +187,10 @@ function fireWeapon(a) {
   FX.burst(mz.x, mz.y, mz.z, 0xffd27a, 2, 1.5, 0.06, 0.12, 0);
   if (a === player) { Cam.kick += st.type === 'sniper' ? 0.05 : st.type === 'shotgun' ? 0.045 : st.type === 'rocket' ? 0.04 : st.type === 'smg' && a.input.ads ? 0.006 : 0.012; HUD.dirty = true; }
 }
+const SLASH_T = 0.42;   // how long a katana swing's animation runs (the cut itself lands the moment you swing)
 // Japanese Katana: one swing cuts everyone in front of you within reach (and builds in the way)
 function slash(a, it, st) {
-  a.fireCD = 1 / st.rate; a.emote = null; a.lastShotT = Match.time; a.slashT = 0.28; SHOT_N++; a.slashSide = -(a.slashSide || 1);
+  a.fireCD = 1 / st.rate; a.emote = null; a.lastShotT = Match.time; a.slashT = SLASH_T; SHOT_N++; a.slashSide = -(a.slashSide || 1);
   const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), s = a.scale || 1, ey = a.pos.y + 1.3 * s, R = st.range * s; let hits = 0;
   for (const t of actors) {
     if (t === a || !t.alive || t.state === 'bus' || t.vehicle || t.team === a.team) continue;

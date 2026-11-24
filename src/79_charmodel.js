@@ -968,6 +968,18 @@ const CharModel = {
       const hk = showHeld ? held : null;
       if (hk !== R.heldKey) { R.heldKey = hk; while (R.held.children.length) R.held.remove(R.held.children[0]); if (hk) R.held.add(heldModel(hk)); }
     }
+    // ---- katana swing: the shoulders twist into the cut, the blade travels a curved diagonal (fast, then slowing) and eases back to guard
+    let sw = null;
+    if (a.slashT > 0 && gun && WEAPONS[it.wid].melee && a.state === 'ground') {
+      const t = SLASH_T - a.slashT, sd = a.slashSide || 1, ss = x => x * x * (3 - 2 * x);
+      const s = 1 - Math.pow(1 - clamp((t - 0.035) / 0.14, 0, 1), 3);   // a split second raised high, then the cut
+      const w = ss(clamp(t / 0.045, 0, 1)) * (1 - ss(clamp((t - 0.2) / 0.22, 0, 1)));
+      sw = { s, w, sd };
+      const tw = (bone, ang) => { if (!bone) return; bone.parent.getWorldQuaternion(_cmQ3).invert(); _cmV.set(0, 1, 0).applyQuaternion(_cmQ3); _cmQ2.setFromAxisAngle(_cmV, ang); bone.quaternion.premultiply(_cmQ2); bone.updateMatrixWorld(true); };
+      const turnA = sd * (0.42 - 0.95 * s) * w;
+      tw(B.spine_02, turnA * 0.45); tw(B.spine_03, turnA * 0.55);
+      R.root.updateMatrixWorld(true);
+    }
     R.gun.visible = showGun;
     if (showGun) {
       const hold = GRIP[WEAPONS[it.wid].type];
@@ -979,7 +991,12 @@ const CharModel = {
         const p = clamp(pitch, -1.1, 1.1) * (hold.pitchK ?? 1), th = -p - (hold.tilt || 0), o = hold.at, c = Math.cos(th), s = Math.sin(th);
         R.gun.position.set(_cmV.x + o[0], _cmV.y + o[1] * c - o[2] * s, _cmV.z + o[1] * s + o[2] * c); R.gun.rotation.set(th, hold.yaw || 0, hold.roll || 0);
       }
-      if (a.slashT > 0) { const k = 1 - a.slashT / 0.28, sd = a.slashSide || 1; R.gun.rotation.set(-pitch - 0.5 * Math.sin(k * Math.PI), sd * (1.2 - 2.4 * k), sd * 0.6); }   // katana swing
+      if (sw) {   // blend from the guard pose into the cut and back
+        const sd = sw.sd, s = sw.s; _swQ0.copy(R.gun.quaternion);
+        _swE.set(lerp(-1.55, 0.8, s) - clamp(pitch, -0.8, 0.8) * 0.5, sd * lerp(1.15, -1.15, s), sd * lerp(0.7, -0.45, s));
+        R.gun.quaternion.copy(_swQ0).slerp(_swQ1.setFromEuler(_swE), sw.w);
+        R.gun.position.z += 0.15 * Math.sin(s * Math.PI) * sw.w; R.gun.position.y -= 0.07 * s * sw.w; R.gun.position.x -= sd * 0.05 * (1 - 2 * s) * sw.w;
+      }
       if (hold && a.state === 'ground' && !a.inWater && !a.crawl) {
         R.gun.updateMatrixWorld(true);
         const sx = -1, rt = _ikT.set(hold.rh[0], hold.rh[1], hold.rh[2]).applyMatrix4(R.gun.matrixWorld);
@@ -991,6 +1008,7 @@ const CharModel = {
     R.pick.visible = showPick; R.held.visible = showHeld; R.glider.visible = glider;
   },
 };
+const _swQ0 = new THREE.Quaternion(), _swQ1 = new THREE.Quaternion(), _swE = new THREE.Euler();
 const _cmQ = new THREE.Quaternion(), _cmQi = new THREE.Quaternion(), _cmQ2 = new THREE.Quaternion(), _cmQ3 = new THREE.Quaternion(), _cmV = new THREE.Vector3(), _cmV2 = new THREE.Vector3();
 // How each weapon type is held (body space, metres): `at` = where the gun's grip sits relative to the right shoulder,
 // `rh`/`lh` = where the right/left wrist goes on the gun (gun space: grip at 0, barrel along +z). Pistols stay one-handed.
