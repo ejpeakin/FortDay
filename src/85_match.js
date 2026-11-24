@@ -214,14 +214,14 @@ const Match = {
     Net.humans.clear();
     player = newActor({ name: 'You', isPlayer: true, team: 0 });
     actors.push(player);
-    const N = this.mode === 'tutorial' ? 1 : this.mode === 'rumble' ? 32 : 100;
+    const N = this.mode === 'tutorial' ? 1 : this.mode === 'rumble' ? 32 : this.mode === 'trios' ? 99 : 100;   // Trios: 33 full teams of 3
     for (let i = 1; i < N; i++) {
-      const team = this.mode === 'solo' ? i : this.mode === 'squads' ? Math.floor(i / 4) : this.mode === 'duos' ? Math.floor(i / 2) : (i < 16 ? 0 : 1);
+      const team = this.mode === 'rumble' ? (i < 16 ? 0 : 1) : Math.floor(i / (TEAM_SIZE[this.mode] || 1));
       const hm = Net.hosting ? Net.slotMember(i, this.mode) : null;
       if (hm) { const h = newActor({ name: hm.name, team, ri: i - 1, look: Net.lookFromEq(hm.eq), remote: true, human: hm.id, friend: true }); BotRig.setLook(h.ri, h.look); actors.push(h); Net.humans.set(hm.id, h); continue; }   // a friend takes this spot
       const b = newActor({ name: botName(), team, ri: i - 1, look: randomLook() });
       initBotAI(b, clamp(rnd(0.15, 0.85) + (this.ranked ? 0.18 : 0), 0, 1));
-      if ((this.mode === 'squads' || this.mode === 'duos') && team === 0) b.leader = player;
+      if (isTeamMode(this.mode) && team === 0) b.leader = player;
       BotRig.setLook(b.ri, b.look); actors.push(b);
     }
     if (this.mode !== 'rumble' && this.mode !== 'tutorial') for (const v of W.vaults) this.spawnVault(v);
@@ -309,7 +309,7 @@ const Match = {
     if (a === player) { this.spectate = null; Reboot.mine = null; HUD.banner('You are back!', (by || 'Your teammate') + ' brought you back at a Comeback Tower', 3.5); HUD.dirty = true; Sfx.chest(); }
     HUD.feed('<b>' + esc(by || 'A teammate') + '</b> brought back <b>' + esc(a === player ? 'you' : a.name) + '</b>', a === player || (player && a.team === player.team));
   },
-  teamCount() { return this.mode === 'squads' ? 25 : this.mode === 'duos' ? 50 : 100; },
+  teamCount() { return this.mode === 'trios' ? 33 : Math.round(100 / (TEAM_SIZE[this.mode] || 1)); },
   recount() { const s = new Set(); let n = 0; for (const a of actors) if (a.alive && !a.npc) { n++; s.add(a.team); } this.aliveCount = n; this.teamsAlive = s.size; },
   teamAlive(t) { return actors.some(a => a.alive && !a.npc && a.team === t); },
   onElim(t, src, o = {}) {
@@ -331,7 +331,7 @@ const Match = {
   showDeath(src, o = {}) {
     if (document.pointerLockElement) document.exitPointerLock();
     $('dPlace').innerHTML = '#' + player.placement + ' <small>of ' + this.teamCount() + '</small>';
-    $('dTitle').textContent = this.mode === 'squads' ? 'Squad eliminated' : this.mode === 'duos' ? 'Duo eliminated' : 'Eliminated';
+    $('dTitle').textContent = this.mode === 'squads' ? 'Squad eliminated' : this.mode === 'trios' ? 'Trio eliminated' : this.mode === 'duos' ? 'Duo eliminated' : 'Eliminated';
     $('dSub').textContent = src && src !== player ? 'Taken out by ' + src.name + '. ' + player.kills + ' elimination' + (player.kills === 1 ? '' : 's') + ' this match.' : 'Taken out by ' + (o.shark ? 'a shark' : o.storm ? 'the storm' : o.fall ? 'a long fall' : 'the island') + '. ' + player.kills + ' elimination' + (player.kills === 1 ? '' : 's') + ' this match.';
     $('death').hidden = false;
   },
@@ -344,7 +344,7 @@ const Match = {
     this.result = { win, winTeam };
     if (bigWin) { this.endT = 8.5; Victory.start(); }   // #1: the full celebration (skippable)
     else if (win) {
-      Sfx.win(); HUD.banner(this.mode === 'rumble' ? 'Your team wins the Rumble' : '#1 · Last one standing', this.mode === 'squads' ? 'Your squad survived the storm' : this.mode === 'duos' ? 'You and your partner survived the storm' : 'You outlasted every other player', 4);
+      Sfx.win(); HUD.banner(this.mode === 'rumble' ? 'Your team wins the Rumble' : '#1 · Last one standing', this.mode === 'squads' ? 'Your squad survived the storm' : this.mode === 'trios' ? 'Your trio survived the storm' : this.mode === 'duos' ? 'You and your partner survived the storm' : 'You outlasted every other player', 4);
       if (player.alive && player.state === 'ground') { player.emote = Profile.d.eq.emote; player.emoteT = 0; }
     } else {
       const w = actors.find(a => a.alive && !a.npc && a.team === winTeam);
@@ -397,7 +397,7 @@ const Match = {
     $('rPlace').innerHTML = place ? '#' + place + ' <small>of ' + this.teamCount() + '</small>' : (this.score[0] + ' – ' + this.score[1]);
     $('results').classList.toggle('win', place === 1 && !!r.win);
     $('rTitle').textContent = r.win ? (this.mode === 'rumble' ? 'Rumble won' : 'Victory · Last one standing') : (this.mode === 'rumble' ? 'Rumble lost' : 'Match complete');
-    $('rSub').textContent = THEMES[this.theme].name + ' · ' + { solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: 'Storm Rumble', tutorial: 'Tutorial' }[this.mode] + ' · ' + (this.build ? 'Build' : 'No-Build');
+    $('rSub').textContent = THEMES[this.theme].name + ' · ' + MODE_NAME[this.mode] + ' · ' + (this.build ? 'Build' : 'No-Build');
     $('rStats').innerHTML = [['Eliminations', p.kills], ['Damage dealt', p.dmgDealt], ['Survived', fmtTime(p.aliveTime)]].map(s => `<div class="stat"><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
     $('rXp').innerHTML = lines.map(l => `<span class="xpl"><span>${esc(l[0])}</span><b>+${l[1].toLocaleString()} XP</b></span>`).join('')
       + (winCoins ? `<span class="xpl gold"><span>Match reward · ${RANKS[rankI][0]} ×${mc.mult}${mc.capped ? ' (max ' + MATCH_COINS_MAX + ')' : ''}${Profile.hasPass() ? ' · Battle Pass' : ''}</span><b>+${winCoins} ${COIN}</b></span>` : '')
@@ -430,7 +430,7 @@ const Victory = {
   },
   start() {
     const p = player, M = Match; this.on = true; this.t = 0; this.fw = []; this.fwT = 0.5;
-    $('wfSub').textContent = M.mode === 'squads' ? 'Your squad survived the storm' : M.mode === 'duos' ? 'You and your partner survived the storm' : 'You outlasted all ' + (M.teamCount() - 1) + ' other players';
+    $('wfSub').textContent = M.mode === 'squads' ? 'Your squad survived the storm' : M.mode === 'trios' ? 'Your trio survived the storm' : M.mode === 'duos' ? 'You and your partner survived the storm' : 'You outlasted all ' + (M.teamCount() - 1) + ' other players';
     $('wfStats').innerHTML = '<span><b>' + p.kills + '</b> elimination' + (p.kills === 1 ? '' : 's') + '</span><span><b>' + Math.round(p.dmgDealt || 0) + '</b> damage</span><span><b>' + fmtTime(p.aliveTime || 0) + '</b> survived</span>';
     const conf = $('wfConf'), cols = ['#ffd84a', '#ffffff', '#3ff0d0', '#ff7ae0', '#ffb02e', '#7fd8ff']; conf.innerHTML = '';
     for (let i = 0; i < (Perf.on ? 40 : 80); i++) { const e = document.createElement('i'); e.style.left = (Math.random() * 100) + 'vw'; e.style.background = cols[i % cols.length]; e.style.animationDuration = (2.4 + Math.random() * 3) + 's'; e.style.animationDelay = (-Math.random() * 5) + 's'; conf.appendChild(e); }

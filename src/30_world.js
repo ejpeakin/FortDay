@@ -688,6 +688,24 @@ function addChest(kind, x, y, z, rot, path, noBot) {
 }
 
 // ---------------------------------------------------------------- minimap image
+function mapPixel(x, z, tc, wc) {
+  const h = groundH(x, z);
+  if (h < W.waterY) { const dp = clamp((W.waterY - h) / 12, 0, 1); return tc.copy(wc).multiplyScalar(1.1 - dp * 0.45); }
+  const hx = groundH(x + 1.5, z) - h, hz = groundH(x, z + 1.5) - h; const ny = 1 / Math.hypot(hx / 1.5, 1, hz / 1.5);
+  terrainColor(x, h, z, ny, tc); return tc.multiplyScalar(clamp(1 - hx * 0.25 + hz * 0.1, 0.7, 1.25));
+}
+function repaintMap(x0, z0, x1, z1) {
+  const c = W.mapCanvas; if (!c) return; const S = c.width, g = c.getContext('2d'), tc = new THREE.Color(), wc = new THREE.Color(W.theme.water);
+  const px0 = Math.max(0, Math.floor((x0 + W.half) / W.size * S)), px1 = Math.min(S - 1, Math.ceil((x1 + W.half) / W.size * S));
+  const py0 = Math.max(0, Math.floor((z0 + W.half) / W.size * S)), py1 = Math.min(S - 1, Math.ceil((z1 + W.half) / W.size * S));
+  if (px1 < px0 || py1 < py0) return;
+  const w = px1 - px0 + 1, hh = py1 - py0 + 1, img = g.createImageData(w, hh);
+  for (let py = py0; py <= py1; py++) for (let px = px0; px <= px1; px++) {
+    mapPixel((px + 0.5) / S * W.size - W.half, (py + 0.5) / S * W.size - W.half, tc, wc);
+    const k = ((py - py0) * w + (px - px0)) * 4; img.data[k] = clamp(tc.r * 255, 0, 255); img.data[k + 1] = clamp(tc.g * 255, 0, 255); img.data[k + 2] = clamp(tc.b * 255, 0, 255); img.data[k + 3] = 255;
+  }
+  g.putImageData(img, px0, py0);
+}
 function buildMapCanvas() {
   const S = 768, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
   const img = g.createImageData(S, S); const tc = new THREE.Color(), wc = new THREE.Color(W.theme.water);

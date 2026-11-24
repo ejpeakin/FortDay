@@ -454,7 +454,7 @@ function flushStaticBreaks() {
 }
 // ---------------------------------------------------------------- destroyable houses
 // Every house and tower has health. Bullets, katana swings, the pickaxe and blasts wear it down; at zero the whole
-// building comes down in a cloud of debris and leaves a rubble pile. Chests and loot that were inside drop to the ground.
+// building comes down in a cloud of dust and debris and nothing is left standing. Chests and loot that were inside drop to the ground.
 const Houses = {
   pend: new Map(), ft: 0,
   reset() { this.pend.clear(); },
@@ -483,13 +483,7 @@ const Houses = {
       const d = _dirtyAttrs.get(pos); if (d) { d[0] = Math.min(d[0], s * 3); d[1] = Math.max(d[1], e * 3); } else _dirtyAttrs.set(pos, [s * 3, e * 3]);
     }
     for (const c of h.cols) if (!c.dead) { Grid.remove(c); c.dead = true; }
-    // a rubble pile where it stood
-    { const R = mulberry32((Math.round(h.x * 7) * 92821) ^ Math.round(h.z * 13)), rb = new Batch(), base = MATS[h.mat] ? MATS[h.mat].color : 0x9a9a9a, w = h.x1 - h.x0, d = h.z1 - h.z0;
-      for (let i = 0; i < 26; i++) {
-        const x = h.x0 + 0.6 + R() * (w - 1.2), z = h.z0 + 0.6 + R() * (d - 1.2), s = 0.35 + R() * 0.9, t = 0.15 + R() * 0.5, g = groundAt(x, z, h.y0 + 1);
-        rb.box(x - s, g - 0.1, z - s * 0.7, x + s, g + t, z + s * 0.7, shade(i % 3 ? base : 0x8a8580, 0.7 + R() * 0.4));
-      }
-      W.group.add(rb.mesh(MAT.batch, true)); }
+    repaintMap(h.x0 - 0.5, h.z0 - 0.5, h.x1 + 0.5, h.z1 + 0.5);   // gone from the minimap too
     // anything that was upstairs drops to the floor
     const inside = (x, z) => x > h.x0 - 0.3 && x < h.x1 + 0.3 && z > h.z0 - 0.3 && z < h.z1 + 0.3;
     for (const c of W.chests) if (!c.falling && inside(c.x, c.z)) { const g = groundAt(c.x, c.z, h.y0 + 0.5); if (c.y > g + 0.2) { c.y = g; c.mesh.position.y = g; c.path = []; } }

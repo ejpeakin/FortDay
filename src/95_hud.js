@@ -21,7 +21,7 @@ const HUD = {
     $('hud').hidden = false; $('killfeed').innerHTML = ''; Chat.render(); this.dirty = true; this.last = {};
     $('scoreBox').hidden = Match.mode !== 'rumble'; $('aliveLbl').textContent = Match.mode === 'rumble' ? 'to win' : 'left';
     $('mats').style.display = Match.build ? '' : 'none'; $('buildbar').style.display = Match.build && !Input.touch.on ? '' : 'none';
-    $('teamList').style.display = Match.mode === 'squads' || Match.mode === 'duos' ? '' : 'none';
+    $('teamList').style.display = isTeamMode(Match.mode) ? '' : 'none';
     $('death').hidden = true; $('results').hidden = true; $('pause').hidden = true; $('bigmap').hidden = true;
     for (const n of this.nums) { n.t = 0; n.el.style.display = 'none'; }
   },
@@ -161,7 +161,7 @@ const HUD = {
       $('eventTag').textContent = 'Live event · Skywhale crossing';
       const spec = !a.alive && Match.mode !== 'rumble' && v !== a;
       $('specBar').hidden = !spec; if (spec) txt('specBar', 'Spectating ' + v.name + ' · ' + v.kills + ' elims · ' + (Input.touch.on ? 'tap' : 'click or Space') + ' to switch');
-      if (Match.mode === 'squads' || Match.mode === 'duos') {
+      if (isTeamMode(Match.mode)) {
         const mates = actors.filter(m => m.team === player.team && !m.npc);
         $('teamList').innerHTML = mates.map(m => `<div class="tm ${m.alive ? '' : 'dead'}">${esc(m === player ? 'You' : m.name)}<div class="tb"><i style="width:${m.alive ? m.shield * 0.7 : 0}px;background:var(--shield)"></i><i style="width:${m.alive ? m.hp * 0.7 : 0}px;background:var(--hp)"></i></div></div>`).join('');
       }

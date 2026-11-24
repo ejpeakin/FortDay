@@ -952,6 +952,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
       <div class="opt-grid" id="modeGrid">
         <button class="opt" data-mode="solo"><em>100 players</em><b>Battle Royale · Solo</b><span>Everyone for themselves. Drop from the bus, grab loot, stay out of the storm, be the last one left.</span></button>
         <button class="opt" data-mode="duos"><em>Teams of 2</em><b>Battle Royale · Duos</b><span>Team up with a friend from your room, or a bot partner.</span></button>
+        <button class="opt" data-mode="trios"><em>Teams of 3</em><b>Battle Royale · Trios</b><span>You and two teammates, friends from your room or bots, against 32 other trios.</span><i class="tag">New</i></button>
         <button class="opt" data-mode="squads"><em>Teams of 4</em><b>Battle Royale · Squads</b><span>You lead three bot teammates who fight alongside you.</span></button>
         <h3>Other modes</h3>
         <button class="opt" data-mode="rumble"><em>16 vs 16</em><b>Storm Rumble</b><span>You come back after every elimination. First team to 40 wins.</span><i class="tag">Good for practice</i></button>
@@ -1165,7 +1166,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1124-1443';
+const BUILD_ID = '1124-1451';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -1247,6 +1248,10 @@ const WEAPONS = {
 };
 const KATANAS_PER_MATCH = 5;   // hidden in 5 random chests each match
 const GUN_SIZE = { shock: [0.16, 0.2, 0.7], katana: [0.06, 0.07, 1.2], pistol: [0.1, 0.18, 0.42], smg: [0.12, 0.2, 0.62], ar: [0.12, 0.2, 0.95], shotgun: [0.14, 0.18, 0.92], sniper: [0.11, 0.18, 1.35], rocket: [0.26, 0.26, 1.25] };
+// Battle Royale team sizes (Solo is 1, Storm Rumble is its own thing)
+const TEAM_SIZE = { solo: 1, duos: 2, trios: 3, squads: 4 };
+function isTeamMode(m) { return TEAM_SIZE[m] > 1; }
+const MODE_NAME = { solo: 'Solo', duos: 'Duos', trios: 'Trios', squads: 'Squads', rumble: 'Storm Rumble', tutorial: 'Tutorial' };
 const WEAPON_POOL = [{ w: 24, id: 'ar' }, { w: 20, id: 'shotgun' }, { w: 18, id: 'smg' }, { w: 16, id: 'pistol' }, { w: 9, id: 'sniper' }, { w: 5, id: 'rocket' }, { w: 4, id: 'shock' }];
 const RAR_FLOOR = [{ w: 38, r: 0 }, { w: 34, r: 1 }, { w: 19, r: 2 }, { w: 7, r: 3 }, { w: 2, r: 4 }];
 const RAR_CHEST = [{ w: 16, r: 0 }, { w: 34, r: 1 }, { w: 31, r: 2 }, { w: 14, r: 3 }, { w: 5, r: 4 }];
@@ -1539,7 +1544,8 @@ const Profile = {
         if (!o.skinsPaid) { for (const id of ['nova', 'tripy', 'uzi', 'week']) this.d.owned['outfit:' + id] = true; this.d.skinsPaid = true; this.save(); } }
     } catch (e) { /* storage unavailable */ }
   },
-  save() { try { localStorage.setItem('stormbreak.v1', JSON.stringify(this.d)); } catch (e) { /* ignore */ } },
+  onSave: null,   // set by CloudSave (src/89b_cloudsave.js): signed-in players' progress is also kept on their account
+  save() { try { localStorage.setItem('stormbreak.v1', JSON.stringify(this.d)); } catch (e) { /* ignore */ } if (this.onSave) this.onSave(); },
   // season bookkeeping: a new season starts the level track again (earned items stay owned) and ends any ticket
   syncSeason() {
     const d = this.d, id = Season.id();
@@ -1589,6 +1595,7 @@ const Profile = {
     const d = this.d; d.owned['outfit:' + it.id] = true; d.eq.outfit = it.id; d.passPick = Season.id(); this.save(); return true;
   },
 };
+Profile.fresh = JSON.parse(JSON.stringify(Profile.d)); Profile.defEq = Profile.fresh.eq;   // a brand-new player's save (CloudSave uses it)
 Profile.load(); Profile.syncSeason();
 
 // ---------------------------------------------------------------- audio (synthesised, starts after first click)
@@ -2591,6 +2598,24 @@ function addChest(kind, x, y, z, rot, path, noBot) {
 }
 
 // ---------------------------------------------------------------- minimap image
+function mapPixel(x, z, tc, wc) {
+  const h = groundH(x, z);
+  if (h < W.waterY) { const dp = clamp((W.waterY - h) / 12, 0, 1); return tc.copy(wc).multiplyScalar(1.1 - dp * 0.45); }
+  const hx = groundH(x + 1.5, z) - h, hz = groundH(x, z + 1.5) - h; const ny = 1 / Math.hypot(hx / 1.5, 1, hz / 1.5);
+  terrainColor(x, h, z, ny, tc); return tc.multiplyScalar(clamp(1 - hx * 0.25 + hz * 0.1, 0.7, 1.25));
+}
+function repaintMap(x0, z0, x1, z1) {
+  const c = W.mapCanvas; if (!c) return; const S = c.width, g = c.getContext('2d'), tc = new THREE.Color(), wc = new THREE.Color(W.theme.water);
+  const px0 = Math.max(0, Math.floor((x0 + W.half) / W.size * S)), px1 = Math.min(S - 1, Math.ceil((x1 + W.half) / W.size * S));
+  const py0 = Math.max(0, Math.floor((z0 + W.half) / W.size * S)), py1 = Math.min(S - 1, Math.ceil((z1 + W.half) / W.size * S));
+  if (px1 < px0 || py1 < py0) return;
+  const w = px1 - px0 + 1, hh = py1 - py0 + 1, img = g.createImageData(w, hh);
+  for (let py = py0; py <= py1; py++) for (let px = px0; px <= px1; px++) {
+    mapPixel((px + 0.5) / S * W.size - W.half, (py + 0.5) / S * W.size - W.half, tc, wc);
+    const k = ((py - py0) * w + (px - px0)) * 4; img.data[k] = clamp(tc.r * 255, 0, 255); img.data[k + 1] = clamp(tc.g * 255, 0, 255); img.data[k + 2] = clamp(tc.b * 255, 0, 255); img.data[k + 3] = 255;
+  }
+  g.putImageData(img, px0, py0);
+}
 function buildMapCanvas() {
   const S = 768, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
   const img = g.createImageData(S, S); const tc = new THREE.Color(), wc = new THREE.Color(W.theme.water);
@@ -5062,7 +5087,7 @@ function flushStaticBreaks() {
 }
 // ---------------------------------------------------------------- destroyable houses
 // Every house and tower has health. Bullets, katana swings, the pickaxe and blasts wear it down; at zero the whole
-// building comes down in a cloud of debris and leaves a rubble pile. Chests and loot that were inside drop to the ground.
+// building comes down in a cloud of dust and debris and nothing is left standing. Chests and loot that were inside drop to the ground.
 const Houses = {
   pend: new Map(), ft: 0,
   reset() { this.pend.clear(); },
@@ -5091,13 +5116,7 @@ const Houses = {
       const d = _dirtyAttrs.get(pos); if (d) { d[0] = Math.min(d[0], s * 3); d[1] = Math.max(d[1], e * 3); } else _dirtyAttrs.set(pos, [s * 3, e * 3]);
     }
     for (const c of h.cols) if (!c.dead) { Grid.remove(c); c.dead = true; }
-    // a rubble pile where it stood
-    { const R = mulberry32((Math.round(h.x * 7) * 92821) ^ Math.round(h.z * 13)), rb = new Batch(), base = MATS[h.mat] ? MATS[h.mat].color : 0x9a9a9a, w = h.x1 - h.x0, d = h.z1 - h.z0;
-      for (let i = 0; i < 26; i++) {
-        const x = h.x0 + 0.6 + R() * (w - 1.2), z = h.z0 + 0.6 + R() * (d - 1.2), s = 0.35 + R() * 0.9, t = 0.15 + R() * 0.5, g = groundAt(x, z, h.y0 + 1);
-        rb.box(x - s, g - 0.1, z - s * 0.7, x + s, g + t, z + s * 0.7, shade(i % 3 ? base : 0x8a8580, 0.7 + R() * 0.4));
-      }
-      W.group.add(rb.mesh(MAT.batch, true)); }
+    repaintMap(h.x0 - 0.5, h.z0 - 0.5, h.x1 + 0.5, h.z1 + 0.5);   // gone from the minimap too
     // anything that was upstairs drops to the floor
     const inside = (x, z) => x > h.x0 - 0.3 && x < h.x1 + 0.3 && z > h.z0 - 0.3 && z < h.z1 + 0.3;
     for (const c of W.chests) if (!c.falling && inside(c.x, c.z)) { const g = groundAt(c.x, c.z, h.y0 + 0.5); if (c.y > g + 0.2) { c.y = g; c.mesh.position.y = g; c.path = []; } }
@@ -7301,7 +7320,7 @@ function botBuildCover(a, t) {
 }
 
 // =====================================================================
-//  Rescue Tags + Comeback Towers (Duos and Squads)
+//  Rescue Tags + Comeback Towers (Duos, Trios and Squads)
 //  A fallen teammate drops a glowing Rescue Tag. A teammate who grabs it within 90 seconds can carry
 //  it to any Comeback Tower and bring them back: they launch out of the tower on a glider with a
 //  pistol. Each tower then recharges for a minute. Bot teammates do this for you too.
@@ -7312,7 +7331,7 @@ const Reboot = {
   // towers sit just outside the first dozen towns; positions come from the island's seed, so every
   // player in a shared match gets the same ones
   setup(mode) {
-    this.on = mode === 'duos' || mode === 'squads'; this.towers = []; this.mine = null; this.hintK = '';
+    this.on = isTeamMode(mode); this.towers = []; this.mine = null; this.hintK = '';
     if (!this.on || !W.theme) return;
     const R = mulberry32(W.theme.seed * 31 + 17), L = [];
     for (const p of W.pois.slice(0, 12)) {
@@ -7683,14 +7702,14 @@ const Match = {
     Net.humans.clear();
     player = newActor({ name: 'You', isPlayer: true, team: 0 });
     actors.push(player);
-    const N = this.mode === 'tutorial' ? 1 : this.mode === 'rumble' ? 32 : 100;
+    const N = this.mode === 'tutorial' ? 1 : this.mode === 'rumble' ? 32 : this.mode === 'trios' ? 99 : 100;   // Trios: 33 full teams of 3
     for (let i = 1; i < N; i++) {
-      const team = this.mode === 'solo' ? i : this.mode === 'squads' ? Math.floor(i / 4) : this.mode === 'duos' ? Math.floor(i / 2) : (i < 16 ? 0 : 1);
+      const team = this.mode === 'rumble' ? (i < 16 ? 0 : 1) : Math.floor(i / (TEAM_SIZE[this.mode] || 1));
       const hm = Net.hosting ? Net.slotMember(i, this.mode) : null;
       if (hm) { const h = newActor({ name: hm.name, team, ri: i - 1, look: Net.lookFromEq(hm.eq), remote: true, human: hm.id, friend: true }); BotRig.setLook(h.ri, h.look); actors.push(h); Net.humans.set(hm.id, h); continue; }   // a friend takes this spot
       const b = newActor({ name: botName(), team, ri: i - 1, look: randomLook() });
       initBotAI(b, clamp(rnd(0.15, 0.85) + (this.ranked ? 0.18 : 0), 0, 1));
-      if ((this.mode === 'squads' || this.mode === 'duos') && team === 0) b.leader = player;
+      if (isTeamMode(this.mode) && team === 0) b.leader = player;
       BotRig.setLook(b.ri, b.look); actors.push(b);
     }
     if (this.mode !== 'rumble' && this.mode !== 'tutorial') for (const v of W.vaults) this.spawnVault(v);
@@ -7778,7 +7797,7 @@ const Match = {
     if (a === player) { this.spectate = null; Reboot.mine = null; HUD.banner('You are back!', (by || 'Your teammate') + ' brought you back at a Comeback Tower', 3.5); HUD.dirty = true; Sfx.chest(); }
     HUD.feed('<b>' + esc(by || 'A teammate') + '</b> brought back <b>' + esc(a === player ? 'you' : a.name) + '</b>', a === player || (player && a.team === player.team));
   },
-  teamCount() { return this.mode === 'squads' ? 25 : this.mode === 'duos' ? 50 : 100; },
+  teamCount() { return this.mode === 'trios' ? 33 : Math.round(100 / (TEAM_SIZE[this.mode] || 1)); },
   recount() { const s = new Set(); let n = 0; for (const a of actors) if (a.alive && !a.npc) { n++; s.add(a.team); } this.aliveCount = n; this.teamsAlive = s.size; },
   teamAlive(t) { return actors.some(a => a.alive && !a.npc && a.team === t); },
   onElim(t, src, o = {}) {
@@ -7800,7 +7819,7 @@ const Match = {
   showDeath(src, o = {}) {
     if (document.pointerLockElement) document.exitPointerLock();
     $('dPlace').innerHTML = '#' + player.placement + ' <small>of ' + this.teamCount() + '</small>';
-    $('dTitle').textContent = this.mode === 'squads' ? 'Squad eliminated' : this.mode === 'duos' ? 'Duo eliminated' : 'Eliminated';
+    $('dTitle').textContent = this.mode === 'squads' ? 'Squad eliminated' : this.mode === 'trios' ? 'Trio eliminated' : this.mode === 'duos' ? 'Duo eliminated' : 'Eliminated';
     $('dSub').textContent = src && src !== player ? 'Taken out by ' + src.name + '. ' + player.kills + ' elimination' + (player.kills === 1 ? '' : 's') + ' this match.' : 'Taken out by ' + (o.shark ? 'a shark' : o.storm ? 'the storm' : o.fall ? 'a long fall' : 'the island') + '. ' + player.kills + ' elimination' + (player.kills === 1 ? '' : 's') + ' this match.';
     $('death').hidden = false;
   },
@@ -7813,7 +7832,7 @@ const Match = {
     this.result = { win, winTeam };
     if (bigWin) { this.endT = 8.5; Victory.start(); }   // #1: the full celebration (skippable)
     else if (win) {
-      Sfx.win(); HUD.banner(this.mode === 'rumble' ? 'Your team wins the Rumble' : '#1 · Last one standing', this.mode === 'squads' ? 'Your squad survived the storm' : this.mode === 'duos' ? 'You and your partner survived the storm' : 'You outlasted every other player', 4);
+      Sfx.win(); HUD.banner(this.mode === 'rumble' ? 'Your team wins the Rumble' : '#1 · Last one standing', this.mode === 'squads' ? 'Your squad survived the storm' : this.mode === 'trios' ? 'Your trio survived the storm' : this.mode === 'duos' ? 'You and your partner survived the storm' : 'You outlasted every other player', 4);
       if (player.alive && player.state === 'ground') { player.emote = Profile.d.eq.emote; player.emoteT = 0; }
     } else {
       const w = actors.find(a => a.alive && !a.npc && a.team === winTeam);
@@ -7866,7 +7885,7 @@ const Match = {
     $('rPlace').innerHTML = place ? '#' + place + ' <small>of ' + this.teamCount() + '</small>' : (this.score[0] + ' – ' + this.score[1]);
     $('results').classList.toggle('win', place === 1 && !!r.win);
     $('rTitle').textContent = r.win ? (this.mode === 'rumble' ? 'Rumble won' : 'Victory · Last one standing') : (this.mode === 'rumble' ? 'Rumble lost' : 'Match complete');
-    $('rSub').textContent = THEMES[this.theme].name + ' · ' + { solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: 'Storm Rumble', tutorial: 'Tutorial' }[this.mode] + ' · ' + (this.build ? 'Build' : 'No-Build');
+    $('rSub').textContent = THEMES[this.theme].name + ' · ' + MODE_NAME[this.mode] + ' · ' + (this.build ? 'Build' : 'No-Build');
     $('rStats').innerHTML = [['Eliminations', p.kills], ['Damage dealt', p.dmgDealt], ['Survived', fmtTime(p.aliveTime)]].map(s => `<div class="stat"><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
     $('rXp').innerHTML = lines.map(l => `<span class="xpl"><span>${esc(l[0])}</span><b>+${l[1].toLocaleString()} XP</b></span>`).join('')
       + (winCoins ? `<span class="xpl gold"><span>Match reward · ${RANKS[rankI][0]} ×${mc.mult}${mc.capped ? ' (max ' + MATCH_COINS_MAX + ')' : ''}${Profile.hasPass() ? ' · Battle Pass' : ''}</span><b>+${winCoins} ${COIN}</b></span>` : '')
@@ -7899,7 +7918,7 @@ const Victory = {
   },
   start() {
     const p = player, M = Match; this.on = true; this.t = 0; this.fw = []; this.fwT = 0.5;
-    $('wfSub').textContent = M.mode === 'squads' ? 'Your squad survived the storm' : M.mode === 'duos' ? 'You and your partner survived the storm' : 'You outlasted all ' + (M.teamCount() - 1) + ' other players';
+    $('wfSub').textContent = M.mode === 'squads' ? 'Your squad survived the storm' : M.mode === 'trios' ? 'Your trio survived the storm' : M.mode === 'duos' ? 'You and your partner survived the storm' : 'You outlasted all ' + (M.teamCount() - 1) + ' other players';
     $('wfStats').innerHTML = '<span><b>' + p.kills + '</b> elimination' + (p.kills === 1 ? '' : 's') + '</span><span><b>' + Math.round(p.dmgDealt || 0) + '</b> damage</span><span><b>' + fmtTime(p.aliveTime || 0) + '</b> survived</span>';
     const conf = $('wfConf'), cols = ['#ffd84a', '#ffffff', '#3ff0d0', '#ff7ae0', '#ffb02e', '#7fd8ff']; conf.innerHTML = '';
     for (let i = 0; i < (Perf.on ? 40 : 80); i++) { const e = document.createElement('i'); e.style.left = (Math.random() * 100) + 'vw'; e.style.background = cols[i % cols.length]; e.style.animationDuration = (2.4 + Math.random() * 3) + 's'; e.style.animationDelay = (-Math.random() * 5) + 's'; conf.appendChild(e); }
@@ -8461,7 +8480,7 @@ const Net = {
       if (from !== this.hostId || this.isHost) return;
       if (Match.state !== 'lobby') { this.inMatch = false; Match.toLobby(); }
       this.startData = d; this.inMatch = true; Sfx.init();
-      Match.start({ mode: ['solo', 'duos', 'squads', 'rumble'].includes(d.cfg.mode) ? d.cfg.mode : 'solo', build: !!d.cfg.build, ranked: false, theme: THEMES[d.cfg.theme] ? d.cfg.theme : 'greenvale' });
+      Match.start({ mode: ['solo', 'duos', 'trios', 'squads', 'rumble'].includes(d.cfg.mode) ? d.cfg.mode : 'solo', build: !!d.cfg.build, ranked: false, theme: THEMES[d.cfg.theme] ? d.cfg.theme : 'greenvale' });
       return;
     }
     if (!this.inMatch || Match.state === 'lobby') return;
@@ -8748,11 +8767,12 @@ const Social = {
   // ---------------------------------------------------------------- session
   async signedIn(ev) {
     this.unlisten(); this.me = null; this.loaded = false; this.seen.clear(); this.sentInv.clear(); this.found = []; $('socFind').value = '';
-    if (!this.user) { this.state = { friends: [], incoming: [], outgoing: [], invites: [] }; this.online.clear(); this.render(); return; }
+    if (!this.user) { this.state = { friends: [], incoming: [], outgoing: [], invites: [] }; this.online.clear(); CloudSave.signedOut(); this.render(); return; }
     this.render();
     await this.load();
     if (this.me) {
       Profile.d.name = this.me.username; Profile.save(); Net.tellProfile(); Lobby.refresh();
+      CloudSave.signedIn();   // bring this account's saved progress here (and keep saving it)
       if (ev === 'SIGNED_IN' && !this.recovering) this.say('Signed in as ' + this.me.username + '.');
       this.listen();
     } else this.say('Your account has no player name yet. Sign out and create the account again.', true);
@@ -8993,6 +9013,69 @@ const Social = {
     if ($('socLists').innerHTML !== h) $('socLists').innerHTML = h;
   },
 };
+
+// =====================================================================
+//  Cloud save: a signed-in player's progress lives on their account (Supabase table "progress",
+//  see supabase/schema.sql), so clearing the browser, switching devices or opening the game from a
+//  different link doesn't lose it. Signed out, progress stays in this browser only, as before.
+//  Device settings (controls, graphics, music, last mode picked) stay per device.
+// =====================================================================
+const CLOUD_LOCAL = ['sens', 'shadows', 'gfx', 'gfxV', 'perf', 'fov', 'keys', 'musVol', 'musOn', 'mode', 'build', 'theme', 'ranked', 'dev', 'ownerCsv', 'tutAsked', 'name', 'acct'];
+const CloudSave = {
+  uid: null, on: false, busy: false, dirtyT: 0, lastUp: 0, timer: 0,
+  // how much has been played on a save: the bigger one wins when two saves meet
+  score(d) { return d ? (+d.xp || 0) + (+d.matches || 0) * 40 + (+d.wins || 0) * 300 + Object.keys(d.owned || {}).length * 400 + (+d.coins || 0) * 0.5 : 0; },
+  async signedIn() {
+    const sb = Social.sb, u = Social.user; if (!sb || !u) return;
+    this.uid = u.id; this.on = false;
+    const { data, error } = await sb.rpc('load_progress');
+    if (Social.user !== u) return;   // signed out (or into another account) while loading
+    if (error) { console.warn('FortDay cloud save is not set up yet (run supabase/schema.sql again):', error.message); return; }
+    const d = Profile.d, cloud = data && typeof data === 'object' ? data : null;
+    const mine = d.acct === u.id, other = d.acct && d.acct !== u.id;   // this browser's save belongs to this account / to someone else's account
+    let msg = '';
+    if (cloud && (other || this.score(cloud) > this.score(d))) {
+      // the account's save is the real one: take its progress, keep this device's settings
+      const keep = {}; for (const k of CLOUD_LOCAL) if (k in d) keep[k] = d[k];
+      const ownedHere = other ? {} : Object.assign({}, d.owned);
+      for (const k of Object.keys(d)) if (!CLOUD_LOCAL.includes(k)) delete d[k];
+      Object.assign(d, cloud, keep);
+      d.eq = Object.assign({}, Profile.defEq, cloud.eq || {}); d.owned = Object.assign(ownedHere, cloud.owned || {});
+      msg = 'Your saved progress was loaded from your account.';
+    } else if (other && !cloud) {
+      // a brand-new account in a browser that holds someone else's progress: start this account fresh
+      const keep = {}; for (const k of CLOUD_LOCAL) if (k in d) keep[k] = d[k];
+      for (const k of Object.keys(d)) delete d[k];
+      Object.assign(d, JSON.parse(JSON.stringify(Profile.fresh)), keep);
+      msg = 'New account: your progress starts here and is saved online.';
+    } else {
+      if (cloud) d.owned = Object.assign({}, cloud.owned || {}, d.owned);   // this browser is ahead: keep it, plus anything the account owned
+      if (!mine) msg = 'Your progress is now saved to your account. Sign in on any device to keep playing where you left off.';
+    }
+    d.acct = u.id; this.on = true;
+    try { localStorage.setItem('stormbreak.v1', JSON.stringify(d)); } catch (e) { /* ignore */ }
+    if (typeof Profile.syncSeason === 'function') Profile.syncSeason();
+    Lobby.refresh(); HUD.dirty = true;
+    await this.upload();
+    if (msg) Social.note(msg);
+  },
+  signedOut() { this.on = false; this.uid = null; clearTimeout(this.timer); },
+  // every Profile.save() while signed in: upload a few seconds later (many saves in a row become one upload)
+  dirty() { if (!this.on) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.upload(), 4000); },
+  async upload() {
+    if (!this.on || !Social.sb || !Social.user || Social.user.id !== this.uid) return;
+    if (this.busy) { this.dirty(); return; }
+    this.busy = true; clearTimeout(this.timer);
+    try {
+      const { error } = await Social.sb.rpc('save_progress', { p: Profile.d });
+      if (error) console.warn('FortDay cloud save failed:', error.message); else this.lastUp = Date.now();
+    } catch (e) { console.warn('FortDay cloud save failed', e); }
+    this.busy = false;
+  },
+};
+Profile.onSave = () => CloudSave.dirty();
+// leaving the page: send what's left right away
+addEventListener('visibilitychange', () => { if (document.hidden && CloudSave.on && CloudSave.timer) CloudSave.upload(); });
 
 // =====================================================================
 //  Input (keyboard, mouse, touch), camera, player control
@@ -9542,12 +9625,12 @@ const SprintWind = {
 };
 
 // =====================================================================
-//  Team chat (Duos and Squads): Enter opens a box, Enter sends to your team only, Escape closes.
+//  Team chat (Duos, Trios and Squads): Enter opens a box, Enter sends to your team only, Escape closes.
 //  Online it goes to teammates' games through the host; bot teammates answer now and then.
 // =====================================================================
 const Chat = {
   on: false, lines: [], lastSend: 0,
-  team() { return Match.mode === 'duos' || Match.mode === 'squads'; },
+  team() { return isTeamMode(Match.mode); },
   init() {
     const inp = $('chatIn');
     // capture phase: while typing, keys never reach the game (no moving, building or pausing)
@@ -9629,7 +9712,7 @@ const HUD = {
     $('hud').hidden = false; $('killfeed').innerHTML = ''; Chat.render(); this.dirty = true; this.last = {};
     $('scoreBox').hidden = Match.mode !== 'rumble'; $('aliveLbl').textContent = Match.mode === 'rumble' ? 'to win' : 'left';
     $('mats').style.display = Match.build ? '' : 'none'; $('buildbar').style.display = Match.build && !Input.touch.on ? '' : 'none';
-    $('teamList').style.display = Match.mode === 'squads' || Match.mode === 'duos' ? '' : 'none';
+    $('teamList').style.display = isTeamMode(Match.mode) ? '' : 'none';
     $('death').hidden = true; $('results').hidden = true; $('pause').hidden = true; $('bigmap').hidden = true;
     for (const n of this.nums) { n.t = 0; n.el.style.display = 'none'; }
   },
@@ -9769,7 +9852,7 @@ const HUD = {
       $('eventTag').textContent = 'Live event · Skywhale crossing';
       const spec = !a.alive && Match.mode !== 'rumble' && v !== a;
       $('specBar').hidden = !spec; if (spec) txt('specBar', 'Spectating ' + v.name + ' · ' + v.kills + ' elims · ' + (Input.touch.on ? 'tap' : 'click or Space') + ' to switch');
-      if (Match.mode === 'squads' || Match.mode === 'duos') {
+      if (isTeamMode(Match.mode)) {
         const mates = actors.filter(m => m.team === player.team && !m.npc);
         $('teamList').innerHTML = mates.map(m => `<div class="tm ${m.alive ? '' : 'dead'}">${esc(m === player ? 'You' : m.name)}<div class="tb"><i style="width:${m.alive ? m.shield * 0.7 : 0}px;background:var(--shield)"></i><i style="width:${m.alive ? m.hp * 0.7 : 0}px;background:var(--hp)"></i></div></div>`).join('');
       }
@@ -10174,14 +10257,14 @@ const Lobby = {
   },
   // what PLAY will start, in plain words (shown on the button)
   summary() {
-    const d = Profile.d, m = { solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: 'Storm Rumble' }[d.mode] || 'Solo';
+    const d = Profile.d, m = MODE_NAME[d.mode] || 'Solo';
     return [m, d.build ? 'Build' : 'No-Build', d.ranked && d.mode !== 'rumble' && Net.state !== 'room' ? 'Ranked' : ''].filter(Boolean).join(' · ');
   },
   // the mode card and the Unranked / Ranked switch next to PLAY
   modeBar() {
     const d = Profile.d, room = typeof Net !== 'undefined' && Net.state === 'room', guest = room && !Net.isHost, br = d.mode !== 'rumble';
     $('modeName').textContent = br ? 'Battle Royale' : 'Storm Rumble';
-    $('modeSub').textContent = [{ solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: '16 vs 16' }[d.mode] || 'Solo', d.build ? 'Build' : 'No-Build'].join(' · ');
+    $('modeSub').textContent = [(d.mode === 'rumble' ? '16 vs 16' : MODE_NAME[d.mode]) || 'Solo', d.build ? 'Build' : 'No-Build'].join(' · ');
     $('modeBtn').disabled = guest; $('modeBtn').title = guest ? 'The host picks the mode' : 'Change mode';
     const off = !br || room, ranked = !!d.ranked && !off;
     for (const b of $('rankSeg').children) { const on = (b.dataset.ranked === '1') === ranked; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); b.disabled = off && b.dataset.ranked === '1'; }

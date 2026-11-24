@@ -113,14 +113,14 @@ const Lobby = {
   },
   // what PLAY will start, in plain words (shown on the button)
   summary() {
-    const d = Profile.d, m = { solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: 'Storm Rumble' }[d.mode] || 'Solo';
+    const d = Profile.d, m = MODE_NAME[d.mode] || 'Solo';
     return [m, d.build ? 'Build' : 'No-Build', d.ranked && d.mode !== 'rumble' && Net.state !== 'room' ? 'Ranked' : ''].filter(Boolean).join(' · ');
   },
   // the mode card and the Unranked / Ranked switch next to PLAY
   modeBar() {
     const d = Profile.d, room = typeof Net !== 'undefined' && Net.state === 'room', guest = room && !Net.isHost, br = d.mode !== 'rumble';
     $('modeName').textContent = br ? 'Battle Royale' : 'Storm Rumble';
-    $('modeSub').textContent = [{ solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: '16 vs 16' }[d.mode] || 'Solo', d.build ? 'Build' : 'No-Build'].join(' · ');
+    $('modeSub').textContent = [(d.mode === 'rumble' ? '16 vs 16' : MODE_NAME[d.mode]) || 'Solo', d.build ? 'Build' : 'No-Build'].join(' · ');
     $('modeBtn').disabled = guest; $('modeBtn').title = guest ? 'The host picks the mode' : 'Change mode';
     const off = !br || room, ranked = !!d.ranked && !off;
     for (const b of $('rankSeg').children) { const on = (b.dataset.ranked === '1') === ranked; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); b.disabled = off && b.dataset.ranked === '1'; }

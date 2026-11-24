@@ -1,5 +1,5 @@
 // =====================================================================
-//  Rescue Tags + Comeback Towers (Duos and Squads)
+//  Rescue Tags + Comeback Towers (Duos, Trios and Squads)
 //  A fallen teammate drops a glowing Rescue Tag. A teammate who grabs it within 90 seconds can carry
 //  it to any Comeback Tower and bring them back: they launch out of the tower on a glider with a
 //  pistol. Each tower then recharges for a minute. Bot teammates do this for you too.
@@ -10,7 +10,7 @@ const Reboot = {
   // towers sit just outside the first dozen towns; positions come from the island's seed, so every
   // player in a shared match gets the same ones
   setup(mode) {
-    this.on = mode === 'duos' || mode === 'squads'; this.towers = []; this.mine = null; this.hintK = '';
+    this.on = isTeamMode(mode); this.towers = []; this.mine = null; this.hintK = '';
     if (!this.on || !W.theme) return;
     const R = mulberry32(W.theme.seed * 31 + 17), L = [];
     for (const p of W.pois.slice(0, 12)) {

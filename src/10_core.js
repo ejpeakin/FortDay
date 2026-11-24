@@ -79,6 +79,10 @@ const WEAPONS = {
 };
 const KATANAS_PER_MATCH = 5;   // hidden in 5 random chests each match
 const GUN_SIZE = { shock: [0.16, 0.2, 0.7], katana: [0.06, 0.07, 1.2], pistol: [0.1, 0.18, 0.42], smg: [0.12, 0.2, 0.62], ar: [0.12, 0.2, 0.95], shotgun: [0.14, 0.18, 0.92], sniper: [0.11, 0.18, 1.35], rocket: [0.26, 0.26, 1.25] };
+// Battle Royale team sizes (Solo is 1, Storm Rumble is its own thing)
+const TEAM_SIZE = { solo: 1, duos: 2, trios: 3, squads: 4 };
+function isTeamMode(m) { return TEAM_SIZE[m] > 1; }
+const MODE_NAME = { solo: 'Solo', duos: 'Duos', trios: 'Trios', squads: 'Squads', rumble: 'Storm Rumble', tutorial: 'Tutorial' };
 const WEAPON_POOL = [{ w: 24, id: 'ar' }, { w: 20, id: 'shotgun' }, { w: 18, id: 'smg' }, { w: 16, id: 'pistol' }, { w: 9, id: 'sniper' }, { w: 5, id: 'rocket' }, { w: 4, id: 'shock' }];
 const RAR_FLOOR = [{ w: 38, r: 0 }, { w: 34, r: 1 }, { w: 19, r: 2 }, { w: 7, r: 3 }, { w: 2, r: 4 }];
 const RAR_CHEST = [{ w: 16, r: 0 }, { w: 34, r: 1 }, { w: 31, r: 2 }, { w: 14, r: 3 }, { w: 5, r: 4 }];
@@ -371,7 +375,8 @@ const Profile = {
         if (!o.skinsPaid) { for (const id of ['nova', 'tripy', 'uzi', 'week']) this.d.owned['outfit:' + id] = true; this.d.skinsPaid = true; this.save(); } }
     } catch (e) { /* storage unavailable */ }
   },
-  save() { try { localStorage.setItem('stormbreak.v1', JSON.stringify(this.d)); } catch (e) { /* ignore */ } },
+  onSave: null,   // set by CloudSave (src/89b_cloudsave.js): signed-in players' progress is also kept on their account
+  save() { try { localStorage.setItem('stormbreak.v1', JSON.stringify(this.d)); } catch (e) { /* ignore */ } if (this.onSave) this.onSave(); },
   // season bookkeeping: a new season starts the level track again (earned items stay owned) and ends any ticket
   syncSeason() {
     const d = this.d, id = Season.id();
@@ -421,6 +426,7 @@ const Profile = {
     const d = this.d; d.owned['outfit:' + it.id] = true; d.eq.outfit = it.id; d.passPick = Season.id(); this.save(); return true;
   },
 };
+Profile.fresh = JSON.parse(JSON.stringify(Profile.d)); Profile.defEq = Profile.fresh.eq;   // a brand-new player's save (CloudSave uses it)
 Profile.load(); Profile.syncSeason();
 
 // ---------------------------------------------------------------- audio (synthesised, starts after first click)

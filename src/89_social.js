@@ -47,11 +47,12 @@ const Social = {
   // ---------------------------------------------------------------- session
   async signedIn(ev) {
     this.unlisten(); this.me = null; this.loaded = false; this.seen.clear(); this.sentInv.clear(); this.found = []; $('socFind').value = '';
-    if (!this.user) { this.state = { friends: [], incoming: [], outgoing: [], invites: [] }; this.online.clear(); this.render(); return; }
+    if (!this.user) { this.state = { friends: [], incoming: [], outgoing: [], invites: [] }; this.online.clear(); CloudSave.signedOut(); this.render(); return; }
     this.render();
     await this.load();
     if (this.me) {
       Profile.d.name = this.me.username; Profile.save(); Net.tellProfile(); Lobby.refresh();
+      CloudSave.signedIn();   // bring this account's saved progress here (and keep saving it)
       if (ev === 'SIGNED_IN' && !this.recovering) this.say('Signed in as ' + this.me.username + '.');
       this.listen();
     } else this.say('Your account has no player name yet. Sign out and create the account again.', true);

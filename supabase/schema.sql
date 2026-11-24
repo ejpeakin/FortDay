@@ -188,6 +188,32 @@ begin
   delete from party_invites where id = inv and to_id = auth.uid();
 end $$;
 
+-- ---------------------------------------------------------------- saved progress (cloud save)
+-- Each player's progress (level, XP, FortBux, owned items, stats) so it follows their account to any
+-- device or browser. Only the owner can read or write their own row, through the two functions below.
+create table if not exists public.progress (
+  id uuid primary key references public.profiles (id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.progress enable row level security;
+drop policy if exists "see your own progress" on public.progress;
+create policy "see your own progress" on public.progress for select to authenticated using (auth.uid() = id);
+
+create or replace function public.load_progress() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select data from progress where id = auth.uid();
+$$;
+
+create or replace function public.save_progress(p jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'Sign in first'; end if;
+  if jsonb_typeof(p) <> 'object' or pg_column_size(p) > 100000 then raise exception 'That save does not look right'; end if;
+  insert into progress (id, data, updated_at) values (auth.uid(), p, now())
+  on conflict (id) do update set data = excluded.data, updated_at = now();
+end $$;
+
 -- ---------------------------------------------------------------- who may call what
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
 revoke execute on function public.are_friends(uuid, uuid) from public, anon, authenticated;
@@ -197,7 +223,7 @@ do $$
 declare f text;
 begin
   foreach f in array array['social_state()', 'search_players(text)', 'send_friend_request(uuid)', 'respond_friend_request(bigint, boolean)',
-    'cancel_friend_request(bigint)', 'remove_friend(uuid)', 'set_email_notify(boolean)', 'send_party_invite(uuid, text)', 'dismiss_party_invite(bigint)'] loop
+    'cancel_friend_request(bigint)', 'remove_friend(uuid)', 'set_email_notify(boolean)', 'send_party_invite(uuid, text)', 'dismiss_party_invite(bigint)', 'load_progress()', 'save_progress(jsonb)'] loop
     execute 'revoke execute on function public.' || f || ' from public, anon';
     execute 'grant execute on function public.' || f || ' to authenticated';
   end loop;

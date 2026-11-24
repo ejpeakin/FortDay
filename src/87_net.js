@@ -367,7 +367,7 @@ const Net = {
       if (from !== this.hostId || this.isHost) return;
       if (Match.state !== 'lobby') { this.inMatch = false; Match.toLobby(); }
       this.startData = d; this.inMatch = true; Sfx.init();
-      Match.start({ mode: ['solo', 'duos', 'squads', 'rumble'].includes(d.cfg.mode) ? d.cfg.mode : 'solo', build: !!d.cfg.build, ranked: false, theme: THEMES[d.cfg.theme] ? d.cfg.theme : 'greenvale' });
+      Match.start({ mode: ['solo', 'duos', 'trios', 'squads', 'rumble'].includes(d.cfg.mode) ? d.cfg.mode : 'solo', build: !!d.cfg.build, ranked: false, theme: THEMES[d.cfg.theme] ? d.cfg.theme : 'greenvale' });
       return;
     }
     if (!this.inMatch || Match.state === 'lobby') return;

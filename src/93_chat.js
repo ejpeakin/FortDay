@@ -1,10 +1,10 @@
 // =====================================================================
-//  Team chat (Duos and Squads): Enter opens a box, Enter sends to your team only, Escape closes.
+//  Team chat (Duos, Trios and Squads): Enter opens a box, Enter sends to your team only, Escape closes.
 //  Online it goes to teammates' games through the host; bot teammates answer now and then.
 // =====================================================================
 const Chat = {
   on: false, lines: [], lastSend: 0,
-  team() { return Match.mode === 'duos' || Match.mode === 'squads'; },
+  team() { return isTeamMode(Match.mode); },
   init() {
     const inp = $('chatIn');
     // capture phase: while typing, keys never reach the game (no moving, building or pausing)
