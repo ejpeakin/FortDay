@@ -200,6 +200,7 @@ const Net = {
     const rb = $('readyBtn'), waiting = this.state === 'room' && !this.isHost;
     rb.disabled = waiting; { const main = waiting ? 'WAITING FOR HOST' : this.state === 'room' ? 'START MATCH · ' + this.members.length + (this.members.length === 1 ? ' PLAYER' : ' PLAYERS') : 'PLAY', sub = waiting ? 'The host picks the mode and starts the match' : typeof Lobby !== 'undefined' ? Lobby.summary() : '', key = main + '|' + sub;
       if (rb.dataset.k !== key) { rb.dataset.k = key; rb.innerHTML = '<span class="rb-main">' + esc(main) + '</span><span class="rb-sub">' + esc(sub) + '</span>'; } }
+    if (typeof Lobby !== 'undefined' && $('modeBtn')) Lobby.modeBar();   // guests can't change the mode, and rooms play unranked
     if (sig === this.sig) return; this.sig = sig;
     const err = this.err ? `<div class="mp-err">${esc(this.err)}</div>` : '';
     if (!this.supported) { box.innerHTML = '<div class="hint">Multiplayer works on the website version of FortDay. This copy plays against bots.</div>'; return; }
@@ -207,7 +208,7 @@ const Net = {
     if (this.state === 'room') {
       box.innerHTML = `<div class="mp-code">Room code <b>${esc(this.code)}</b></div>`
         + `<div class="mp-list">${this.members.map(m => `<span class="${m.id === this.me ? 'me' : ''}">${esc(m.name)}${m.id === this.hostId ? ' <i>host</i>' : ''}${m.id === this.me ? ' <i>you</i>' : ''}</span>`).join('')}</div>`
-        + `<div class="hint">${this.isHost ? 'Share the code. Pick the mode and island below, then press START MATCH. Bots fill the other spots.' : 'The host picks the mode and island and starts the match.'}</div>`
+        + `<div class="hint">${this.isHost ? 'Share the code. Pick the mode above START MATCH, then press it. Bots fill the other spots.' : 'The host picks the mode and island and starts the match.'}</div>`
         + `<div class="mp-row"><button data-mp="leave">Leave room</button></div>` + err;
       return;
     }

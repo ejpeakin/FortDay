@@ -19,6 +19,11 @@
 
 <!-- ================= LOBBY ================= -->
 <div id="lobby">
+  <!-- name over your character and the party spots beside you; Lobby.render moves these to follow the 3D stage -->
+  <div id="notes" aria-live="polite"></div>
+  <div id="stageUI">
+    <label class="name-plate" id="namePlate" title="Click to change your name"><input id="nameIn" maxlength="16" placeholder="Type your name" autocomplete="off" spellcheck="false" aria-label="Your player name"></label>
+  </div>
   <header class="lb-top">
     <div class="logo">FORT<span>DAY</span></div>
     <nav class="tabs" id="tabs">
@@ -36,48 +41,35 @@
 
   <div class="side">
     <section class="panel" id="tab-play">
-      <div class="welcome" id="welcome" hidden>
-        <b>Welcome to FortDay!</b>
-        <ol>
-          <li>New here? Take the quick <b>Tutorial</b> just below.</li>
-          <li>Pick a <b>mode</b>, a <b>combat style</b> and an <b>island</b>.</li>
-          <li>Press <b>PLAY</b>. Be the last one standing to win.</li>
-        </ol>
-      </div>
-      <label class="name-row"><span>Your player name</span><input id="nameIn" maxlength="16" placeholder="Type a name" autocomplete="off" spellcheck="false"></label>
       <button class="tut-card" id="tutBtn" type="button"><span class="tut-badge" id="tutBadge" hidden>Recommended for new players</span><b>Tutorial</b><span>Learn to move, build, loot and fight in a few minutes</span></button>
-      <h3 class="step"><i>1</i>Pick a mode</h3>
-      <div class="opt-grid" id="modeGrid">
-        <button class="opt" data-mode="solo"><em>100 players</em><b>Battle Royale · Solo</b><span>Everyone for themselves. Drop from the bus, grab loot, stay out of the storm, be the last one left.</span></button>
-        <button class="opt" data-mode="duos"><em>Teams of 2</em><b>Battle Royale · Duos</b><span>Team up with a friend from your room, or a bot partner.</span></button>
-        <button class="opt" data-mode="squads"><em>Teams of 4</em><b>Battle Royale · Squads</b><span>You lead three bot teammates who fight alongside you.</span></button>
-        <button class="opt" data-mode="rumble"><em>16 vs 16</em><b>Storm Rumble</b><span>You come back after every elimination. First team to 40 wins.</span><i class="tag">Good for practice</i></button>
-      </div>
-      <h3 class="step"><i>2</i>Combat style</h3>
-      <div class="seg" id="buildSeg">
-        <button data-build="1"><b>Build</b><span>Walls, ramps and floors</span></button>
-        <button data-build="0"><b>No-Build</b><span>Easier to learn</span></button>
-      </div>
-      <div class="hint" id="buildHint"></div>
-      <h3 class="step"><i>3</i>Island</h3>
-      <div class="isl-grid" id="islGrid"></div>
-      <div class="hint" id="islNote"></div>
-      <label class="check"><input type="checkbox" id="rankedChk"><span><b>Ranked</b> <span class="hint">Optional. Tougher bots, and you win or lose rank points.</span></span></label>
-      <h3>Play with friends <span class="h-opt">optional</span></h3>
-      <div class="mp" id="mpBox"></div>
-      <details class="ctl" id="ctlBox">
-        <summary>Controls</summary>
-        <div class="ctl-grid" id="kbHint"></div>
-        <div class="hint">Change any key in <b>Settings</b> (top right).</div>
-        <h4>Controller</h4>
-        <div class="ctl-grid">
-          <span>Shoot</span><span><kbd>RT</kbd></span><span>Aim</span><span><kbd>LT</kbd></span><span>Jump</span><span><kbd>A</kbd></span>
-          <span>Pick up / reload</span><span><kbd>X</kbd></span><span>Harvesting tool</span><span><kbd>Y</kbd></span><span>Switch slots</span><span><kbd>LB</kbd> <kbd>RB</kbd></span>
-          <span>Build</span><span><kbd>B</kbd></span><span>Sprint</span><span><kbd>L3</kbd></span>
+      <details class="w-card soc" id="socBox" hidden open>
+        <summary><span class="w-k">Friends <i class="soc-badge" id="socBadge" hidden></i></span><b id="socSum">Sign in</b><span class="w-sub" id="socSub">Make an account to add friends</span></summary>
+        <div class="soc-auth" id="socAuth">
+          <div class="seg soc-tabs" id="socTabs"><button type="button" data-soc-mode="in" class="on">Sign in</button><button type="button" data-soc-mode="up">Create account</button></div>
+          <label class="soc-f" id="socNameRow" hidden><span>Player name</span><input id="socName" maxlength="16" autocomplete="username" spellcheck="false" placeholder="3–16 letters, numbers or _"></label>
+          <label class="soc-f"><span>Email</span><input id="socEmail" type="email" autocomplete="email" spellcheck="false" placeholder="you@example.com"></label>
+          <label class="soc-f"><span>Password</span><input id="socPass" type="password" autocomplete="current-password" placeholder="At least 8 characters"></label>
+          <button class="buy equip soc-go" id="socGo" type="button">Sign in</button>
+          <button class="soc-link" id="socForgot" type="button">Forgot your password?</button>
+          <p class="hint" id="socAuthHint">Your email is only used to sign in. Other players never see it.</p>
         </div>
-        <div class="hint">Plug a controller in and press any button.</div>
+        <div class="soc-auth" id="socReset" hidden>
+          <label class="soc-f"><span>New password</span><input id="socNewPass" type="password" autocomplete="new-password" placeholder="At least 8 characters"></label>
+          <button class="buy equip soc-go" id="socSetPass" type="button">Save new password</button>
+        </div>
+        <div class="soc-in" id="socIn" hidden>
+          <div class="soc-find"><input id="socFind" maxlength="16" placeholder="Find a player by name" autocomplete="off" spellcheck="false"><button type="button" id="socFindBtn">Search</button></div>
+          <div class="soc-list" id="socFound"></div>
+          <div class="soc-list" id="socLists"></div>
+          <label class="check soc-mail" id="socMailRow" hidden><input type="checkbox" id="socNotify"><span>Email me friend requests and party invites</span></label>
+          <button class="soc-link" id="socOut" type="button">Sign out</button>
+        </div>
+        <div class="soc-msg" id="socMsg" role="status" aria-live="polite"></div>
       </details>
-      <div class="hint credit">Car model: <a href="https://sketchfab.com/3d-models/goodbye-and-good-riddance-nissan-car-fbx-ba71611bcba3445db89287411ca85c87" target="_blank" rel="noopener" style="color:inherit">“Goodbye And Good Riddance Nissan Car FBX”</a> by PixelGTT, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:inherit">CC BY 4.0</a>. Badges removed and paint recolored.</div>
+      <details class="w-card" id="partyBox">
+        <summary><span class="w-k">Party</span><b id="partySum">Play with friends</b><span class="w-sub" id="partySub">Make a room and share its code</span></summary>
+        <div class="mp" id="mpBox"></div>
+      </details>
     </section>
 
     <section class="panel shop" id="tab-locker" hidden>
@@ -169,7 +161,33 @@
     </section>
   </div>
 
-  <div class="lb-foot"><button id="readyBtn" title="Start a match (Enter)"><span class="rb-main">PLAY</span></button></div>
+  <div class="lb-foot" id="lbFoot">
+    <div class="mode-menu" id="modeMenu" hidden role="dialog" aria-label="Choose a mode">
+      <div class="mm-head"><b>Choose a mode</b><button class="mm-x" id="modeDone" type="button" aria-label="Close">Done</button></div>
+      <h3>Battle Royale</h3>
+      <div class="opt-grid" id="modeGrid">
+        <button class="opt" data-mode="solo"><em>100 players</em><b>Battle Royale · Solo</b><span>Everyone for themselves. Drop from the bus, grab loot, stay out of the storm, be the last one left.</span></button>
+        <button class="opt" data-mode="duos"><em>Teams of 2</em><b>Battle Royale · Duos</b><span>Team up with a friend from your room, or a bot partner.</span></button>
+        <button class="opt" data-mode="squads"><em>Teams of 4</em><b>Battle Royale · Squads</b><span>You lead three bot teammates who fight alongside you.</span></button>
+        <h3>Other modes</h3>
+        <button class="opt" data-mode="rumble"><em>16 vs 16</em><b>Storm Rumble</b><span>You come back after every elimination. First team to 40 wins.</span><i class="tag">Good for practice</i></button>
+      </div>
+      <h3>Combat style</h3>
+      <div class="seg" id="buildSeg">
+        <button data-build="1"><b>Build</b><span>Walls, ramps and floors</span></button>
+        <button data-build="0"><b>No-Build</b><span>Easier to learn</span></button>
+      </div>
+      <div class="hint" id="buildHint"></div>
+    </div>
+    <div class="mode-bar">
+      <button class="mode-cur" id="modeBtn" type="button" title="Change mode" aria-haspopup="dialog" aria-controls="modeMenu"><span class="mc-k">Mode</span><b id="modeName">Battle Royale</b><span class="mc-sub" id="modeSub"></span><i class="mc-chev" aria-hidden="true"></i></button>
+      <div class="rank-seg" id="rankSeg" role="radiogroup" aria-label="Unranked or Ranked">
+        <button type="button" data-ranked="0" role="radio" title="Casual matches. Your rank does not change.">Unranked</button>
+        <button type="button" data-ranked="1" role="radio" title="Tougher bots, and you win or lose rank points.">Ranked</button>
+      </div>
+    </div>
+    <button id="readyBtn" title="Start a match (Enter)"><span class="rb-main">PLAY</span></button>
+  </div>
   <div id="buildTag"></div>
 </div>
 
@@ -226,6 +244,7 @@
     <div class="tb" id="tFire">FIRE</div>
     <div class="tb" id="tAim">AIM</div>
     <div class="tb" id="tJump">JUMP</div>
+    <div class="tb" id="tCrouch">CROUCH</div>
     <div class="tb" id="tReload">RELOAD</div>
     <div class="tb" id="tUse">USE</div>
     <div class="tb" id="tBuild">BUILD</div>
@@ -268,6 +287,7 @@
   <div class="card set-card">
     <h2>Settings</h2>
     <div class="sens"><label for="sensIn">Look sensitivity</label><input type="range" id="sensIn" min="0.3" max="2.5" step="0.05"></div>
+    <div class="sens"><label for="fovIn">Field of view <b class="num" id="fovVal">70</b></label><input type="range" id="fovIn" min="60" max="100" step="1"></div>
     <label class="check perf-row"><input type="checkbox" id="perfChk"><span><b>Performance Mode</b><span class="hint">Best for Chromebooks. Turns off shadows, grass and extra effects, draws less in the distance and keeps the lobby still.</span></span></label>
     <div class="sens"><label for="gfxSel">Graphics</label><select id="gfxSel"><option value="auto">Auto (recommended)</option><option value="fast">Fast: lighter, for slow computers</option><option value="pretty">Pretty: sharper, needs a strong computer</option></select></div>
     <div class="hint" id="gfxNote"></div>
@@ -281,7 +301,15 @@
     <div class="hint">Click a key, then press the new key or mouse button. If another action already uses it, the two swap.</div>
     <div class="kb-list" id="kbList"></div>
     <div class="hint kb-msg" id="kbMsg" role="status"></div>
+    <h3 class="set-h">Controller</h3>
+    <div class="ctl-grid">
+      <span>Shoot</span><span><kbd>RT</kbd></span><span>Aim</span><span><kbd>LT</kbd></span><span>Jump</span><span><kbd>A</kbd></span>
+      <span>Pick up / reload</span><span><kbd>X</kbd></span><span>Harvesting tool</span><span><kbd>Y</kbd></span><span>Switch slots</span><span><kbd>LB</kbd> <kbd>RB</kbd></span>
+      <span>Build</span><span><kbd>B</kbd></span><span>Sprint</span><span><kbd>L3</kbd></span><span>Crouch</span><span><kbd>R3</kbd></span>
+    </div>
+    <div class="hint">Plug a controller in and press any button.</div>
     <div class="btn-row"><button class="btn" id="kbReset">Reset keys</button><button class="btn pri" id="setDone">Done</button></div>
+    <div class="hint credit">Car model: <a href="https://sketchfab.com/3d-models/goodbye-and-good-riddance-nissan-car-fbx-ba71611bcba3445db89287411ca85c87" target="_blank" rel="noopener" style="color:inherit">“Goodbye And Good Riddance Nissan Car FBX”</a> by PixelGTT, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:inherit">CC BY 4.0</a>. Badges removed and paint recolored.</div>
   </div>
 </div>
 

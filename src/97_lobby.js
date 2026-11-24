@@ -22,16 +22,62 @@ const Lobby = {
     this.car = buildPremiumCar(); this.car.scale.setScalar(0.5); this.car.visible = false; s.add(this.car);
     this.street = buildStreetCar(0xc8202a); this.street.scale.setScalar(0.5); this.street.visible = false; s.add(this.street);
     this.limo = buildLimo(); this.limo.scale.setScalar(0.4); this.limo.visible = false; s.add(this.limo);
+    // two party spots beside you: an empty platform with a + to invite, or a friend from your room standing on it
+    this.slots = [-1, 1].map(side => {
+      const x = side * 2.55, z = -1.15, g = new THREE.Group(); g.position.set(x, 0, z);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x12306a)); p.position.y = -0.15; g.add(p);
+      const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(0x2f6fd8)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
+      s.add(g);
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'slot-add'; add.title = 'Invite a friend'; add.innerHTML = '<i aria-hidden="true">+</i><span>Invite</span>';
+      add.addEventListener('click', () => this.openParty());
+      const tag = document.createElement('div'); tag.className = 'slot-tag'; tag.hidden = true;
+      $('stageUI').append(add, tag);
+      return { x, z, side, g, add, tag, rig: null, key: '', fake: null };
+    });
     this.cam = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 200); this.place();
     this.fake = newActor({ state: 'ground', onGround: true, inv: [{ kind: 'pick' }, makeWeapon('ar', 4), null, null, null, null], slot: 0 });
     this.rebuild();
     this.bindUI(); this.refresh();
   },
-  lift: 0,
+  lift: 0, camX: 1.3,
   place() {
-    const wide = innerWidth > 760, L = this.lift || 0;
-    if (wide) { this.cam.position.set(1.3, 1.5 + L, 6.6 + L * 0.8); this.cam.lookAt(1.3, 1.15 + L, 0); }
-    else { this.cam.position.set(0, 1.2 + L, 11.7 + L); this.cam.lookAt(0, -0.9 + L, 0); }
+    const wide = innerWidth > 760, L = this.lift || 0, play = this.tab === 'play';
+    if (wide && play) {   // Play: you in the middle of the space left of the panel, with a party spot each side
+      const side = (($('lbFoot') && $('lbFoot').offsetWidth) || 400) + 28, wpp = 2 * 8.6 * Math.tan(this.cam.fov * Math.PI / 360) / innerHeight;
+      const x = this.camX = side / 2 * wpp; this.cam.position.set(x, 1.55, 8.6); this.cam.lookAt(x, 1.0, 0);
+    }
+    else if (wide) { this.camX = 1.3; this.cam.position.set(1.3, 1.5 + L, 6.6 + L * 0.8); this.cam.lookAt(1.3, 1.15 + L, 0); }
+    else { this.camX = 0; this.cam.position.set(0, 1.2 + L, 11.7 + L); this.cam.lookAt(0, -0.9 + L, 0); }
+  },
+  openParty() {
+    Sfx.init(); const box = Social.me ? $('socBox') : $('partyBox'); box.open = true; box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });   // signed in: pick a friend to invite
+    const f = $('mpCode') || $('mpName'); if (f) setTimeout(() => f.focus(), 50);
+  },
+  // friends from your room stand on the party spots; the name plate and + buttons follow the 3D stage
+  stage(dt) {
+    const play = this.tab === 'play' && innerWidth > 760, room = typeof Net !== 'undefined' && Net.state === 'room';
+    const others = room ? Net.members.filter(m => m.id !== Net.me) : [];
+    const v = this._v || (this._v = new THREE.Vector3()), W2 = innerWidth / 2, H2 = innerHeight / 2;
+    const at = (el, x, y, z) => { v.set(x, y, z).project(this.cam); const on = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05; el.style.visibility = on ? '' : 'hidden'; if (on) el.style.transform = 'translate(' + Math.round((v.x + 1) * W2) + 'px,' + Math.round((1 - v.y) * H2) + 'px)'; };
+    for (let i = 0; i < this.slots.length; i++) {
+      const sl = this.slots[i], m = play ? others[i] : null;
+      sl.g.visible = play;
+      const key = m ? m.id + JSON.stringify(m.eq || {}) : '';
+      if (key !== sl.key) {
+        sl.key = key; if (sl.rig) { this.scene.remove(sl.rig.root); sl.rig = null; }
+        if (m) { sl.rig = makeRig(Object.assign({}, m.eq || {})); this.scene.add(sl.rig.root); sl.fake = sl.fake || newActor({ state: 'ground', onGround: true, inv: [{ kind: 'pick' }, null, null, null, null, null], slot: 0 }); }
+      }
+      if (sl.rig) { const f = sl.fake; f.pos.set(sl.x, 0, sl.z); f.pitch = 0; f.yaw = -sl.side * 0.35 + Math.sin(this.t * 0.4 + i * 2) * 0.15; animateRig(sl.rig, f, dt, this.t + i * 1.7); }
+      sl.add.hidden = !play || !!m;
+      sl.tag.hidden = !m; if (m) { const nm = m.name + (m.id === Net.hostId ? ' · host' : ''); if (sl.tag.textContent !== nm) sl.tag.textContent = nm; }
+      if (!sl.add.hidden) at(sl.add, sl.x, 0.95, sl.z);
+      if (m) at(sl.tag, sl.x, 2.18, sl.z);
+    }
+    // the name plate floats over your head on wide screens; on phones it sits at the top of the Play panel instead
+    const np = $('namePlate'), narrow = innerWidth <= 760, home = narrow ? $('tab-play') : $('stageUI');
+    if (np.parentElement !== home) { if (narrow) home.prepend(np); else home.append(np); np.style.transform = ''; np.style.visibility = ''; }
+    np.hidden = this.tab !== 'play';
+    if (!np.hidden && !narrow) at(np, 0, 2.15, 0);
   },
   shopSel: { cat: 'car', id: 'midnight' }, rigKey: '',
   lockSel: null,
@@ -62,28 +108,46 @@ const Lobby = {
       this.isl.rotation.y += dt * 0.05;
     }
     Opening.cam(this.cam, dt);
+    this.stage(dt);
     renderer.render(this.scene, this.cam);
   },
   // what PLAY will start, in plain words (shown on the button)
   summary() {
-    const d = Profile.d, m = { solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: 'Storm Rumble' }[d.mode] || 'Solo', th = THEMES[MapRotation.current()];
-    return [m, d.build ? 'Build' : 'No-Build', th ? th.name : '', d.ranked && d.mode !== 'rumble' && Net.state !== 'room' ? 'Ranked' : ''].filter(Boolean).join(' · ');
+    const d = Profile.d, m = { solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: 'Storm Rumble' }[d.mode] || 'Solo';
+    return [m, d.build ? 'Build' : 'No-Build', d.ranked && d.mode !== 'rumble' && Net.state !== 'room' ? 'Ranked' : ''].filter(Boolean).join(' · ');
+  },
+  // the mode card and the Unranked / Ranked switch next to PLAY
+  modeBar() {
+    const d = Profile.d, room = typeof Net !== 'undefined' && Net.state === 'room', guest = room && !Net.isHost, br = d.mode !== 'rumble';
+    $('modeName').textContent = br ? 'Battle Royale' : 'Storm Rumble';
+    $('modeSub').textContent = [{ solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: '16 vs 16' }[d.mode] || 'Solo', d.build ? 'Build' : 'No-Build'].join(' · ');
+    $('modeBtn').disabled = guest; $('modeBtn').title = guest ? 'The host picks the mode' : 'Change mode';
+    const off = !br || room, ranked = !!d.ranked && !off;
+    for (const b of $('rankSeg').children) { const on = (b.dataset.ranked === '1') === ranked; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); b.disabled = off && b.dataset.ranked === '1'; }
+    $('rankSeg').title = !br ? 'Storm Rumble is always unranked' : room ? 'Matches with friends are unranked' : '';
+    $('lbFoot').classList.toggle('ranked', ranked);
+    if (guest && !$('modeMenu').hidden) $('modeMenu').hidden = true;
   },
   bindUI() {
     // Enter starts the match from the lobby (not while typing, or while a menu or the opening is up)
     addEventListener('keydown', e => {
       if (e.key !== 'Enter' || e.repeat || Match.state !== 'lobby' || $('lobby').classList.contains('intro')) return;
       const t = e.target; if (t && t.closest && t.closest('input, textarea, select, button, a, summary')) return;
-      if (!$('settings').hidden || !$('tutAsk').hidden || $('readyBtn').disabled) return;
+      if (!$('settings').hidden || !$('tutAsk').hidden || !$('modeMenu').hidden || $('readyBtn').disabled) return;
       e.preventDefault(); $('readyBtn').click();
     });
     $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; this.tab = b.dataset.tab; this.refresh(); });
     $('modeGrid').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; Profile.d.mode = b.dataset.mode; Profile.save(); this.refresh(); });
     $('buildSeg').addEventListener('click', e => { const b = e.target.closest('[data-build]'); if (!b) return; Profile.d.build = b.dataset.build === '1'; Profile.save(); this.refresh(); });
-    $('islGrid').addEventListener('click', e => { const b = e.target.closest('[data-isl]'); if (!b) return; if (b.dataset.isl !== MapRotation.current()) { Sfx.init(); $('islNote').textContent = THEMES[b.dataset.isl].name + ' is locked. Only ' + THEMES[MapRotation.current()].name + ' is open right now.'; return; } Profile.d.theme = b.dataset.isl; Profile.save(); this.refresh(); });
     $('nameIn').addEventListener('input', e => { Profile.d.name = e.target.value.trim().slice(0, 16); Profile.save(); const m = $('mpName'); if (m) m.value = Profile.d.name; });
     $('nameIn').addEventListener('keydown', e => e.stopPropagation());
-    $('rankedChk').addEventListener('change', e => { Profile.d.ranked = e.target.checked; Profile.save(); this.refresh(); });
+    // mode picker and Unranked / Ranked, right above PLAY
+    const menu = $('modeMenu'), openMenu = on => { menu.hidden = !on; $('modeBtn').setAttribute('aria-expanded', on); $('lbFoot').classList.toggle('menu-on', on); };
+    $('modeBtn').addEventListener('click', () => { Sfx.init(); openMenu(menu.hidden); });
+    $('modeDone').addEventListener('click', () => openMenu(false));
+    addEventListener('pointerdown', e => { if (!menu.hidden && !e.target.closest('#lbFoot')) openMenu(false); });
+    addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { e.stopImmediatePropagation(); openMenu(false); } }, true);
+    $('rankSeg').addEventListener('click', e => { const b = e.target.closest('[data-ranked]'); if (!b || b.disabled) return; Profile.d.ranked = b.dataset.ranked === '1'; Profile.save(); Sfx.init(); this.refresh(); });
     $('catRow').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (!b) return; this.cat = b.dataset.cat; this.refresh(); });
     $('itemGrid').addEventListener('click', e => {
       const b = e.target.closest('[data-id]'); if (!b) return; const item = cosById(this.cat, b.dataset.id);
@@ -214,12 +278,8 @@ const Lobby = {
   refresh() {
     const d = Profile.d;
     Net.render(); $('buildTag').textContent = 'build ' + BUILD_ID;
-    { const k = a => '<kbd>' + esc(Keys.of(a)) + '</kbd>';
-      const rows = [['Move', k('forward') + k('left') + k('back') + k('right')], ['Shoot', k('fire')], ['Aim', k('ads') + ' hold, or ' + k('scope') + ' to toggle'], ['Jump', k('jump')], ['Sprint', k('sprint')], ['Pick up / open', k('use')], ['Reload', k('reload')],
-        ['Build', k('wall') + ' wall ' + k('ramp') + ' ramp ' + k('floor') + ' floor ' + k('cone') + ' cone'], ['Building material', k('material')], ['Map', k('map')], ['Move items', k('inventory')], ['Emote', k('emote')]];
-      const kh = rows.map(([n, v]) => '<span>' + n + '</span><span>' + v + '</span>').join(''); if ($('kbHint').innerHTML !== kh) $('kbHint').innerHTML = kh; }
-    { const fresh = !d.matches && !d.tutDone, newish = !d.tutDone && (d.matches || 0) < 3;
-      $('welcome').hidden = !fresh; $('tutBadge').hidden = !newish; $('tutBtn').classList.toggle('new', newish); $('tutBtn').classList.toggle('small', !newish); }
+    { const newish = !d.tutDone && (d.matches || 0) < 3;
+      $('tutBtn').hidden = !!d.tutDone; $('tutBadge').hidden = !newish; $('tutBtn').classList.toggle('new', newish); $('tutBtn').classList.toggle('small', !newish); }
     { const el = $('coinLbl'), nv = d.coins.toLocaleString(); if (el.textContent !== nv && el.textContent !== '0') { const box = el.parentElement; box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); } el.textContent = nv; }   // the FortBux counter bounces when it changes
     [...$('tabs').children].forEach(b => b.classList.toggle('on', b.dataset.tab === this.tab));
     if (this.tab === 'players' && !Players.link()) this.tab = 'play';
@@ -228,6 +288,11 @@ const Lobby = {
     if (this.tab === 'players') { Players.render(); Players.load(false); }
     if (document.activeElement !== $('nameIn')) $('nameIn').value = Profile.d.name || '';
     $('lobby').classList.toggle('shop-wide', this.tab === 'shop' || this.tab === 'locker');
+    $('lobby').classList.toggle('play-view', this.tab === 'play');
+    if (this.placedTab !== this.tab) { this.placedTab = this.tab; if (this.cam) this.place(); }
+    { const room = Net.state === 'room';
+      $('partySum').textContent = room ? 'Room ' + Net.code : 'Play with friends';
+      $('partySub').textContent = room ? Net.members.length + ' of 8 players' + (Net.isHost ? ' · you are the host' : '') : 'Make a room and share its code'; }
     if (this.tab === 'shop') {
       this.shopHero();
       $('shopBal').textContent = d.coins.toLocaleString();
@@ -251,10 +316,8 @@ const Lobby = {
     [...$('modeGrid').children].forEach(b => b.classList.toggle('on', b.dataset.mode === d.mode));
     [...$('buildSeg').children].forEach(b => b.classList.toggle('on', (b.dataset.build === '1') === d.build));
     $('buildHint').textContent = d.build ? 'Harvest wood, brick and metal with your tool, then throw up walls, ramps and floors mid-fight.' : 'No construction. Use natural cover, mantle up ledges, and lean on a 50-point overshield that regenerates when you are out of combat.';
-    const cur = MapRotation.current(), nxt = MapRotation.next(); if (d.theme !== cur) { d.theme = cur; Profile.save(); }
-    $('islGrid').innerHTML = THEME_ORDER.map(k => { const t = THEMES[k], open = k === cur; return `<button class="isl ${open ? 'on' : 'locked'}" data-isl="${k}" style="--sw:${t.swatch}" aria-disabled="${!open}">${open ? '' : '<i class="isl-lock" aria-hidden="true"></i>'}<b>${t.name}</b><span>${open ? 'Open now · closes in ' + MapRotation.left() : k === nxt ? 'Opens in ' + MapRotation.left() : 'Locked'}</span></button>`; }).join('');
-    $('islNote').textContent = MapRotation.start() ? THEMES[cur].name + ' is open for ' + MapRotation.left() + ', then ' + THEMES[nxt].name + ' opens and ' + THEMES[cur].name + ' closes.' : 'Every player starts on Greenvale. After 30 days the next island opens and this one closes.';
-    $('rankedChk').checked = !!d.ranked; $('rankedChk').disabled = d.mode === 'rumble';
+    const cur = MapRotation.current(); if (d.theme !== cur) { d.theme = cur; Profile.save(); }   // the open island (it changes every 30 days)
+    this.modeBar();
     if (this.tab === 'locker') this.lockerView();
     if (this.tab === 'pass') {
       const rw = passRewards();

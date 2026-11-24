@@ -87,7 +87,7 @@ button:focus-visible{outline:2px solid var(--sun-2);outline-offset:2px}
 .isl-lock::before{content:'';position:absolute;left:2px;top:-7px;width:8px;height:8px;border:2px solid #fff;border-bottom:0;border-radius:6px 6px 0 0;box-sizing:border-box;width:8px}
 .check{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer}
 .check input{width:18px;height:18px;accent-color:var(--sun)}
-.lb-foot{grid-column:2;grid-row:3;display:flex;gap:10px}
+.lb-foot{grid-column:2;grid-row:3;display:flex;flex-direction:column;gap:8px;position:relative}
 #buildTag{position:fixed;left:10px;bottom:6px;font:600 11px var(--f-body);color:rgba(200,215,255,.35);pointer-events:none}
 #readyBtn{flex:1;font-family:var(--f-display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:30px;padding:14px 18px;border:0;border-radius:14px;color:#ffffff;
   background:linear-gradient(180deg,var(--sun-2),var(--sun));box-shadow:0 5px 0 #144bb0,0 10px 24px rgba(47,134,255,.35)}
@@ -435,6 +435,7 @@ body.touch #chatHint,body.pad #chatHint{display:none}
 #tFire{width:84px;height:84px;right:calc(26px + var(--sr));bottom:calc(150px + var(--sb));background:rgba(47,134,255,.45)!important}
 #tAim{width:56px;height:56px;right:calc(124px + var(--sr));bottom:calc(196px + var(--sb))}
 #tJump{width:62px;height:62px;right:calc(120px + var(--sr));bottom:calc(112px + var(--sb))}
+#tCrouch{width:52px;height:52px;right:calc(196px + var(--sr));bottom:calc(84px + var(--sb));font-size:10px}
 #tReload{width:48px;height:48px;right:calc(36px + var(--sr));bottom:calc(250px + var(--sb))}
 #tUse{width:52px;height:52px;right:calc(190px + var(--sr));bottom:calc(150px + var(--sb))}
 #tBuild{width:52px;height:52px;right:calc(98px + var(--sr));bottom:calc(264px + var(--sb))}
@@ -665,6 +666,118 @@ details.ctl .hint{margin-top:8px}
   .lb-set{margin-left:auto}
   #readyBtn{font-size:24px;padding:10px 14px}
 }
+/* Mode card + Unranked/Ranked switch above PLAY, and the mode menu that opens from it */
+.mode-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.mode-cur{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto auto;column-gap:10px;align-items:center;text-align:left;padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:border-color .15s,background .2s}
+.mode-cur:hover:not(:disabled),.lb-foot.menu-on .mode-cur{border-color:var(--sun);background:var(--panel-hi)}
+.mode-cur:disabled{opacity:.6;cursor:default}
+.mode-cur .mc-k{grid-column:1;font:700 10.5px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.mode-cur b{grid-column:1;font-family:var(--f-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:21px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mode-cur .mc-sub{grid-column:1;font:600 12.5px var(--f-body);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mode-cur .mc-chev{grid-column:2;grid-row:1 / 4;width:10px;height:10px;border-right:2.5px solid var(--sun-2);border-top:2.5px solid var(--sun-2);transform:rotate(-45deg) translate(-2px,2px);transition:transform .2s}
+.lb-foot.menu-on .mc-chev{transform:rotate(135deg) translate(-2px,2px)}
+.rank-seg{display:flex;flex-direction:column;gap:4px;padding:4px;border-radius:12px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.rank-seg button{flex:1;min-width:104px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--mute);font-family:var(--f-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:15px;letter-spacing:.03em;cursor:pointer;transition:background .2s,color .2s}
+.rank-seg button:hover:not(:disabled):not(.on){background:rgba(255,255,255,.07);color:var(--ink)}
+.rank-seg button.on{background:linear-gradient(180deg,var(--sun-2),var(--sun));color:#fff;box-shadow:0 2px 0 #144bb0}
+.rank-seg button[data-ranked="1"].on{background:linear-gradient(180deg,#ffe07a,#f2a51f);color:#3a2300;box-shadow:0 2px 0 #9a5d00}
+.rank-seg button:disabled{opacity:.35;cursor:not-allowed}
+.mode-menu{position:absolute;left:0;right:0;bottom:calc(100% + 10px);z-index:5;max-height:min(72vh,600px);overflow:auto;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:16px;border:1px solid rgba(108,200,255,.45);background:rgba(8,26,64,.97);box-shadow:0 18px 50px rgba(0,0,0,.5);animation:menuUp .18s ease-out}
+.mode-menu[hidden]{display:none}
+.mode-menu > *{flex-shrink:0}
+.mode-menu h3{margin:4px 0 0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.mm-head{display:flex;align-items:center;justify-content:space-between}
+.mm-head b{font-family:var(--f-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:22px}
+.mm-x{padding:6px 14px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);font:700 13px var(--f-body);cursor:pointer}
+@keyframes menuUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (max-width: 760px){
+  .mode-cur b{font-size:18px}
+  .rank-seg button{min-width:86px;font-size:13px}
+  .mode-menu{max-height:62vh}
+}
+/* Play tab: the stage fills the screen. Small cards on the left, mode + PLAY bottom right, your name over your head */
+#lobby > #stageUI{position:fixed;inset:0;z-index:-1;pointer-events:none}
+#stageUI > *{position:absolute;left:0;top:0;pointer-events:auto}
+#lobby:not(.play-view) #stageUI{display:none}
+.name-plate{margin:0;translate:-50% -100%}
+.name-plate input{width:200px;box-sizing:border-box;padding:5px 14px;border-radius:999px;border:1px solid rgba(150,195,255,.35);background:rgba(6,18,46,.55);color:#fff;font-family:var(--f-display);font-weight:800;font-style:italic;font-size:19px;text-transform:uppercase;letter-spacing:.04em;text-align:center;text-shadow:0 2px 0 rgba(0,0,0,.35);-webkit-user-select:text;user-select:text;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.name-plate input::placeholder{color:rgba(220,235,255,.6);text-transform:none;font-style:normal;font-weight:600;font-size:15px}
+.name-plate input:hover{border-color:rgba(150,210,255,.7)}
+.name-plate input:focus{outline:2px solid var(--sun-2);outline-offset:1px;background:rgba(6,18,46,.8)}
+.slot-add{translate:-50% -50%;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;color:#cfe6ff;cursor:pointer}
+.slot-add i{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;border:2px dashed rgba(150,210,255,.6);background:rgba(10,30,70,.5);font:300 40px/1 var(--f-body);font-style:normal;transition:background .2s,border-color .2s,transform .15s}
+.slot-add span{font:800 italic 14px var(--f-display);text-transform:uppercase;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.slot-add:hover i{background:rgba(47,134,255,.4);border-style:solid;border-color:var(--sun-2);transform:scale(1.06)}
+.slot-tag{translate:-50% -100%;padding:3px 12px;border-radius:999px;background:rgba(6,18,46,.6);font:800 italic 15px var(--f-display);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;pointer-events:none}
+details.w-card{flex-shrink:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:10px 12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+details.w-card summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px}
+details.w-card summary::-webkit-details-marker{display:none}
+details.w-card summary::after{content:"";grid-column:2;grid-row:1 / 4;align-self:center;width:8px;height:8px;border-right:2.5px solid var(--sun-2);border-bottom:2.5px solid var(--sun-2);transform:translateY(-2px) rotate(45deg);transition:transform .2s}
+details.w-card[open] summary::after{transform:translateY(2px) rotate(-135deg)}
+details.w-card[open] summary{margin-bottom:10px}
+details.w-card:hover{border-color:rgba(150,210,255,.45)}
+.w-k{grid-column:1;font:700 10.5px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+details.w-card summary b{grid-column:1;font-family:var(--f-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:19px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.w-sub{grid-column:1;font-size:12px;color:var(--mute)}
+details.w-card .isl-grid{margin-bottom:8px}
+@media (min-width: 761px){
+  #lobby.play-view{grid-template-columns:1fr minmax(320px,400px)}
+  #lobby.play-view .side{grid-column:2;grid-row:2;align-self:start;max-height:100%}
+  #lobby.play-view #tab-play{background:none;border:0;border-radius:0;padding:0 4px 2px 0;gap:10px;backdrop-filter:none;-webkit-backdrop-filter:none}
+  #lobby.play-view details.ctl{background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #lobby.play-view .welcome{background:linear-gradient(135deg,rgba(40,100,190,.9),rgba(14,40,92,.9))}
+  #lobby.play-view .tut-card{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #lobby.play-view .hint.credit{padding:0 4px;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+}
+@media (max-width: 760px){ .slot-add,.slot-tag{display:none} }
+#tab-play > .name-plate{display:block;translate:none}
+#tab-play > .name-plate input{width:100%;font-size:17px}
+/* Friends card (accounts, friend requests, party invites) and the pop-up notes */
+details.soc summary .w-k{display:flex;align-items:center;gap:6px}
+.soc-badge{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:#ff4d5e;color:#fff;font:800 11px/1 var(--f-body);font-style:normal;letter-spacing:0}
+.soc-badge[hidden]{display:none}
+.soc-auth,.soc-in{display:flex;flex-direction:column;gap:8px}
+.soc-auth[hidden],.soc-in[hidden]{display:none}
+.soc-tabs button{padding:7px;font-size:13px}
+.soc-f{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--mute)}
+.soc-f[hidden]{display:none}
+.soc-f input,.soc-find input{min-width:0;background:rgba(5,14,36,.6);border:1px solid rgba(150,195,255,.3);border-radius:8px;color:var(--ink);font:600 14px var(--f-body);padding:8px 10px;-webkit-user-select:text;user-select:text}
+.soc-f input:focus,.soc-find input:focus{outline:2px solid var(--sun-2);outline-offset:1px}
+.soc-go{width:100%;padding:9px;font-size:14px;cursor:pointer}
+.soc-link{align-self:flex-start;background:none;border:0;padding:2px 0;color:var(--sun-2);font:700 12.5px var(--f-body);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.soc-link[hidden]{display:none}
+.soc-auth .hint{margin:0;font-size:11.5px}
+.soc-find{display:flex;gap:6px}
+.soc-find input{flex:1}
+.soc-find button,.soc-row button{background:rgba(63,149,255,.22);border:1px solid rgba(150,195,255,.4);border-radius:8px;color:var(--ink);font:700 12.5px var(--f-body);padding:6px 10px;cursor:pointer;white-space:nowrap}
+.soc-find button:hover,.soc-row button:hover:not(:disabled){background:rgba(63,149,255,.38)}
+.soc-row button.pri{background:linear-gradient(180deg,var(--sun-2),var(--sun));border-color:transparent;color:#fff}
+.soc-row button.x{padding:6px 8px;background:rgba(255,255,255,.05);color:var(--mute)}
+.soc-row button.x.sure{background:rgba(255,77,94,.25);border-color:#ff4d5e;color:#fff}
+.soc-row button:disabled{opacity:.55;cursor:default}
+.soc-list{display:flex;flex-direction:column;gap:5px}
+.soc-list:empty{display:none}
+.soc-list h4{margin:6px 0 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.soc-list .hint{font-size:12px}
+.soc-row{display:flex;align-items:center;gap:8px;padding:5px 6px 5px 8px;border-radius:9px;background:rgba(255,255,255,.04)}
+.soc-row b{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.soc-btns{display:flex;gap:5px}
+.soc-dot{width:8px;height:8px;border-radius:50%;background:rgba(168,194,234,.35);flex:none}
+.soc-dot.on{background:#7ef0a0;box-shadow:0 0 6px rgba(126,240,160,.8)}
+.soc-mail{font-size:12.5px;margin-top:4px}
+.soc-mail[hidden]{display:none}
+.soc-mail input{width:16px;height:16px}
+.soc-msg{font-size:12.5px;color:#9fe0ff;margin-top:6px}
+.soc-msg:empty{display:none}
+.soc-msg.bad{color:#ff9aa4}
+#lobby > #notes{position:fixed;top:calc(70px + var(--st));right:max(16px,var(--sr));z-index:30;display:flex;flex-direction:column;gap:8px;width:min(400px,calc(100vw - 32px));pointer-events:none}
+.note{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(108,200,255,.55);background:rgba(8,26,64,.96);box-shadow:0 10px 30px rgba(0,0,0,.45);animation:noteIn .25s ease-out}
+.note.out{opacity:0;transform:translateY(-6px);transition:opacity .25s,transform .25s}
+.note-t{flex:1;font-weight:700;font-size:14px}
+.note-b{display:flex;gap:6px}
+.note button{background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:8px;color:var(--ink);font:700 13px var(--f-body);padding:6px 11px;cursor:pointer;white-space:nowrap}
+.note button.pri{background:linear-gradient(180deg,var(--sun-2),var(--sun));border-color:transparent;color:#fff}
+@keyframes noteIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
@@ -690,6 +803,11 @@ details.ctl .hint{margin-top:8px}
 
 <!-- ================= LOBBY ================= -->
 <div id="lobby">
+  <!-- name over your character and the party spots beside you; Lobby.render moves these to follow the 3D stage -->
+  <div id="notes" aria-live="polite"></div>
+  <div id="stageUI">
+    <label class="name-plate" id="namePlate" title="Click to change your name"><input id="nameIn" maxlength="16" placeholder="Type your name" autocomplete="off" spellcheck="false" aria-label="Your player name"></label>
+  </div>
   <header class="lb-top">
     <div class="logo">FORT<span>DAY</span></div>
     <nav class="tabs" id="tabs">
@@ -707,48 +825,35 @@ details.ctl .hint{margin-top:8px}
 
   <div class="side">
     <section class="panel" id="tab-play">
-      <div class="welcome" id="welcome" hidden>
-        <b>Welcome to FortDay!</b>
-        <ol>
-          <li>New here? Take the quick <b>Tutorial</b> just below.</li>
-          <li>Pick a <b>mode</b>, a <b>combat style</b> and an <b>island</b>.</li>
-          <li>Press <b>PLAY</b>. Be the last one standing to win.</li>
-        </ol>
-      </div>
-      <label class="name-row"><span>Your player name</span><input id="nameIn" maxlength="16" placeholder="Type a name" autocomplete="off" spellcheck="false"></label>
       <button class="tut-card" id="tutBtn" type="button"><span class="tut-badge" id="tutBadge" hidden>Recommended for new players</span><b>Tutorial</b><span>Learn to move, build, loot and fight in a few minutes</span></button>
-      <h3 class="step"><i>1</i>Pick a mode</h3>
-      <div class="opt-grid" id="modeGrid">
-        <button class="opt" data-mode="solo"><em>100 players</em><b>Battle Royale · Solo</b><span>Everyone for themselves. Drop from the bus, grab loot, stay out of the storm, be the last one left.</span></button>
-        <button class="opt" data-mode="duos"><em>Teams of 2</em><b>Battle Royale · Duos</b><span>Team up with a friend from your room, or a bot partner.</span></button>
-        <button class="opt" data-mode="squads"><em>Teams of 4</em><b>Battle Royale · Squads</b><span>You lead three bot teammates who fight alongside you.</span></button>
-        <button class="opt" data-mode="rumble"><em>16 vs 16</em><b>Storm Rumble</b><span>You come back after every elimination. First team to 40 wins.</span><i class="tag">Good for practice</i></button>
-      </div>
-      <h3 class="step"><i>2</i>Combat style</h3>
-      <div class="seg" id="buildSeg">
-        <button data-build="1"><b>Build</b><span>Walls, ramps and floors</span></button>
-        <button data-build="0"><b>No-Build</b><span>Easier to learn</span></button>
-      </div>
-      <div class="hint" id="buildHint"></div>
-      <h3 class="step"><i>3</i>Island</h3>
-      <div class="isl-grid" id="islGrid"></div>
-      <div class="hint" id="islNote"></div>
-      <label class="check"><input type="checkbox" id="rankedChk"><span><b>Ranked</b> <span class="hint">Optional. Tougher bots, and you win or lose rank points.</span></span></label>
-      <h3>Play with friends <span class="h-opt">optional</span></h3>
-      <div class="mp" id="mpBox"></div>
-      <details class="ctl" id="ctlBox">
-        <summary>Controls</summary>
-        <div class="ctl-grid" id="kbHint"></div>
-        <div class="hint">Change any key in <b>Settings</b> (top right).</div>
-        <h4>Controller</h4>
-        <div class="ctl-grid">
-          <span>Shoot</span><span><kbd>RT</kbd></span><span>Aim</span><span><kbd>LT</kbd></span><span>Jump</span><span><kbd>A</kbd></span>
-          <span>Pick up / reload</span><span><kbd>X</kbd></span><span>Harvesting tool</span><span><kbd>Y</kbd></span><span>Switch slots</span><span><kbd>LB</kbd> <kbd>RB</kbd></span>
-          <span>Build</span><span><kbd>B</kbd></span><span>Sprint</span><span><kbd>L3</kbd></span>
+      <details class="w-card soc" id="socBox" hidden open>
+        <summary><span class="w-k">Friends <i class="soc-badge" id="socBadge" hidden></i></span><b id="socSum">Sign in</b><span class="w-sub" id="socSub">Make an account to add friends</span></summary>
+        <div class="soc-auth" id="socAuth">
+          <div class="seg soc-tabs" id="socTabs"><button type="button" data-soc-mode="in" class="on">Sign in</button><button type="button" data-soc-mode="up">Create account</button></div>
+          <label class="soc-f" id="socNameRow" hidden><span>Player name</span><input id="socName" maxlength="16" autocomplete="username" spellcheck="false" placeholder="3–16 letters, numbers or _"></label>
+          <label class="soc-f"><span>Email</span><input id="socEmail" type="email" autocomplete="email" spellcheck="false" placeholder="you@example.com"></label>
+          <label class="soc-f"><span>Password</span><input id="socPass" type="password" autocomplete="current-password" placeholder="At least 8 characters"></label>
+          <button class="buy equip soc-go" id="socGo" type="button">Sign in</button>
+          <button class="soc-link" id="socForgot" type="button">Forgot your password?</button>
+          <p class="hint" id="socAuthHint">Your email is only used to sign in. Other players never see it.</p>
         </div>
-        <div class="hint">Plug a controller in and press any button.</div>
+        <div class="soc-auth" id="socReset" hidden>
+          <label class="soc-f"><span>New password</span><input id="socNewPass" type="password" autocomplete="new-password" placeholder="At least 8 characters"></label>
+          <button class="buy equip soc-go" id="socSetPass" type="button">Save new password</button>
+        </div>
+        <div class="soc-in" id="socIn" hidden>
+          <div class="soc-find"><input id="socFind" maxlength="16" placeholder="Find a player by name" autocomplete="off" spellcheck="false"><button type="button" id="socFindBtn">Search</button></div>
+          <div class="soc-list" id="socFound"></div>
+          <div class="soc-list" id="socLists"></div>
+          <label class="check soc-mail" id="socMailRow" hidden><input type="checkbox" id="socNotify"><span>Email me friend requests and party invites</span></label>
+          <button class="soc-link" id="socOut" type="button">Sign out</button>
+        </div>
+        <div class="soc-msg" id="socMsg" role="status" aria-live="polite"></div>
       </details>
-      <div class="hint credit">Car model: <a href="https://sketchfab.com/3d-models/goodbye-and-good-riddance-nissan-car-fbx-ba71611bcba3445db89287411ca85c87" target="_blank" rel="noopener" style="color:inherit">“Goodbye And Good Riddance Nissan Car FBX”</a> by PixelGTT, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:inherit">CC BY 4.0</a>. Badges removed and paint recolored.</div>
+      <details class="w-card" id="partyBox">
+        <summary><span class="w-k">Party</span><b id="partySum">Play with friends</b><span class="w-sub" id="partySub">Make a room and share its code</span></summary>
+        <div class="mp" id="mpBox"></div>
+      </details>
     </section>
 
     <section class="panel shop" id="tab-locker" hidden>
@@ -840,7 +945,33 @@ details.ctl .hint{margin-top:8px}
     </section>
   </div>
 
-  <div class="lb-foot"><button id="readyBtn" title="Start a match (Enter)"><span class="rb-main">PLAY</span></button></div>
+  <div class="lb-foot" id="lbFoot">
+    <div class="mode-menu" id="modeMenu" hidden role="dialog" aria-label="Choose a mode">
+      <div class="mm-head"><b>Choose a mode</b><button class="mm-x" id="modeDone" type="button" aria-label="Close">Done</button></div>
+      <h3>Battle Royale</h3>
+      <div class="opt-grid" id="modeGrid">
+        <button class="opt" data-mode="solo"><em>100 players</em><b>Battle Royale · Solo</b><span>Everyone for themselves. Drop from the bus, grab loot, stay out of the storm, be the last one left.</span></button>
+        <button class="opt" data-mode="duos"><em>Teams of 2</em><b>Battle Royale · Duos</b><span>Team up with a friend from your room, or a bot partner.</span></button>
+        <button class="opt" data-mode="squads"><em>Teams of 4</em><b>Battle Royale · Squads</b><span>You lead three bot teammates who fight alongside you.</span></button>
+        <h3>Other modes</h3>
+        <button class="opt" data-mode="rumble"><em>16 vs 16</em><b>Storm Rumble</b><span>You come back after every elimination. First team to 40 wins.</span><i class="tag">Good for practice</i></button>
+      </div>
+      <h3>Combat style</h3>
+      <div class="seg" id="buildSeg">
+        <button data-build="1"><b>Build</b><span>Walls, ramps and floors</span></button>
+        <button data-build="0"><b>No-Build</b><span>Easier to learn</span></button>
+      </div>
+      <div class="hint" id="buildHint"></div>
+    </div>
+    <div class="mode-bar">
+      <button class="mode-cur" id="modeBtn" type="button" title="Change mode" aria-haspopup="dialog" aria-controls="modeMenu"><span class="mc-k">Mode</span><b id="modeName">Battle Royale</b><span class="mc-sub" id="modeSub"></span><i class="mc-chev" aria-hidden="true"></i></button>
+      <div class="rank-seg" id="rankSeg" role="radiogroup" aria-label="Unranked or Ranked">
+        <button type="button" data-ranked="0" role="radio" title="Casual matches. Your rank does not change.">Unranked</button>
+        <button type="button" data-ranked="1" role="radio" title="Tougher bots, and you win or lose rank points.">Ranked</button>
+      </div>
+    </div>
+    <button id="readyBtn" title="Start a match (Enter)"><span class="rb-main">PLAY</span></button>
+  </div>
   <div id="buildTag"></div>
 </div>
 
@@ -897,6 +1028,7 @@ details.ctl .hint{margin-top:8px}
     <div class="tb" id="tFire">FIRE</div>
     <div class="tb" id="tAim">AIM</div>
     <div class="tb" id="tJump">JUMP</div>
+    <div class="tb" id="tCrouch">CROUCH</div>
     <div class="tb" id="tReload">RELOAD</div>
     <div class="tb" id="tUse">USE</div>
     <div class="tb" id="tBuild">BUILD</div>
@@ -939,6 +1071,7 @@ details.ctl .hint{margin-top:8px}
   <div class="card set-card">
     <h2>Settings</h2>
     <div class="sens"><label for="sensIn">Look sensitivity</label><input type="range" id="sensIn" min="0.3" max="2.5" step="0.05"></div>
+    <div class="sens"><label for="fovIn">Field of view <b class="num" id="fovVal">70</b></label><input type="range" id="fovIn" min="60" max="100" step="1"></div>
     <label class="check perf-row"><input type="checkbox" id="perfChk"><span><b>Performance Mode</b><span class="hint">Best for Chromebooks. Turns off shadows, grass and extra effects, draws less in the distance and keeps the lobby still.</span></span></label>
     <div class="sens"><label for="gfxSel">Graphics</label><select id="gfxSel"><option value="auto">Auto (recommended)</option><option value="fast">Fast: lighter, for slow computers</option><option value="pretty">Pretty: sharper, needs a strong computer</option></select></div>
     <div class="hint" id="gfxNote"></div>
@@ -952,7 +1085,15 @@ details.ctl .hint{margin-top:8px}
     <div class="hint">Click a key, then press the new key or mouse button. If another action already uses it, the two swap.</div>
     <div class="kb-list" id="kbList"></div>
     <div class="hint kb-msg" id="kbMsg" role="status"></div>
+    <h3 class="set-h">Controller</h3>
+    <div class="ctl-grid">
+      <span>Shoot</span><span><kbd>RT</kbd></span><span>Aim</span><span><kbd>LT</kbd></span><span>Jump</span><span><kbd>A</kbd></span>
+      <span>Pick up / reload</span><span><kbd>X</kbd></span><span>Harvesting tool</span><span><kbd>Y</kbd></span><span>Switch slots</span><span><kbd>LB</kbd> <kbd>RB</kbd></span>
+      <span>Build</span><span><kbd>B</kbd></span><span>Sprint</span><span><kbd>L3</kbd></span><span>Crouch</span><span><kbd>R3</kbd></span>
+    </div>
+    <div class="hint">Plug a controller in and press any button.</div>
     <div class="btn-row"><button class="btn" id="kbReset">Reset keys</button><button class="btn pri" id="setDone">Done</button></div>
+    <div class="hint credit">Car model: <a href="https://sketchfab.com/3d-models/goodbye-and-good-riddance-nissan-car-fbx-ba71611bcba3445db89287411ca85c87" target="_blank" rel="noopener" style="color:inherit">“Goodbye And Good Riddance Nissan Car FBX”</a> by PixelGTT, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:inherit">CC BY 4.0</a>. Badges removed and paint recolored.</div>
   </div>
 </div>
 
@@ -1024,7 +1165,7 @@ details.ctl .hint{margin-top:8px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1119-1540';
+const BUILD_ID = '1124-1443';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -1188,7 +1329,7 @@ const THEME_ORDER = ['greenvale', 'floodtide', 'neon', 'olympia', 'dune'];
 // controllers keep working whatever a player binds; Keys translates the real key or mouse button they press.
 const KEY_ACTIONS = [
   ['forward', 'Move forward', 'KeyW'], ['back', 'Move back', 'KeyS'], ['left', 'Move left', 'KeyA'], ['right', 'Move right', 'KeyD'],
-  ['jump', 'Jump / leave bus / glider', 'Space'], ['sprint', 'Sprint', 'ShiftLeft'],
+  ['jump', 'Jump / leave bus / glider', 'Space'], ['sprint', 'Sprint', 'ShiftLeft'], ['crouch', 'Crouch (hold)', 'AltLeft'],
   ['fire', 'Fire / harvest / build', 'Mouse0'], ['ads', 'Aim / scope (hold)', 'Mouse2'], ['scope', 'Scope in / out (press)', 'KeyV'], ['reload', 'Reload', 'KeyR'], ['use', 'Pick up / open / drive', 'KeyE'],
   ['slot1', 'Harvesting tool', 'Digit1'], ['slot2', 'Slot 2', 'Digit2'], ['slot3', 'Slot 3', 'Digit3'], ['slot4', 'Slot 4', 'Digit4'], ['slot5', 'Slot 5', 'Digit5'], ['slot6', 'Slot 6', 'Digit6'],
   ['build', 'Build mode on / off', 'KeyQ'], ['wall', 'Build wall', 'KeyZ'], ['ramp', 'Build ramp', 'KeyX'], ['floor', 'Build floor', 'KeyC'], ['cone', 'Build cone (roof)', 'KeyF'], ['material', 'Switch material', 'KeyG'],
@@ -1614,7 +1755,7 @@ function initEngine() {
   canvas.addEventListener('webglcontextrestored', () => { const el = document.getElementById('problemBar'); if (el && el.dataset.gl) el.remove(); });
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1700);
+  camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 1700);
   hemi = new THREE.HemisphereLight(0xffffff, 0x445533, 0.6); scene.add(hemi);
   sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.castShadow = true;
   sun.shadow.mapSize.set(IS_TOUCH || GFX.fast ? 1024 : 2048, IS_TOUCH || GFX.fast ? 1024 : 2048);
@@ -3300,6 +3441,7 @@ function computePose(a, P, t) {
     P.legL[0] = sw; P.legR[0] = -sw; P.bob = Math.abs(Math.cos(a.walkPhase)) * 0.05 * run;
     P.kL = 0.08 + Math.max(0, sw) * 1.1 + run * 0.12; P.kR = 0.08 + Math.max(0, -sw) * 1.1 + run * 0.12;
   } else { P.legL[0] = 0.5; P.legR[0] = -0.3; P.kL = 0.95; P.kR = 0.45; }
+  if (a.crouchK > 0.01 && a.onGround) { const k = a.crouchK; P.legL[0] = lerp(P.legL[0], 0.85, k); P.legR[0] = lerp(P.legR[0], 0.85, k); P.kL = lerp(P.kL, 1.6, k); P.kR = lerp(P.kR, 1.6, k); P.bob -= 0.3 * k; }
   if (a.emote) { emotePose(a.emote, a.emoteT, P); return P; }
   if (a.mantleT > 0) { P.aL[0] = -2.6; P.aR[0] = -2.6; P.eL = P.eR = -0.4; P.legL[0] = 0.9; P.kL = 1.2; return P; }
   const it = a.inv[a.slot];
@@ -3321,7 +3463,7 @@ function computePose(a, P, t) {
 
 // ---------------------------------------------------------------- body geometry (shared by the instanced bots and the detailed rig)
 // Skeleton (metres, feet at 0): hips 0.95, knee 0.51, shoulders 1.48, head centre 1.79.
-const BODY_SCALE = 1.1;   // every character is drawn (and hit) 10% larger than the base skeleton
+const BODY_SCALE = 1.0;   // characters are drawn (and hit) at their real ~1.9 m height; build walls are about 2.4 times that (BUILD_SCALE in 70_build.js)
 const SK = { hipY: 0.95, hipX: 0.1, thigh: 0.44, shin: 0.42, shY: 0.53, shX: 0.235, upper: 0.29, fore: 0.26, headY: 0.84 };
 function limbGeo(r0, r1, len, seg = 9, N = 3) {
   const pts = [];
@@ -4347,7 +4489,8 @@ function physicsActor(a, dt) {
   else if (a.state === 'glide') { speed = 17; accel = 2.2; a.vel.y = lerp(a.vel.y, -8.5, Math.min(1, dt * 3)); }
   else {
     // stamina: sprinting drains it, it refills shortly after you stop; run dry and you can't sprint until a quarter is back
-    const sprint = inp.sprint && inp.f > 0.3 && !inp.ads && !a.exhausted && !a.inWater && !a.crawl && Math.hypot(a.vel.x, a.vel.z) > 1;
+    a.crouch = !!inp.crouch && !a.crawl && !a.inWater && !a.vehicle && !a.emote;
+    const sprint = inp.sprint && inp.f > 0.3 && !inp.ads && !a.crouch && !a.exhausted && !a.inWater && !a.crawl && Math.hypot(a.vel.x, a.vel.z) > 1;
     if (sprint && a.onGround) { a.stamina = Math.max(0, a.stamina - 22 * dt); a.stamRest = 0.9; if (a.stamina <= 0) a.exhausted = true; }
     else { a.stamRest = (a.stamRest || 0) - dt; if (a.stamRest <= 0) a.stamina = Math.min(100, a.stamina + 20 * dt); }
     if (a.exhausted && a.stamina >= 25) a.exhausted = false;
@@ -4358,9 +4501,11 @@ function physicsActor(a, dt) {
     if (a.slowT > 0) speed *= 0.5;
     if (a.boss) speed *= 0.8;
     if (a.crawl) speed = Math.min(speed, 1.8);   // crawling
+    if (a.crouch) speed = Math.min(speed, 3.3);   // crouch-walking
     accel = a.onGround || a.inWater ? 14 : 3.5;
     a.vel.y -= GRAV * dt;
   }
+  a.crouchK = clamp((a.crouchK || 0) + ((a.crouch && a.state === 'ground' ? 1 : 0) - (a.crouchK || 0)) * Math.min(1, dt * 12), 0, 1);   // eases in and out
   const k = Math.min(1, accel * dt);
   a.vel.x += (mx * speed - a.vel.x) * k; a.vel.z += (mz * speed - a.vel.z) * k;
   if (inp.jump && !a.crawl && a.state === 'ground' && (a.onGround || a.inWater) && a.jumpCD <= 0) {
@@ -4622,6 +4767,7 @@ function fireWeapon(a) {
   const moving = Math.hypot(a.vel.x, a.vel.z) > 1.5;
   let spread = a.input.ads ? st.ads : st.spread;
   if (moving) spread *= 1.35; if (!a.onGround && !a.inWater) spread *= 1.6;
+  if (a.crouch && a.onGround) spread *= 0.75;   // crouching steadies your aim
   if (a.ai) spread += a.ai.err;
   if (a === player && st.scope && a.input.ads) spread = 0;
   const mz = muzzlePos(a, _v3);
@@ -4808,7 +4954,7 @@ const Rockets = {
     for (let i = this.list.length - 1; i >= 0; i--) {
       const r = this.list[i]; r.life -= dt; const step = r.sp * dt;
       const h = raycast(r.x, r.y, r.z, r.dx, r.dy, r.dz, step, r.owner, true);
-      if (h.type || r.life <= 0) { explode(h.type ? h.x : r.x, h.type ? h.y : r.y, h.type ? h.z : r.z, r.owner, r.st, r.vis); scene.remove(r.m); this.list.splice(i, 1); continue; }
+      if (h.type || r.life <= 0) { scene.remove(r.m); this.list.splice(i, 1); explode(h.type ? h.x : r.x, h.type ? h.y : r.y, h.type ? h.z : r.z, r.owner, r.st, r.vis); continue; }   // gone before it bursts, so a bad burst can't repeat every frame
       r.x += r.dx * step; r.y += r.dy * step; r.z += r.dz * step; r.m.position.set(r.x, r.y, r.z);
       if (r.st.shock) { const k = 1 + Math.sin(performance.now() / 40) * 0.18; r.m.scale.setScalar(k); FX.burst(r.x - r.dx * 0.5, r.y, r.z - r.dz * 0.5, 0x45d4ff, 1, 0.6, 0.35, 0.1, 0); }   // crackling energy orb
       else FX.burst(r.x - r.dx, r.y - r.dy, r.z - r.dz, 0xcfcfcf, 1, 0.5, 0.5, 0.25, -1);
@@ -5043,13 +5189,21 @@ function actorTick(a, dt) {
 }
 
 // =====================================================================
-//  Building: walls, ramps, floors on a 4m grid (wood / brick / metal)
+//  Building: walls, ramps, floors and roofs on a grid (wood / brick / metal)
 // =====================================================================
-// Build tiles in Fortnite-style proportions: 5.12 m wide and 3.84 m tall (wider than tall), ramps rise one storey per tile
-const T = 5.12, TH = 3.84, CONE_H = TH * 0.5;
+// Build tiles are wider than tall (4:3) and ramps rise one storey per tile. BUILD_SCALE sets how big builds feel next to
+// a ~1.9 m player: at 1.2 a tile is 6.14 m wide and a wall 4.61 m tall, about 2.4 times your height.
+const BUILD_SCALE = 1.2, T = 5.12 * BUILD_SCALE, TH = 3.84 * BUILD_SCALE, CONE_H = TH * 0.5;
+// A freshly placed piece is see-through and firms up to solid over this many seconds (sturdier materials take longer)
+const BUILD_TIME = { wood: 1.4, brick: 2.0, metal: 2.6 }, FADE_STEPS = 12;
 const Build = {
+  fades: {},
+  // shared see-through copies of each material at a few opacity steps, so many pieces can fade without a material each
+  fadeMat(mat, i) { return BuildLook.fade(mat, i, FADE_STEPS); },   // the look itself (shapes, surfaces, cracks) is in src/71_buildlook.js
+  buildEdge(k, mat) { return new THREE.LineSegments(BuildLook.edges(mat, k), BuildLook.lineBuild[mat]); },   // bright while it builds
   active: false, piece: 'wall', pieces: [], map: new Map(), ghosts: null, tgt: null, lastKey: null, lastCol: null, placeCD: 0,
   init() {
+    BuildLook.init();
     this.ghosts = { wall: new THREE.Mesh(GEO.wall, MAT.ghost), floor: new THREE.Mesh(GEO.floor, MAT.ghost), rampX: new THREE.Mesh(GEO.rampX, MAT.ghost), rampZ: new THREE.Mesh(GEO.rampZ, MAT.ghost), cone: new THREE.Mesh(GEO.cone, MAT.ghost) };
     for (const k in this.ghosts) {
       const g = this.ghosts[k]; g.visible = false; g.renderOrder = 6; scene.add(g);
@@ -5083,7 +5237,7 @@ const Build = {
   hideGhost() { if (this.ghosts) for (const k in this.ghosts) this.ghosts[k].visible = false; if (this.whyTxt) { this.whyTxt = ''; const el = document.getElementById('buildWhy'); if (el) el.textContent = ''; } },
   compute(a, type) {
     const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), p = a.pitch;
-    let gy = Math.floor((a.pos.y + 1.2) / TH);
+    let gy = Math.floor((a.pos.y + 1.2 * BUILD_SCALE) / TH);   // the storey just below your feet (scaled with the tiles, so walls sit on hills as before)
     if (type === 'wall') {
       if (p > 0.75) gy += 1;
       const cx = Math.floor(a.pos.x / T), cz = Math.floor(a.pos.z / T);
@@ -5117,15 +5271,16 @@ const Build = {
       a.mat = alt; if (a === player) HUD.dirty = true;
     }
     a.mats[a.mat] -= 10;
-    const k = this.geoKey(t), mesh = new THREE.Mesh(GEO[k], MAT[a.mat]); this.pose(t, mesh);
-    mesh.castShadow = true; mesh.receiveShadow = true; mesh.scale.setScalar(0.4); scene.add(mesh);
+    const k = this.geoKey(t), mesh = new THREE.Mesh(BuildLook.geo(a.mat, k), this.fadeMat(a.mat, 0)); this.pose(t, mesh);
+    mesh.castShadow = false; mesh.receiveShadow = true; mesh.scale.setScalar(0.4); mesh.renderOrder = 2; scene.add(mesh);
+    const edge = this.buildEdge(k, a.mat); edge.renderOrder = 3; mesh.add(edge);   // bright outline while it is still see-through
     const y0 = t.gy * TH; let col;
     if (t.type === 'wall') col = t.dir === 0 ? { minX: t.gx * T, maxX: (t.gx + 1) * T, minZ: t.gz * T - 0.15, maxZ: t.gz * T + 0.15, minY: y0, maxY: y0 + TH } : { minX: t.gx * T - 0.15, maxX: t.gx * T + 0.15, minZ: t.gz * T, maxZ: (t.gz + 1) * T, minY: y0, maxY: y0 + TH };
     else if (t.type === 'floor') col = { minX: t.gx * T, maxX: (t.gx + 1) * T, minZ: t.gz * T, maxZ: (t.gz + 1) * T, minY: y0 - 0.12, maxY: y0 + 0.12 };
     else if (t.type === 'cone') col = { kind: 'ramp', cone: true, minX: t.gx * T, maxX: (t.gx + 1) * T, minZ: t.gz * T, maxZ: (t.gz + 1) * T, minY: y0, maxY: y0 + CONE_H, y0, rise: CONE_H, dir: 0 };   // walkable like a ramp, sloping up to the middle
     else col = { kind: 'ramp', minX: t.gx * T, maxX: (t.gx + 1) * T, minZ: t.gz * T, maxZ: (t.gz + 1) * T, minY: y0, maxY: y0 + TH, y0, rise: TH, dir: t.dir };
     col.kind = col.kind || 'piece'; col.mat = a.mat;
-    const p = { type: t.type, key: t.key, mat: a.mat, hp: MATS[a.mat].hp, maxHp: MATS[a.mat].hp, mesh, col, owner: a, anim: 0.14, x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+    const p = { type: t.type, key: t.key, mat: a.mat, hp: MATS[a.mat].hp, maxHp: MATS[a.mat].hp, mesh, col, owner: a, anim: 0.14, x: mesh.position.x, y: mesh.position.y, z: mesh.position.z, build: 0, buildT: BUILD_TIME[a.mat] || 1.6, edge };
     col.piece = p; Grid.add(col);
     this.pieces.push(p); this.map.set(t.key, p);
     if (a === player || Sfx.vol(p.x, p.y, p.z) > 0.25) Sfx.build();
@@ -5136,6 +5291,7 @@ const Build = {
   },
   damage(p, dmg, src) {
     if (p.dead) return; p.hp -= dmg;
+    if (p.hp > 0 && p.build >= 1 && p.mesh) p.mesh.material = BuildLook.solid(p);   // cracks show as it weakens
     if (Net.inMatch && !Net.applying) Net.emit({ k: 'bd', key: p.key, dmg: Math.round(dmg) });
     if (src === player) HUD.dmgNum(p.x, p.y + 1, p.z, Math.round(dmg), 'build');
     if (p.hp <= 0) this.remove(p, true);
@@ -5151,7 +5307,14 @@ const Build = {
   update(dt) {
     this.vt = (this.vt || 0) - dt;
     if (this.vt <= 0) { this.vt = 0.3; const cp = camera.position, f = View.far + 12, f2 = f * f; for (const p of this.pieces) if (p.mesh) p.mesh.visible = (p.x - cp.x) ** 2 + (p.z - cp.z) ** 2 < f2; }   // pieces lost in the fog are not drawn
-    for (const p of this.pieces) if (p.anim > 0) { p.anim -= dt; p.mesh.scale.setScalar(p.anim > 0 ? 1 - p.anim / 0.14 * 0.6 : 1); }
+    for (const p of this.pieces) {
+      if (p.anim > 0) { p.anim -= dt; p.mesh.scale.setScalar(p.anim > 0 ? 1 - p.anim / 0.14 * 0.6 : 1); }
+      if (p.build < 1) {   // see-through while it builds, then solid
+        p.build = Math.min(1, p.build + dt / p.buildT);
+        if (p.build >= 1) { p.mesh.material = BuildLook.solid(p); p.mesh.castShadow = true; p.mesh.renderOrder = 0; if (p.edge) { if (BuildLook.outlines) { p.edge.material = BuildLook.lineSolid[p.mat]; p.edge.renderOrder = 0; } else { p.mesh.remove(p.edge); p.edge = null; } } }   // then a dark cartoon outline
+        else p.mesh.material = this.fadeMat(p.mat, Math.min(FADE_STEPS - 1, Math.floor(p.build * p.build * FADE_STEPS)));
+      }
+    }
     this.placeCD -= dt;
     this.hideGhost();
     if (!this.active || !player || !player.alive || player.crawl || player.state !== 'ground' || player.vehicle || !Match.build) { this.tgt = null; return; }
@@ -5165,6 +5328,195 @@ const Build = {
     const col = t.type + ':' + t.gx + ':' + t.gz + ':' + (t.dir || 0);
     if (player.input.fire && this.placeCD <= 0 && ok && t.key !== this.lastKey && col !== this.lastCol) { if (this.place(player, t)) { this.lastKey = t.key; this.lastCol = col; this.placeCD = 0.25; } }
     if (!player.input.fire) { this.lastKey = null; this.lastCol = null; this.placeCD = Math.min(this.placeCD, 0.05); }
+  },
+};
+
+// =====================================================================
+//  How build pieces look, in the same cartoony low-poly style as the rest of the island:
+//  chunky frames, bright simple wood / brick / metal, a dark outline round every piece, and bold
+//  cracks as a piece loses health. Only the look lives here: sizes and collision boxes are in
+//  src/70_build.js. Textures are drawn in code from fixed seeds, so every player sees the same builds.
+// =====================================================================
+const BuildLook = {
+  mats: {}, geos: {}, edgeGeos: {}, fades: {}, lineBuild: {}, lineSolid: {}, ready: false,
+  get outlines() { return !Perf.on; },   // Performance Mode drops the outlines once a piece is built (one less thing to draw)
+  INK: { wood: 0x3a1f0c, brick: 0x45190f, metal: 0x1b2836 },   // outline colours
+  init() {
+    if (this.ready) return; this.ready = true;
+    for (const m of ['wood', 'brick', 'metal']) {
+      const P = this.surface(m, 'panel', 512, 512), Tr = this.surface(m, 'trim', 512, 128);
+      const mk = cv => new THREE.MeshLambertMaterial({ map: this.tex(cv) });   // the same lighting as the houses, trees and rocks
+      this.mats[m] = { panel: [mk(P), mk(this.cracked(P, 1, m)), mk(this.cracked(P, 2, m))], trim: mk(Tr) };
+      this.lineSolid[m] = new THREE.LineBasicMaterial({ color: this.INK[m] });
+      this.lineBuild[m] = new THREE.LineBasicMaterial({ color: new THREE.Color(MATS[m].color).lerp(new THREE.Color(0xffffff), 0.55), transparent: true, opacity: 0.9, depthWrite: false });
+    }
+  },
+  tex(cv) { const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t; },
+  // a solid piece: cracks show at two-thirds and one-third health
+  solid(p) { const L = this.mats[p.mat], f = p.hp / p.maxHp; return [L.panel[f < 0.34 ? 2 : f < 0.67 ? 1 : 0], L.trim]; },
+  // see-through copies used while a piece is still building (shared, a few opacity steps)
+  fade(mat, i, steps) {
+    const k = mat + i;
+    if (!this.fades[k]) { const L = this.mats[mat], op = 0.28 + 0.6 * i / (steps - 1); this.fades[k] = [L.panel[0], L.trim].map(m0 => { const m = m0.clone(); m.transparent = true; m.depthWrite = false; m.opacity = op; return m; }); }
+    return this.fades[k];
+  },
+  // the outline of a piece's shape (bright while it builds, dark ink once it's solid)
+  edges(mat, k) { const key = mat + ':' + k; return this.edgeGeos[key] || (this.edgeGeos[key] = new THREE.EdgesGeometry(this.geo(mat, k), 30)); },
+
+  // ---------------------------------------------------------------- shapes (one mesh per piece: surface first, then frame)
+  geo(mat, k) { const key = mat + ':' + k; return this.geos[key] || (this.geos[key] = this.make(mat, k)); },
+  make(mat, k) {
+    const P = [], F = [], S2 = Math.hypot(T, TH);
+    // a box part; `long` names the axis the frame texture's grain should follow
+    const box = (list, w, h, d, x, y, z, long, rz) => list.push({ g: new THREE.BoxGeometry(w, h, d), x, y, z, long, rz });
+    if (k === 'wall') {
+      if (mat === 'brick') {   // chunky stone posts, a thick cap and base
+        const pw = 0.46;
+        box(P, T - 2 * pw + 0.04, TH - 0.5, 0.28, 0, 0, 0);
+        box(F, pw, TH - 0.5, 0.46, -T / 2 + pw / 2, 0, 0, 'y'); box(F, pw, TH - 0.5, 0.46, T / 2 - pw / 2, 0, 0, 'y');
+        box(F, T, 0.28, 0.5, 0, TH / 2 - 0.14, 0, 'x'); box(F, T, 0.26, 0.46, 0, -TH / 2 + 0.13, 0, 'x');
+      } else {
+        const wood = mat === 'wood', pw = wood ? 0.34 : 0.3, dp = wood ? 0.42 : 0.36;
+        box(P, T - 0.06, TH - 0.06, wood ? 0.16 : 0.12, 0, 0, 0);
+        box(F, pw, TH, dp, -T / 2 + pw / 2, 0, 0, 'y'); box(F, pw, TH, dp, T / 2 - pw / 2, 0, 0, 'y');
+        box(F, T - 2 * pw, 0.3, dp - 0.02, 0, TH / 2 - 0.15, 0, 'x'); box(F, T - 2 * pw, 0.3, dp - 0.02, 0, -TH / 2 + 0.15, 0, 'x');
+        box(F, T - 2 * pw, 0.22, dp - 0.1, 0, 0, 0, 'x');   // middle rail
+        if (wood) {   // a cross brace on each face, barn-door style
+          const w = T - 2 * pw, h = TH - 0.6, L = Math.hypot(w, h) - 0.12, a = Math.atan2(h, w);
+          box(F, L, 0.24, 0.08, 0, 0, 0.12, 'x', a); box(F, L, 0.24, 0.08, 0, 0, -0.12, 'x', a);
+        }
+      }
+    } else if (k === 'floor') {
+      box(P, T - 0.02, 0.16, T - 0.02, 0, 0.045, 0);   // deck, top flush with the old slab
+      for (const z of [-T / 2 + 0.15, T / 2 - 0.15]) box(F, T, 0.26, 0.3, 0, -0.08, z, 'x');   // chunky edge beams
+      for (const x of [-T / 2 + 0.15, 0, T / 2 - 0.15]) box(F, 0.3, 0.24, T - 0.62, x, -0.07, 0, 'z');
+    } else if (k === 'rampX' || k === 'rampZ') {
+      const X = k === 'rampX', W = T - 0.5;
+      if (X) { box(P, S2, 0.16, W, 0, 0.045, 0); for (const z of [-T / 2 + 0.13, T / 2 - 0.13]) box(F, S2, 0.42, 0.26, 0, 0.03, z, 'x'); for (let i = -2; i <= 2; i++) box(F, 0.24, 0.16, W, i * S2 / 5.2, -0.1, 0, 'z'); }
+      else { box(P, W, 0.16, S2, 0, 0.045, 0); for (const x of [-T / 2 + 0.13, T / 2 - 0.13]) box(F, 0.26, 0.42, S2, x, 0.03, 0, 'z'); for (let i = -2; i <= 2; i++) box(F, W, 0.16, 0.24, 0, -0.1, i * S2 / 5.2, 'x'); }
+    } else {   // cone: a four-sided roof, boards / tiles / panels running up to the peak
+      const g = new THREE.ConeGeometry(T / Math.SQRT2, CONE_H, 4, 1).rotateY(Math.PI / 4).translate(0, CONE_H / 2, 0); g.computeVertexNormals();
+      P.push({ g, keepUV: true });
+    }
+    return this.merge(P, F);
+  },
+  // project each face along its main direction, so the pictures keep their real-world size on any part
+  mapUV(part, trim) {
+    const g = part.g, A = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
+    for (let i = 0; i < A.count; i++) {
+      if (part.keepUV) { U.setXY(i, U.getX(i) * 4, U.getY(i)); continue; }
+      const c = { x: A.getX(i), y: A.getY(i), z: A.getZ(i) }, nx = Math.abs(N.getX(i)), ny = Math.abs(N.getY(i)), nz = Math.abs(N.getZ(i));
+      let a, b; if (nz >= nx && nz >= ny) { a = 'x'; b = 'y'; } else if (nx >= ny) { a = 'z'; b = 'y'; } else { a = 'x'; b = 'z'; }
+      if (trim) {
+        if (part.long === b) [a, b] = [b, a];   // grain along the beam
+        U.setXY(i, c[a] / 2.56 + 0.5, c[b] / 0.64 + 0.5);
+      } else U.setXY(i, c[a] / T + 0.5, c[b] / T + 0.5);
+    }
+  },
+  merge(P, F) {
+    const pos = [], nor = [], uv = [], idx = []; let off = 0, split = 0;
+    const add = (part, trim) => {
+      const g = part.g; this.mapUV(part, trim);
+      if (part.rz) g.rotateZ(part.rz);
+      if (part.x || part.y || part.z) g.translate(part.x || 0, part.y || 0, part.z || 0);
+      const A = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
+      for (let i = 0; i < A.count; i++) { pos.push(A.getX(i), A.getY(i), A.getZ(i)); nor.push(N.getX(i), N.getY(i), N.getZ(i)); uv.push(U.getX(i), U.getY(i)); }
+      const I = g.index; for (let i = 0; i < I.count; i++) idx.push(I.getX(i) + off); off += A.count; g.dispose();
+    };
+    for (const p of P) add(p, false); split = idx.length;
+    for (const p of F) add(p, true);
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); out.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    out.setIndex(idx); out.addGroup(0, split, 0); if (idx.length > split) out.addGroup(split, idx.length - split, 1);
+    out.computeBoundingSphere(); return out;
+  },
+
+  // ---------------------------------------------------------------- surfaces: bright, flat colours with toon highlights and shadows
+  surface(m, part, W, H) {
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+    const R = mulberry32({ wood: 11, brick: 23, metal: 37 }[m] + (part === 'trim' ? 100 : 0)), r = (a, b) => a + R() * (b - a);
+    const rrect = (x, y, w, h, rad) => { g.beginPath(); g.moveTo(x + rad, y); g.arcTo(x + w, y, x + w, y + h, rad); g.arcTo(x + w, y + h, x, y + h, rad); g.arcTo(x, y + h, x, y, rad); g.arcTo(x, y, x + w, y, rad); g.closePath(); };
+    const dot = (x, y, rad, fill, ring) => { g.fillStyle = fill; g.beginPath(); g.arc(x, y, rad, 0, TAU); g.fill(); if (ring) { g.strokeStyle = ring; g.lineWidth = 2; g.stroke(); } g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(x - rad * 0.35, y - rad * 0.35, rad * 0.35, 0, TAU); g.fill(); };
+    if (m === 'wood' && part === 'panel') {   // six wide boards, bold gaps, a couple of smooth grain lines, a knot, nails
+      const n = 6, pw = W / n;
+      for (let i = 0; i < n; i++) {
+        const x0 = i * pw, l = (i % 2 ? 57 : 62) + r(-2, 2);
+        g.fillStyle = `hsl(30,64%,${l}%)`; g.fillRect(x0, 0, pw, H);
+        g.fillStyle = `hsl(34,70%,${l + 10}%)`; g.fillRect(x0 + 5, 0, 6, H);   // lit edge
+        g.fillStyle = `hsl(26,58%,${l - 12}%)`; g.fillRect(x0 + pw - 11, 0, 6, H);   // shaded edge
+        g.strokeStyle = `hsl(26,55%,${l - 16}%)`; g.lineWidth = 3; g.lineCap = 'round';
+        for (let k = 0; k < 3; k++) {   // whole waves only, so the picture tiles top to bottom
+          const gx = x0 + 18 + k * (pw - 36) / 2 + r(-6, 6), amp = r(3, 7), ph = R() * TAU;
+          g.beginPath(); for (let y = 0; y <= H; y += 8) { const xx = gx + Math.sin(y / H * TAU + ph) * amp; y ? g.lineTo(xx, y) : g.moveTo(xx, y); } g.stroke();
+        }
+        const ky = r(40, H - 40), kx = x0 + r(24, pw - 24);   // a knot
+        g.fillStyle = `hsl(24,52%,${l - 22}%)`; g.beginPath(); g.ellipse(kx, ky, 6, 10, 0, 0, TAU); g.fill();
+        g.strokeStyle = `hsl(26,55%,${l - 10}%)`; g.lineWidth = 2.5; g.beginPath(); g.ellipse(kx, ky, 11, 17, 0, 0, TAU); g.stroke();
+        g.fillStyle = '#5a2f12'; g.fillRect(x0, 0, 5, H);   // gap between boards
+        for (const ny of [96, 416]) dot(x0 + pw / 2, ny, 5, '#4b3a30', '#2a1d14');   // nails
+      }
+    } else if (m === 'wood') {   // frame timber: a deeper orange-brown, grain along the beam, square bolts
+      g.fillStyle = 'hsl(25,58%,40%)'; g.fillRect(0, 0, W, H);
+      g.strokeStyle = 'hsl(24,55%,30%)'; g.lineWidth = 3; g.lineCap = 'round';
+      for (const y0 of [44, 64, 84]) { const amp = r(2, 4), ph = R() * TAU; g.beginPath(); for (let x = 0; x <= W; x += 8) { const yy = y0 + Math.sin(x / W * TAU * 2 + ph) * amp; x ? g.lineTo(x, yy) : g.moveTo(x, yy); } g.stroke(); }
+      for (let x = 64; x < W; x += 128) { g.fillStyle = '#3d3029'; g.fillRect(x - 7, 57, 14, 14); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(x - 5, 59, 5, 5); }
+    } else if (m === 'brick' && part === 'panel') {   // big chunky bricks in cream mortar
+      g.fillStyle = '#f1dcbc'; g.fillRect(0, 0, W, H);
+      const cols = 8, rows = 16, bw = W / cols, bh = H / rows, mo = 5;
+      for (let row = 0; row < rows; row++) for (let cc0 = -1; cc0 <= cols; cc0++) {
+        const cc = (cc0 + cols) % cols, B = mulberry32(row * 131 + cc * 7 + 5), q = () => B();   // the same brick on both sides of the seam
+        const x = cc0 * bw + (row % 2 ? bw / 2 : 0) + mo / 2, y = row * bh + mo / 2, w = bw - mo, h = bh - mo, odd = q() < 0.12;
+        const hue = odd ? 8 : 12 + q() * 5, l = odd ? 38 : 47 + q() * 6;
+        g.fillStyle = `hsl(${hue},62%,${l}%)`; rrect(x, y, w, h, 6); g.fill();
+        g.save(); rrect(x, y, w, h, 6); g.clip();
+        g.fillStyle = `hsla(18,80%,${l + 18}%,.75)`; g.fillRect(x, y, w, 5);   // lit top edge
+        g.fillStyle = `hsla(6,60%,${l - 16}%,.7)`; g.fillRect(x, y + h - 6, w, 6);   // shaded bottom edge
+        g.restore();
+      }
+    } else if (m === 'brick') {   // pale stone blocks for the posts, cap and base
+      g.fillStyle = 'hsl(40,24%,76%)'; g.fillRect(0, 0, W, H);
+      g.fillStyle = 'hsl(40,26%,84%)'; g.fillRect(0, 34, W, 8);
+      g.fillStyle = 'hsl(36,18%,62%)'; for (let i = 0; i < 26; i++) { g.beginPath(); g.arc(r(0, W), r(30, 98), r(2, 5), 0, TAU); g.fill(); }   // a few pits
+      g.fillStyle = 'hsl(36,16%,52%)'; for (let x = 0; x < W; x += 128) g.fillRect(x, 0, 4, H);   // block joints
+    } else if (m === 'metal' && part === 'panel') {   // four big riveted plates with bold seams and a bit of shine
+      g.fillStyle = 'hsl(204,30%,74%)'; g.fillRect(0, 0, W, H);
+      for (const px of [0, 256]) for (const py of [0, 256]) {
+        g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(px + 8, py + 8, 240, 8); g.fillRect(px + 8, py + 8, 8, 240);   // lit edges
+        g.fillStyle = 'rgba(20,40,60,.25)'; g.fillRect(px + 8, py + 240, 240, 8); g.fillRect(px + 240, py + 8, 8, 240);   // shaded edges
+        g.save(); g.beginPath(); g.rect(px + 16, py + 16, 224, 224); g.clip();
+        g.fillStyle = 'rgba(255,255,255,.16)'; g.beginPath(); g.moveTo(px + 60, py + 16); g.lineTo(px + 120, py + 16); g.lineTo(px + 16, py + 120); g.lineTo(px + 16, py + 60); g.fill();   // shine
+        g.restore();
+        for (const [rx, ry] of [[24, 24], [232, 24], [24, 232], [232, 232], [128, 24], [128, 232], [24, 128], [232, 128]]) dot(px + rx, py + ry, 7, 'hsl(206,18%,84%)', 'hsl(208,26%,36%)');
+      }
+      g.fillStyle = 'hsl(208,26%,40%)'; g.fillRect(0, 0, W, 5); g.fillRect(0, 254, W, 5); g.fillRect(0, 0, 5, H); g.fillRect(254, 0, 5, H);   // seams
+    } else {   // steel frame: a darker blue-grey with big bolts
+      g.fillStyle = 'hsl(206,26%,54%)'; g.fillRect(0, 0, W, H);
+      g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, 38, W, 6);
+      for (let x = 32; x < W; x += 64) for (const y of [52, 80]) dot(x, y, 7, 'hsl(206,18%,74%)', 'hsl(208,26%,26%)');
+    }
+    return c;
+  },
+  // bold cracks drawn over a copy of the surface: a few at two-thirds health, more (and chunks knocked out) at one-third
+  cracked(src, lvl, m) {
+    const c = document.createElement('canvas'); c.width = src.width; c.height = src.height; const g = c.getContext('2d'); g.drawImage(src, 0, 0);
+    const R = mulberry32(lvl * 97 + m.length * 13), r = (a, b) => a + R() * (b - a), W = c.width, H = c.height, ink = '#' + this.INK[m].toString(16).padStart(6, '0');
+    const line = (x, y, a, n, w) => {
+      const pts = [[x, y]]; for (let s = 0; s < n; s++) { a += (s % 2 ? 1 : -1) * r(0.5, 1.0); x += Math.cos(a) * r(16, 30); y += Math.sin(a) * r(16, 30); pts.push([x, y]); }   // zig-zag
+      g.strokeStyle = ink; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'miter';
+      g.beginPath(); pts.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py)); g.stroke(); return pts;
+    };
+    const n = lvl === 1 ? 3 : 6;
+    for (let i = 0; i < n; i++) {
+      const pts = line(r(80, W - 80), r(90, H - 90), r(0, TAU), 4 + Math.floor(R() * 3), lvl === 1 ? 5 : 7);
+      const [bx, by] = pts[1 + Math.floor(R() * (pts.length - 1))]; line(bx, by, r(0, TAU), 2 + Math.floor(R() * 2), lvl === 1 ? 3.5 : 5);
+    }
+    if (lvl === 2) for (let i = 0; i < 4; i++) {   // chunks knocked out: a dark hole with a light chipped rim
+      const x = r(70, W - 70), y = r(70, H - 70), s = r(16, 28), pts = [];
+      for (let k = 0; k < 7; k++) { const a = k / 7 * TAU, rr = s * r(0.6, 1.1); pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]); }
+      g.beginPath(); pts.forEach(([px, py], k) => k ? g.lineTo(px, py) : g.moveTo(px, py)); g.closePath();
+      g.fillStyle = ink; g.fill(); g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 3; g.stroke();
+    }
+    return c;
   },
 };
 
@@ -6482,7 +6834,7 @@ const CharModel = {
     if (prev && prev !== act) { if (fade > 0) act.crossFadeFrom(prev, fade, false); else prev.stop(); }
     layer.cur = name; layer.act = act; return act;
   },
-  TWIST: ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'upperarm_l', 'lowerarm_l', 'hand_l', 'upperarm_r', 'lowerarm_r', 'hand_r'],   // re-set every frame (procedural turns and the two-hand grip)
+  TWIST: ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'upperarm_l', 'lowerarm_l', 'hand_l', 'upperarm_r', 'lowerarm_r', 'hand_r', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r'],   // re-set every frame (procedural turns and the two-hand grip)
   reset(R) { if (R.pure) this.TWIST.forEach((n, i) => R.B[n].quaternion.copy(R.pure[i])); R.mixer.stopAllAction(); R.L.cur = R.U.cur = null; R.L.act = R.U.act = null; R.st.fresh = true; R.st.legYaw = 0; R.st.rev = false; R.st.vy = null; },
   emoteClip: { groove: 'Dance_Body_Roll', robot: 'Dance_Charleston', jacks: 'Jumping_Jacks', wave: 'Greeting', airguitar: 'Dance_Simple', micdrop: 'Victory' },
   // a crawling player glows red so everyone can see they are hurt
@@ -6563,6 +6915,18 @@ const CharModel = {
     turn(B.spine_03, Y_AXIS, -st.legYaw * 0.2); turn(B.spine_03, X_AXIS, -pitch * 0.33 * st.aim); Q.multiply(B.spine_03.quaternion);
     if (!full) turn(B.neck_01, X_AXIS, -pitch * 0.45 * (1 - st.aim));
     // skydiving: lie flat, or tip nose-down into a dive (turning about the chest, not the feet)
+    // ---- crouch: bend at the hips and knees (feet stay under the hips and flat), lean forward a little, and drop the body
+    const ck = !full && a.state === 'ground' ? a.crouchK || 0 : 0;
+    if (ck > 0.01) {
+      R.root.updateMatrixWorld(true);
+      if (!R.legLen) { const p1 = B.thigh_l.getWorldPosition(new THREE.Vector3()), p2 = B.calf_l.getWorldPosition(new THREE.Vector3()), p3 = B.foot_l.getWorldPosition(new THREE.Vector3()); R.legLen = (p1.distanceTo(p2) + p2.distanceTo(p3)) / R.root.scale.y; }
+      const right = _cmV2.copy(X_AXIS).applyQuaternion(R.root.getWorldQuaternion(_cmQ3));   // the character's right, in the world
+      const bend = (bone, ang) => { bone.parent.getWorldQuaternion(_cmQ3).invert(); _cmV.copy(right).applyQuaternion(_cmQ3); _cmQ2.setFromAxisAngle(_cmV, ang); bone.quaternion.premultiply(_cmQ2); bone.updateMatrixWorld(true); };
+      const th = 0.9 * ck;
+      bend(B.spine_01, 0.28 * ck);
+      for (const sd of ['_l', '_r']) { bend(B['thigh' + sd], -th); bend(B['calf' + sd], 2 * th); bend(B['foot' + sd], -th); }
+      oy -= R.legLen * (1 - Math.cos(th));
+    }
     if (a.state === 'sky') { const tilt = 0.08 + (a.dive || 0) * 1.05, h = 1.3; R.body.rotation.x = tilt; R.body.position.set(0, h - h * Math.cos(tilt), -h * Math.sin(tilt)); }
     else { R.body.rotation.x = 0; R.body.position.set(0, oy, 0); }
     R.root.updateMatrixWorld(true);
@@ -6598,7 +6962,7 @@ const CharModel = {
     R.pick.visible = showPick; R.held.visible = showHeld; R.glider.visible = glider;
   },
 };
-const _cmQ = new THREE.Quaternion(), _cmQi = new THREE.Quaternion(), _cmQ2 = new THREE.Quaternion(), _cmV = new THREE.Vector3();
+const _cmQ = new THREE.Quaternion(), _cmQi = new THREE.Quaternion(), _cmQ2 = new THREE.Quaternion(), _cmQ3 = new THREE.Quaternion(), _cmV = new THREE.Vector3(), _cmV2 = new THREE.Vector3();
 // How each weapon type is held (body space, metres): `at` = where the gun's grip sits relative to the right shoulder,
 // `rh`/`lh` = where the right/left wrist goes on the gun (gun space: grip at 0, barrel along +z). Pistols stay one-handed.
 const GRIP = {
@@ -7930,6 +8294,7 @@ const Net = {
     const rb = $('readyBtn'), waiting = this.state === 'room' && !this.isHost;
     rb.disabled = waiting; { const main = waiting ? 'WAITING FOR HOST' : this.state === 'room' ? 'START MATCH · ' + this.members.length + (this.members.length === 1 ? ' PLAYER' : ' PLAYERS') : 'PLAY', sub = waiting ? 'The host picks the mode and starts the match' : typeof Lobby !== 'undefined' ? Lobby.summary() : '', key = main + '|' + sub;
       if (rb.dataset.k !== key) { rb.dataset.k = key; rb.innerHTML = '<span class="rb-main">' + esc(main) + '</span><span class="rb-sub">' + esc(sub) + '</span>'; } }
+    if (typeof Lobby !== 'undefined' && $('modeBtn')) Lobby.modeBar();   // guests can't change the mode, and rooms play unranked
     if (sig === this.sig) return; this.sig = sig;
     const err = this.err ? `<div class="mp-err">${esc(this.err)}</div>` : '';
     if (!this.supported) { box.innerHTML = '<div class="hint">Multiplayer works on the website version of FortDay. This copy plays against bots.</div>'; return; }
@@ -7937,7 +8302,7 @@ const Net = {
     if (this.state === 'room') {
       box.innerHTML = `<div class="mp-code">Room code <b>${esc(this.code)}</b></div>`
         + `<div class="mp-list">${this.members.map(m => `<span class="${m.id === this.me ? 'me' : ''}">${esc(m.name)}${m.id === this.hostId ? ' <i>host</i>' : ''}${m.id === this.me ? ' <i>you</i>' : ''}</span>`).join('')}</div>`
-        + `<div class="hint">${this.isHost ? 'Share the code. Pick the mode and island below, then press START MATCH. Bots fill the other spots.' : 'The host picks the mode and island and starts the match.'}</div>`
+        + `<div class="hint">${this.isHost ? 'Share the code. Pick the mode above START MATCH, then press it. Bots fill the other spots.' : 'The host picks the mode and island and starts the match.'}</div>`
         + `<div class="mp-row"><button data-mp="leave">Leave room</button></div>` + err;
       return;
     }
@@ -8195,7 +8560,7 @@ const Opening = {
     if (this.on && !this.out) {
       this.t += dt; if (Input.pad.hit.length) this.close();
       const k = Math.min(1, this.t / 4), e = 1 - Math.pow(1 - k, 3), a = 2.6 - e * 2.1 + Math.sin(this.t * 0.3) * 0.08 * k, r = lerp(16, 7.4, e), y = lerp(9, 2.2, e);
-      cam.position.set(Math.sin(a) * r + 1.3, y, Math.cos(a) * r); cam.lookAt(1.3, lerp(1.6, 1.2, e), 0);
+      const cx = Lobby.camX || 0; cam.position.set(Math.sin(a) * r + cx, y, Math.cos(a) * r); cam.lookAt(cx, lerp(1.6, 1.2, e), 0);
       return true;
     }
     if (this.out) {
@@ -8335,15 +8700,310 @@ const Tutorial = {
 };
 
 // =====================================================================
+//  Accounts, friends and party invites (Supabase)
+//  Off until SOCIAL.url and SOCIAL.key are filled in: the Friends card stays hidden and the game
+//  plays as before. Setup steps: supabase/SETUP.md. The database rules are in supabase/schema.sql,
+//  and the emails are sent by supabase/functions/notify (never from the page: emails stay private).
+// =====================================================================
+const SOCIAL = {
+  url: 'https://scbkykinwnbwutomzoxl.supabase.co',   // Project URL (Supabase: Project Settings → Data API)
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjYmt5a2lud25id3V0b216b3hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMDU3NTEsImV4cCI6MjExMDY4MTc1MX0.6SmNecWItOWCzknKNsFMcSJSKkeoy3CZaHkEotZ7v7s',   // the anon key: meant to be public. Never put the service_role key here.
+  site: 'https://ejpeakin.github.io/FortDay/',   // where sign-up, password-reset and invite links send players
+  emails: false,   // true once emails are set up (supabase/SETUP.md, "Adding emails later"); until then requests and invites are in-game only
+};
+const SOC_NAME = /^[A-Za-z0-9_]{3,16}$/;
+
+const Social = {
+  sb: null, ready: false, user: null, me: null, mode: 'in', msg: '', bad: false, recovering: false,
+  state: { friends: [], incoming: [], outgoing: [], invites: [] }, online: new Set(), seen: new Set(), sentInv: new Set(),
+  found: [], confirm: '', ch: null, pres: null, loadT: 0, loaded: false,
+  get configured() { return !!(SOCIAL.url && SOCIAL.key); },
+
+  init() {
+    this.bind();
+    this.joinFromLink();
+    this.render();
+    if (!this.configured) return;
+    // the account library only downloads once accounts are switched on, in the background so the game doesn't wait
+    const lib = document.createElement('script'); lib.async = true; lib.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'; document.head.append(lib);
+    const t0 = performance.now(), wait = () => {
+      if (window.supabase && window.supabase.createClient) return this.start();
+      if (performance.now() - t0 < 30000) setTimeout(wait, 250);
+    };
+    wait();
+  },
+  start() {
+    try { this.sb = window.supabase.createClient(SOCIAL.url, SOCIAL.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }); }
+    catch (e) { console.warn('FortDay accounts', e); return; }
+    this.ready = true; this.render();
+    this.sb.auth.onAuthStateChange((ev, session) => {
+      if (ev === 'PASSWORD_RECOVERY') { this.recovering = true; this.say('Type a new password for your account.'); this.open(); }
+      const u = session ? session.user : null;
+      if ((u && u.id) !== (this.user && this.user.id)) { this.user = u; setTimeout(() => this.signedIn(ev), 0); }   // never await Supabase inside this callback
+      else this.render();
+    });
+    setInterval(() => { if (this.me && !document.hidden) this.load(); }, 60000);   // catches removals, which aren't sent live
+  },
+
+  // ---------------------------------------------------------------- session
+  async signedIn(ev) {
+    this.unlisten(); this.me = null; this.loaded = false; this.seen.clear(); this.sentInv.clear(); this.found = []; $('socFind').value = '';
+    if (!this.user) { this.state = { friends: [], incoming: [], outgoing: [], invites: [] }; this.online.clear(); this.render(); return; }
+    this.render();
+    await this.load();
+    if (this.me) {
+      Profile.d.name = this.me.username; Profile.save(); Net.tellProfile(); Lobby.refresh();
+      if (ev === 'SIGNED_IN' && !this.recovering) this.say('Signed in as ' + this.me.username + '.');
+      this.listen();
+    } else this.say('Your account has no player name yet. Sign out and create the account again.', true);
+  },
+  async load() {
+    if (!this.sb || !this.user) return;
+    const { data, error } = await this.sb.rpc('social_state');
+    if (error || !data) { this.say(this.why(error), true); return; }
+    const first = !this.loaded; this.loaded = true;
+    this.me = data.me; this.state = { friends: data.friends || [], incoming: data.incoming || [], outgoing: data.outgoing || [], invites: data.invites || [] };
+    // tell the player about anything new
+    const newReq = this.state.incoming.filter(r => !this.seen.has('r' + r.id)), newInv = this.state.invites.filter(i => !this.seen.has('i' + i.id));
+    for (const r of this.state.incoming) this.seen.add('r' + r.id);
+    for (const i of this.state.invites) this.seen.add('i' + i.id);
+    if (first && newReq.length > 1) this.note('You have ' + newReq.length + ' friend requests.', [['Show', () => this.open()]]);
+    else for (const r of newReq) this.note(r.username + ' sent you a friend request.', [['Accept', () => this.respond(r.id, true), 1], ['Decline', () => this.respond(r.id, false)]]);
+    for (const i of newInv) this.note(i.username + ' invited you to their party.', [['Join', () => this.join(i), 1], ['Not now', () => {}]]);
+    this.render();
+  },
+  // new requests and invites arrive the moment they're sent; presence shows which friends are playing
+  listen() {
+    const uid = this.user.id, again = () => { clearTimeout(this.loadT); this.loadT = setTimeout(() => this.load(), 150); };
+    this.ch = this.sb.channel('social-' + uid)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'friend_requests', filter: 'to_id=eq.' + uid }, again)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friend_requests', filter: 'from_id=eq.' + uid }, p => {
+        if (p.new && p.new.status === 'accepted') this.load().then(() => { const f = this.state.friends.find(x => x.id === p.new.to_id); if (f) this.note(f.username + ' accepted your friend request.'); });
+        else again();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'party_invites', filter: 'to_id=eq.' + uid }, again)
+      .subscribe();
+    this.pres = this.sb.channel('online', { config: { presence: { key: uid } } });
+    this.pres.on('presence', { event: 'sync' }, () => { this.online = new Set(Object.keys(this.pres.presenceState())); this.render(); })
+      .subscribe(s => { if (s === 'SUBSCRIBED') this.pres.track({ at: Date.now() }); });
+  },
+  unlisten() {
+    if (this.sb) { if (this.ch) this.sb.removeChannel(this.ch); if (this.pres) this.sb.removeChannel(this.pres); }
+    this.ch = this.pres = null; this.online = new Set();
+  },
+
+  // ---------------------------------------------------------------- account forms
+  async go() {
+    const email = $('socEmail').value.trim(), pass = $('socPass').value, name = $('socName').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return this.say('Type your email address.', true);
+    if (pass.length < 8) return this.say('Passwords need at least 8 characters.', true);
+    this.say('Just a moment…');
+    if (this.mode === 'up') {
+      if (!SOC_NAME.test(name)) return this.say('Player names are 3 to 16 letters, numbers or _ (no spaces).', true);
+      const free = await this.sb.rpc('username_available', { name });
+      if (free.error) return this.say(this.why(free.error), true);
+      if (!free.data) return this.say(name + ' is taken. Try another player name.', true);
+      const { data, error } = await this.sb.auth.signUp({ email, password: pass, options: { data: { username: name }, emailRedirectTo: SOCIAL.site } });
+      if (error) return this.say(this.why(error), true);
+      if (!data.session) { $('socPass').value = ''; this.mode = 'in'; this.say(SOCIAL.emails ? 'Almost done! We emailed ' + email + '. Click the link in it to confirm, then sign in here.' : 'Account made! Now sign in with your email and password.'); }
+      return;
+    }
+    const { error } = await this.sb.auth.signInWithPassword({ email, password: pass });
+    if (error) return this.say(this.why(error), true);
+    $('socPass').value = '';
+  },
+  async forgot() {
+    const email = $('socEmail').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return this.say('Type your email address above, then press Forgot your password again.', true);
+    const { error } = await this.sb.auth.resetPasswordForEmail(email, { redirectTo: SOCIAL.site });
+    this.say(error ? this.why(error) : 'If there is an account for ' + email + ', we emailed it a link to reset the password.', !!error);
+  },
+  async setPass() {
+    const p = $('socNewPass').value;
+    if (p.length < 8) return this.say('Passwords need at least 8 characters.', true);
+    const { error } = await this.sb.auth.updateUser({ password: p });
+    if (error) return this.say(this.why(error), true);
+    $('socNewPass').value = ''; this.recovering = false; this.say('Password changed.');
+  },
+  async signOut() { this.unlisten(); await this.sb.auth.signOut(); this.say('Signed out.'); },
+  async setNotify(on) {
+    const { error } = await this.sb.rpc('set_email_notify', { want: on });
+    if (error) { this.say(this.why(error), true); return; }
+    if (this.me) this.me.email_notify = on;
+    this.say(on ? 'You will get emails for friend requests and party invites.' : 'No more emails. You still see requests and invites in the game.');
+  },
+
+  // ---------------------------------------------------------------- friends
+  async search() {
+    const q = $('socFind').value.trim();
+    if (q.length < 2) { this.found = []; this.say('Type at least 2 letters of a player name.', true); return; }
+    const { data, error } = await this.sb.rpc('search_players', { q });
+    if (error) return this.say(this.why(error), true);
+    this.found = data || []; this.say(this.found.length ? '' : 'No player names start with "' + q + '".', !this.found.length);
+  },
+  async add(id) {
+    const p = this.found.find(x => x.id === id), name = p ? p.username : 'them';
+    const { data, error } = await this.sb.rpc('send_friend_request', { target: id });
+    if (error) return this.say(this.why(error), true);
+    if (data.result === 'sent') { await this.load(); const ok = await this.email('friend', data.id); this.say('Friend request sent to ' + name + '.' + (ok === false ? ' (The email could not be sent right now, but they will see it in the game.)' : '')); }
+    else if (data.result === 'accepted') { await this.load(); this.say('You and ' + name + ' are now friends!'); }
+    else if (data.result === 'friends') this.say('You and ' + name + ' are already friends.');
+    else this.say('You already sent ' + name + ' a request.');
+  },
+  async respond(id, accept) {
+    const r = this.state.incoming.find(x => x.id === id);
+    const { error } = await this.sb.rpc('respond_friend_request', { req: id, accept });
+    if (error) { this.say(this.why(error), true); this.load(); return; }
+    await this.load(); if (r) this.say(accept ? 'You and ' + r.username + ' are now friends!' : 'Declined ' + r.username + '\'s request.');
+  },
+  async cancel(id) { const { error } = await this.sb.rpc('cancel_friend_request', { req: id }); if (error) this.say(this.why(error), true); this.load(); },
+  async remove(id) {
+    const f = this.state.friends.find(x => x.id === id);
+    if (this.confirm !== 'rm' + id) { this.confirm = 'rm' + id; this.render(); clearTimeout(this.cT); this.cT = setTimeout(() => { this.confirm = ''; this.render(); }, 3000); return; }   // tap twice
+    this.confirm = '';
+    const { error } = await this.sb.rpc('remove_friend', { other: id });
+    if (error) return this.say(this.why(error), true);
+    await this.load(); if (f) this.say('Removed ' + f.username + ' from your friends.');
+  },
+
+  // ---------------------------------------------------------------- party invites
+  async invite(id) {
+    const f = this.state.friends.find(x => x.id === id), name = f ? f.username : 'your friend';
+    if (Net.state !== 'room') {   // no party yet: make a room first, then invite into it
+      if (Net.state !== 'connecting') Net.create();
+      this.say('Making a room for your party…');
+      await this.until(() => Net.state === 'room' || Net.state === 'off', 25000);
+      if (Net.state !== 'room') return this.say(Net.err || 'Could not make a room. Try again.', true);
+    }
+    const { data, error } = await this.sb.rpc('send_party_invite', { target: id, room: Net.code });
+    if (error) return this.say(this.why(error), true);
+    if (data.result !== 'sent') return this.say('You just invited ' + name + '. Give them a moment.');
+    this.sentInv.add(id); this.render(); setTimeout(() => { this.sentInv.delete(id); this.render(); }, 60000);
+    const ok = await this.email('invite', data.id);
+    this.say('Invited ' + name + ' to room ' + Net.code + '.' + (ok === false ? ' (The email could not be sent right now, but they will see it in the game.)' : ''));
+  },
+  join(i) {
+    this.dismiss(i.id);
+    if (Match.state !== 'lobby') { this.note('Finish this match, then join ' + i.username + ' from the Friends card.'); return; }
+    if (Net.state === 'room' && Net.code === i.code) { this.say('You are already in ' + i.username + '\'s party.'); return; }
+    if (Net.state === 'room') Net.leaveRoom();
+    setTimeout(() => { Net.join(i.code); Lobby.tab = 'play'; Lobby.refresh(); $('partyBox').open = true; }, 250);
+    this.say('Joining ' + i.username + '\'s party…');
+  },
+  async dismiss(id) { if (this.sb) await this.sb.rpc('dismiss_party_invite', { inv: id }); this.state.invites = this.state.invites.filter(x => x.id !== id); this.render(); },
+  // an emailed invite opens the game with ?join=CODE: join that room once the lobby is up
+  joinFromLink() {
+    let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
+    const code = String(q.get('join') || '').toUpperCase().replace(/[^A-Z]/g, ''); if (!q.has('join')) return;
+    q.delete('join'); try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) { /* sandboxed */ }
+    if (code.length !== 4) return;
+    this.until(() => Match.state === 'lobby' && !Opening.on && (Net.relayHere || P2P.ok()), 60000).then(ok => {
+      if (!ok || Net.state === 'room') return;
+      Net.join(code); Lobby.tab = 'play'; Lobby.refresh(); $('partyBox').open = true;
+    });
+  },
+  // send the email for a request or invite; false if it couldn't go out, null when emails are switched off
+  async email(kind, id) {
+    if (!SOCIAL.emails) return null;
+    try { const { data, error } = await this.sb.functions.invoke('notify', { body: { kind, id } }); if (error) throw error; return !!(data && (data.sent || data.reason)); }
+    catch (e) { console.warn('FortDay email', e); return false; }
+  },
+
+  // ---------------------------------------------------------------- helpers
+  until(test, ms) {
+    return new Promise(res => { const t0 = performance.now(), tick = () => { if (test()) res(true); else if (performance.now() - t0 > ms) res(false); else setTimeout(tick, 200); }; tick(); });
+  },
+  why(e) {
+    const m = String((e && e.message) || e || '');
+    if (/invalid login/i.test(m)) return 'Wrong email or password.';
+    if (/not confirmed/i.test(m)) return 'Confirm your email first: click the link we sent you.';
+    if (/already registered|already been registered/i.test(m)) return 'There is already an account with that email. Sign in instead.';
+    if (/rate limit|too many/i.test(m)) return 'Too many tries. Wait a little and try again.';
+    if (/fetch|network|load failed/i.test(m)) return 'Could not reach the account service. Check your connection.';
+    if (/permission denied|jwt/i.test(m)) return 'Your sign-in ran out. Sign in again.';
+    return m.replace(/^error:\s*/i, '') || 'Something went wrong. Try again.';
+  },
+  say(m, bad) { this.msg = m || ''; this.bad = !!bad; this.render(); },
+  open() { if (Match.state !== 'lobby') return; Lobby.tab = 'play'; Lobby.refresh(); const b = $('socBox'); b.open = true; b.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); },
+  // a pop-up in the lobby (with buttons), or a short message in the corner during a match
+  note(text, acts) {
+    if (Match.state !== 'lobby') { if (typeof HUD !== 'undefined' && HUD.toast) HUD.toast(text); return; }
+    const box = $('notes'), el = document.createElement('div'); el.className = 'note';
+    const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 250); };
+    el.innerHTML = '<span class="note-t"></span><span class="note-b"></span>'; el.firstChild.textContent = text;
+    for (const [label, fn, pri] of acts || []) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (pri) b.className = 'pri'; b.addEventListener('click', () => { close(); fn(); }); el.lastChild.append(b); }
+    if (!acts || !acts.length) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'OK'; b.addEventListener('click', close); el.lastChild.append(b); }
+    box.append(el); while (box.children.length > 3) box.firstChild.remove();
+    setTimeout(close, 20000);
+    try { Sfx.init(); Sfx.blip && Sfx.blip(); } catch (e) { /* sound is optional */ }
+  },
+
+  // ---------------------------------------------------------------- the Friends card
+  bind() {
+    const box = $('socBox');
+    box.addEventListener('keydown', e => {
+      e.stopPropagation();   // typing here must not move the player or start a match
+      if (e.key !== 'Enter') return;
+      if (e.target.id === 'socFind') this.search(); else if (e.target.id === 'socNewPass') this.setPass(); else if (e.target.closest('#socAuth')) this.go();
+    });
+    box.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b || b.disabled) return;
+      const m = b.dataset.socMode; if (m) { this.mode = m; this.say(''); return; }
+      if (b.id === 'socGo') this.go(); else if (b.id === 'socForgot') this.forgot(); else if (b.id === 'socSetPass') this.setPass();
+      else if (b.id === 'socFindBtn') this.search(); else if (b.id === 'socOut') this.signOut();
+      const act = b.dataset.act, id = b.dataset.id, n = Number(id); if (!act) return;
+      if (act === 'add') this.add(id); else if (act === 'accept') this.respond(n, true); else if (act === 'decline') this.respond(n, false);
+      else if (act === 'cancel') this.cancel(n); else if (act === 'remove') this.remove(id); else if (act === 'invite') this.invite(id);
+      else if (act === 'join') { const i = this.state.invites.find(x => x.id === n); if (i) this.join(i); } else if (act === 'dismiss') this.dismiss(n);
+    });
+    $('socNotify').addEventListener('change', e => this.setNotify(e.target.checked));
+  },
+  render() {
+    const box = $('socBox'); if (!box) return;
+    box.hidden = !this.ready;
+    const ni = $('nameIn'); ni.readOnly = !!this.me; ni.title = this.me ? 'Your account name' : 'Click to change your name';
+    if (!this.ready) return;
+    const me = this.me, st = this.state, online = st.friends.filter(f => this.online.has(f.id)).length, waiting = st.incoming.length + st.invites.length;
+    $('socSum').textContent = me ? me.username : this.user ? 'Signing in…' : 'Sign in';
+    $('socSub').textContent = me ? (st.friends.length ? online + ' of ' + st.friends.length + ' friends online' : 'Add friends by their player name') : 'Make an account to add friends';
+    $('socBadge').hidden = !waiting; $('socBadge').textContent = waiting;
+    $('socAuth').hidden = !!this.user || this.recovering; $('socReset').hidden = !this.recovering; $('socIn').hidden = !me || this.recovering;
+    for (const b of $('socTabs').children) b.classList.toggle('on', b.dataset.socMode === this.mode);
+    const up = this.mode === 'up';
+    $('socNameRow').hidden = !up; $('socGo').textContent = up ? 'Create account' : 'Sign in'; $('socForgot').hidden = up || !SOCIAL.emails;
+    $('socMailRow').hidden = !SOCIAL.emails;
+    $('socAuthHint').textContent = SOCIAL.emails ? 'Your email is only used to sign in and to tell you about friend requests and party invites. Other players never see it.' : 'Your email is only used to sign in. Other players never see it.';
+    $('socPass').setAttribute('autocomplete', up ? 'new-password' : 'current-password');
+    $('socMsg').textContent = this.msg; $('socMsg').className = 'soc-msg' + (this.bad ? ' bad' : '');
+    if (!me) return;
+    $('socNotify').checked = !!me.email_notify;
+    const btn = (act, id, label, cls, off) => `<button type="button" class="${cls || ''}" data-act="${act}" data-id="${esc(String(id))}"${off ? ' disabled' : ''}>${label}</button>`;
+    const row = (name, btns, dot) => `<div class="soc-row">${dot == null ? '' : `<i class="soc-dot${dot ? ' on' : ''}" title="${dot ? 'Playing now' : 'Offline'}"></i>`}<b>${esc(name)}</b><span class="soc-btns">${btns}</span></div>`;
+    const friendIds = new Set(st.friends.map(f => f.id)), sentTo = new Set(st.outgoing.map(r => r.to)), fromThem = new Map(st.incoming.map(r => [r.from, r.id]));
+    let h = this.found.map(p => row(p.username, friendIds.has(p.id) ? btn('', p.id, 'Friends', '', true) : sentTo.has(p.id) ? btn('', p.id, 'Sent', '', true) : fromThem.has(p.id) ? btn('accept', fromThem.get(p.id), 'Accept', 'pri') : btn('add', p.id, 'Add', 'pri'))).join('');
+    if ($('socFound').innerHTML !== h) $('socFound').innerHTML = h;
+    h = '';
+    if (st.invites.length) h += '<h4>Party invites</h4>' + st.invites.map(i => row(i.username, btn('join', i.id, 'Join', 'pri') + btn('dismiss', i.id, '✕', 'x'))).join('');
+    if (st.incoming.length) h += '<h4>Friend requests</h4>' + st.incoming.map(r => row(r.username, btn('accept', r.id, 'Accept', 'pri') + btn('decline', r.id, 'Decline'))).join('');
+    h += '<h4>Friends' + (st.friends.length ? ' · ' + st.friends.length : '') + '</h4>';
+    const fl = st.friends.slice().sort((a, b) => this.online.has(b.id) - this.online.has(a.id));
+    h += fl.length ? fl.map(f => row(f.username, btn('invite', f.id, this.sentInv.has(f.id) ? 'Invited' : 'Invite', 'pri', this.sentInv.has(f.id)) + btn('remove', f.id, this.confirm === 'rm' + f.id ? 'Remove?' : '✕', 'x' + (this.confirm === 'rm' + f.id ? ' sure' : '')), this.online.has(f.id))).join('')
+      : '<div class="hint">No friends yet. Search for a player name above.</div>';
+    if (st.outgoing.length) h += '<h4>Sent requests</h4>' + st.outgoing.map(r => row(r.username, btn('cancel', r.id, 'Cancel'))).join('');
+    if ($('socLists').innerHTML !== h) $('socLists').innerHTML = h;
+  },
+};
+
+// =====================================================================
 //  Input (keyboard, mouse, touch), camera, player control
 // =====================================================================
 const Input = {
   mouseSeen: false,
   get coarse() { return IS_TOUCH && !this.mouseSeen; },   // a touch device that has not used a mouse or trackpad
   keys: {}, pressed: new Set(), mdx: 0, mdy: 0, lmb: false, rmb: false, wheel: 0, locked: false,
-  touch: { on: false, mx: 0, mz: 0, fire: false, ads: false, jump: false, stickId: null, lookId: null, sx: 0, sy: 0, lx: 0, ly: 0 },
+  touch: { on: false, mx: 0, mz: 0, fire: false, ads: false, jump: false, crouch: false, stickId: null, lookId: null, sx: 0, sy: 0, lx: 0, ly: 0 },
   // game controller (standard layout): sticks move and look, triggers aim and fire, face buttons act
-  pad: { gp: null, on: false, mx: 0, mz: 0, lx: 0, ly: 0, fire: false, ads: false, jump: false, sprint: false, prev: [], hit: [], navT: 0, focus: null, lastSlot: 1 },
+  pad: { gp: null, on: false, mx: 0, mz: 0, lx: 0, ly: 0, fire: false, ads: false, jump: false, sprint: false, crouch: false, prev: [], hit: [], navT: 0, focus: null, lastSlot: 1 },
   pollPad() {
     const pd = this.pad; let gp = null; pd.hit.length = 0;
     try { const list = navigator.getGamepads ? navigator.getGamepads() : []; for (const g of list) if (g && g.connected && g.buttons.length >= 10 && g.axes.length >= 4) { gp = g; break; } } catch (e) { /* not allowed here */ }
@@ -8473,6 +9133,7 @@ const Input = {
     btn('tFire', () => { t.fire = true; }, () => { t.fire = false; });
     btn('tAim', () => { t.ads = !t.ads; $('tAim').style.background = t.ads ? 'rgba(58,168,255,.5)' : ''; });
     btn('tJump', () => { t.jump = true; this.pressed.add('Space'); }, () => { t.jump = false; });
+    btn('tCrouch', () => { t.crouch = !t.crouch; $('tCrouch').style.background = t.crouch ? 'rgba(58,168,255,.5)' : ''; });
     btn('tReload', () => this.pressed.add('KeyR'));
     btn('tUse', () => this.pressed.add('KeyE'));
     btn('tBuild', () => this.pressed.add('TouchBuild'));
@@ -8612,7 +9273,8 @@ const Cam = {
     else if (a.state === 'sky' || a.state === 'glide') { dist = 7.5; side = 0; up = 1.2; py = 1.5; }
     else if (this.scoped) { dist = 0; side = 0; up = 0; py = 1.72; }
     else if (a === player && a.input.ads) { const w = a.inv[a.slot], wt = w && w.kind === 'weapon' ? WEAPONS[w.wid].type : '', sg = wt === 'shotgun', sm = wt === 'smg'; dist = sg ? 1.75 : sm ? 1.65 : 2.0; side = sg ? 0.78 : sm ? 0.7 : 0.72; up = sg ? 0.16 : sm ? 0.14 : 0.12; py = 1.62; }
-    else { dist = 3.5; side = 0.82; up = 0.28; py = 1.62; }
+    else { dist = 2.7; side = 0.8; up = 0.24; py = 1.62; }   // close over-the-shoulder view: your character fills about half the screen's height
+    if (a.crouchK > 0 && !a.vehicle && a.state === 'ground' && !this.scoped) py = lerp(py, 1.12, a.crouchK);   // crouching lowers the camera
     if (a.crawl && !a.vehicle && a.state === 'ground') { py = 0.6; dist = Math.max(dist, 3.2); up = 0.5; }
     if (innerHeight > innerWidth * 1.2 && !this.scoped) { dist *= 1.35; side *= 0.6; }
     if (a.emote && a === player) { dist = 4.2; side = 0; }
@@ -8633,7 +9295,8 @@ const Cam = {
     this.t0 = Math.max(0, (px - cx) * fx + (pyy - cy) * fy + (pz - cz) * fz);
     this.ready = a === player;
     const sprint = a.input.sprint && a.input.f > 0 && a.state === 'ground';
-    this.fov(dt, this.scoped ? (this.scopeKind === 'smg' ? 56 : 22) : (a === player && a.input.ads && !a.vehicle) ? (it && it.kind === 'weapon' && wstat(it).type === 'shotgun' ? 64 : it && it.kind === 'weapon' && wstat(it).type === 'smg' ? 52 : 58) : sprint ? 80 : a.vehicle ? 80 : 75);
+    const base = clamp(+Profile.d.fov || 70, 60, 100), zk = base / 70;   // field of view from Settings (70 unless changed); aiming zooms by the same amount at any setting
+    this.fov(dt, this.scoped ? (this.scopeKind === 'smg' ? 56 : 22) : (a === player && a.input.ads && !a.vehicle) ? zk * (it && it.kind === 'weapon' && wstat(it).type === 'shotgun' ? 64 : it && it.kind === 'weapon' && wstat(it).type === 'smg' ? 52 : 58) : sprint ? base + 5 : a.vehicle ? base + 5 : base);
   },
   fov(dt, target) { if (Math.abs(camera.fov - target) > 0.1) { camera.fov = lerp(camera.fov, target, Math.min(1, dt * 12)); camera.updateProjectionMatrix(); } },
 };
@@ -8690,6 +9353,7 @@ function updatePlayer(dt) {
       else if (i === 8 || i === 12) P.add('KeyM');
       else if (i === 9) { togglePause(); P.clear(); return; }
       else if (i === 10) pd.sprint = !pd.sprint;
+      else if (i === 11) pd.crouch = !pd.crouch;   // right stick click: crouch on / off
       else if (i === 13) P.add('KeyB');
       else if (i === 14) P.add('KeyG');
       else if (i === 15) P.add('TouchBuild');
@@ -8708,6 +9372,8 @@ function updatePlayer(dt) {
   inp.f = clamp(f, -1, 1); inp.r = clamp(r, -1, 1);
   inp.sprint = H('sprint') || (tc.on && Math.hypot(tc.mx, tc.mz) > 0.92) || pd.sprint;
   inp.jump = H('jump') || tc.jump || pd.jump;
+  inp.crouch = H('crouch') || tc.crouch || pd.crouch;
+  if (inp.jump) { tc.crouch = false; pd.crouch = false; if ($('tCrouch')) $('tCrouch').style.background = ''; }   // jumping stands you up
   inp.fire = H('fire') || tc.fire || pd.fire;
   // the scope key toggles aiming; it drops when you switch away, sprint, build, crawl or get in a car
   if (P.has('KeyV')) { const w = a.inv[a.slot]; Input.scoped = !Input.scoped && !!w && w.kind === 'weapon'; }
@@ -9417,16 +10083,62 @@ const Lobby = {
     this.car = buildPremiumCar(); this.car.scale.setScalar(0.5); this.car.visible = false; s.add(this.car);
     this.street = buildStreetCar(0xc8202a); this.street.scale.setScalar(0.5); this.street.visible = false; s.add(this.street);
     this.limo = buildLimo(); this.limo.scale.setScalar(0.4); this.limo.visible = false; s.add(this.limo);
+    // two party spots beside you: an empty platform with a + to invite, or a friend from your room standing on it
+    this.slots = [-1, 1].map(side => {
+      const x = side * 2.55, z = -1.15, g = new THREE.Group(); g.position.set(x, 0, z);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x12306a)); p.position.y = -0.15; g.add(p);
+      const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(0x2f6fd8)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
+      s.add(g);
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'slot-add'; add.title = 'Invite a friend'; add.innerHTML = '<i aria-hidden="true">+</i><span>Invite</span>';
+      add.addEventListener('click', () => this.openParty());
+      const tag = document.createElement('div'); tag.className = 'slot-tag'; tag.hidden = true;
+      $('stageUI').append(add, tag);
+      return { x, z, side, g, add, tag, rig: null, key: '', fake: null };
+    });
     this.cam = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 200); this.place();
     this.fake = newActor({ state: 'ground', onGround: true, inv: [{ kind: 'pick' }, makeWeapon('ar', 4), null, null, null, null], slot: 0 });
     this.rebuild();
     this.bindUI(); this.refresh();
   },
-  lift: 0,
+  lift: 0, camX: 1.3,
   place() {
-    const wide = innerWidth > 760, L = this.lift || 0;
-    if (wide) { this.cam.position.set(1.3, 1.5 + L, 6.6 + L * 0.8); this.cam.lookAt(1.3, 1.15 + L, 0); }
-    else { this.cam.position.set(0, 1.2 + L, 11.7 + L); this.cam.lookAt(0, -0.9 + L, 0); }
+    const wide = innerWidth > 760, L = this.lift || 0, play = this.tab === 'play';
+    if (wide && play) {   // Play: you in the middle of the space left of the panel, with a party spot each side
+      const side = (($('lbFoot') && $('lbFoot').offsetWidth) || 400) + 28, wpp = 2 * 8.6 * Math.tan(this.cam.fov * Math.PI / 360) / innerHeight;
+      const x = this.camX = side / 2 * wpp; this.cam.position.set(x, 1.55, 8.6); this.cam.lookAt(x, 1.0, 0);
+    }
+    else if (wide) { this.camX = 1.3; this.cam.position.set(1.3, 1.5 + L, 6.6 + L * 0.8); this.cam.lookAt(1.3, 1.15 + L, 0); }
+    else { this.camX = 0; this.cam.position.set(0, 1.2 + L, 11.7 + L); this.cam.lookAt(0, -0.9 + L, 0); }
+  },
+  openParty() {
+    Sfx.init(); const box = Social.me ? $('socBox') : $('partyBox'); box.open = true; box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });   // signed in: pick a friend to invite
+    const f = $('mpCode') || $('mpName'); if (f) setTimeout(() => f.focus(), 50);
+  },
+  // friends from your room stand on the party spots; the name plate and + buttons follow the 3D stage
+  stage(dt) {
+    const play = this.tab === 'play' && innerWidth > 760, room = typeof Net !== 'undefined' && Net.state === 'room';
+    const others = room ? Net.members.filter(m => m.id !== Net.me) : [];
+    const v = this._v || (this._v = new THREE.Vector3()), W2 = innerWidth / 2, H2 = innerHeight / 2;
+    const at = (el, x, y, z) => { v.set(x, y, z).project(this.cam); const on = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05; el.style.visibility = on ? '' : 'hidden'; if (on) el.style.transform = 'translate(' + Math.round((v.x + 1) * W2) + 'px,' + Math.round((1 - v.y) * H2) + 'px)'; };
+    for (let i = 0; i < this.slots.length; i++) {
+      const sl = this.slots[i], m = play ? others[i] : null;
+      sl.g.visible = play;
+      const key = m ? m.id + JSON.stringify(m.eq || {}) : '';
+      if (key !== sl.key) {
+        sl.key = key; if (sl.rig) { this.scene.remove(sl.rig.root); sl.rig = null; }
+        if (m) { sl.rig = makeRig(Object.assign({}, m.eq || {})); this.scene.add(sl.rig.root); sl.fake = sl.fake || newActor({ state: 'ground', onGround: true, inv: [{ kind: 'pick' }, null, null, null, null, null], slot: 0 }); }
+      }
+      if (sl.rig) { const f = sl.fake; f.pos.set(sl.x, 0, sl.z); f.pitch = 0; f.yaw = -sl.side * 0.35 + Math.sin(this.t * 0.4 + i * 2) * 0.15; animateRig(sl.rig, f, dt, this.t + i * 1.7); }
+      sl.add.hidden = !play || !!m;
+      sl.tag.hidden = !m; if (m) { const nm = m.name + (m.id === Net.hostId ? ' · host' : ''); if (sl.tag.textContent !== nm) sl.tag.textContent = nm; }
+      if (!sl.add.hidden) at(sl.add, sl.x, 0.95, sl.z);
+      if (m) at(sl.tag, sl.x, 2.18, sl.z);
+    }
+    // the name plate floats over your head on wide screens; on phones it sits at the top of the Play panel instead
+    const np = $('namePlate'), narrow = innerWidth <= 760, home = narrow ? $('tab-play') : $('stageUI');
+    if (np.parentElement !== home) { if (narrow) home.prepend(np); else home.append(np); np.style.transform = ''; np.style.visibility = ''; }
+    np.hidden = this.tab !== 'play';
+    if (!np.hidden && !narrow) at(np, 0, 2.15, 0);
   },
   shopSel: { cat: 'car', id: 'midnight' }, rigKey: '',
   lockSel: null,
@@ -9457,28 +10169,46 @@ const Lobby = {
       this.isl.rotation.y += dt * 0.05;
     }
     Opening.cam(this.cam, dt);
+    this.stage(dt);
     renderer.render(this.scene, this.cam);
   },
   // what PLAY will start, in plain words (shown on the button)
   summary() {
-    const d = Profile.d, m = { solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: 'Storm Rumble' }[d.mode] || 'Solo', th = THEMES[MapRotation.current()];
-    return [m, d.build ? 'Build' : 'No-Build', th ? th.name : '', d.ranked && d.mode !== 'rumble' && Net.state !== 'room' ? 'Ranked' : ''].filter(Boolean).join(' · ');
+    const d = Profile.d, m = { solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: 'Storm Rumble' }[d.mode] || 'Solo';
+    return [m, d.build ? 'Build' : 'No-Build', d.ranked && d.mode !== 'rumble' && Net.state !== 'room' ? 'Ranked' : ''].filter(Boolean).join(' · ');
+  },
+  // the mode card and the Unranked / Ranked switch next to PLAY
+  modeBar() {
+    const d = Profile.d, room = typeof Net !== 'undefined' && Net.state === 'room', guest = room && !Net.isHost, br = d.mode !== 'rumble';
+    $('modeName').textContent = br ? 'Battle Royale' : 'Storm Rumble';
+    $('modeSub').textContent = [{ solo: 'Solo', duos: 'Duos', squads: 'Squads', rumble: '16 vs 16' }[d.mode] || 'Solo', d.build ? 'Build' : 'No-Build'].join(' · ');
+    $('modeBtn').disabled = guest; $('modeBtn').title = guest ? 'The host picks the mode' : 'Change mode';
+    const off = !br || room, ranked = !!d.ranked && !off;
+    for (const b of $('rankSeg').children) { const on = (b.dataset.ranked === '1') === ranked; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); b.disabled = off && b.dataset.ranked === '1'; }
+    $('rankSeg').title = !br ? 'Storm Rumble is always unranked' : room ? 'Matches with friends are unranked' : '';
+    $('lbFoot').classList.toggle('ranked', ranked);
+    if (guest && !$('modeMenu').hidden) $('modeMenu').hidden = true;
   },
   bindUI() {
     // Enter starts the match from the lobby (not while typing, or while a menu or the opening is up)
     addEventListener('keydown', e => {
       if (e.key !== 'Enter' || e.repeat || Match.state !== 'lobby' || $('lobby').classList.contains('intro')) return;
       const t = e.target; if (t && t.closest && t.closest('input, textarea, select, button, a, summary')) return;
-      if (!$('settings').hidden || !$('tutAsk').hidden || $('readyBtn').disabled) return;
+      if (!$('settings').hidden || !$('tutAsk').hidden || !$('modeMenu').hidden || $('readyBtn').disabled) return;
       e.preventDefault(); $('readyBtn').click();
     });
     $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; this.tab = b.dataset.tab; this.refresh(); });
     $('modeGrid').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; Profile.d.mode = b.dataset.mode; Profile.save(); this.refresh(); });
     $('buildSeg').addEventListener('click', e => { const b = e.target.closest('[data-build]'); if (!b) return; Profile.d.build = b.dataset.build === '1'; Profile.save(); this.refresh(); });
-    $('islGrid').addEventListener('click', e => { const b = e.target.closest('[data-isl]'); if (!b) return; if (b.dataset.isl !== MapRotation.current()) { Sfx.init(); $('islNote').textContent = THEMES[b.dataset.isl].name + ' is locked. Only ' + THEMES[MapRotation.current()].name + ' is open right now.'; return; } Profile.d.theme = b.dataset.isl; Profile.save(); this.refresh(); });
     $('nameIn').addEventListener('input', e => { Profile.d.name = e.target.value.trim().slice(0, 16); Profile.save(); const m = $('mpName'); if (m) m.value = Profile.d.name; });
     $('nameIn').addEventListener('keydown', e => e.stopPropagation());
-    $('rankedChk').addEventListener('change', e => { Profile.d.ranked = e.target.checked; Profile.save(); this.refresh(); });
+    // mode picker and Unranked / Ranked, right above PLAY
+    const menu = $('modeMenu'), openMenu = on => { menu.hidden = !on; $('modeBtn').setAttribute('aria-expanded', on); $('lbFoot').classList.toggle('menu-on', on); };
+    $('modeBtn').addEventListener('click', () => { Sfx.init(); openMenu(menu.hidden); });
+    $('modeDone').addEventListener('click', () => openMenu(false));
+    addEventListener('pointerdown', e => { if (!menu.hidden && !e.target.closest('#lbFoot')) openMenu(false); });
+    addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { e.stopImmediatePropagation(); openMenu(false); } }, true);
+    $('rankSeg').addEventListener('click', e => { const b = e.target.closest('[data-ranked]'); if (!b || b.disabled) return; Profile.d.ranked = b.dataset.ranked === '1'; Profile.save(); Sfx.init(); this.refresh(); });
     $('catRow').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (!b) return; this.cat = b.dataset.cat; this.refresh(); });
     $('itemGrid').addEventListener('click', e => {
       const b = e.target.closest('[data-id]'); if (!b) return; const item = cosById(this.cat, b.dataset.id);
@@ -9609,12 +10339,8 @@ const Lobby = {
   refresh() {
     const d = Profile.d;
     Net.render(); $('buildTag').textContent = 'build ' + BUILD_ID;
-    { const k = a => '<kbd>' + esc(Keys.of(a)) + '</kbd>';
-      const rows = [['Move', k('forward') + k('left') + k('back') + k('right')], ['Shoot', k('fire')], ['Aim', k('ads') + ' hold, or ' + k('scope') + ' to toggle'], ['Jump', k('jump')], ['Sprint', k('sprint')], ['Pick up / open', k('use')], ['Reload', k('reload')],
-        ['Build', k('wall') + ' wall ' + k('ramp') + ' ramp ' + k('floor') + ' floor ' + k('cone') + ' cone'], ['Building material', k('material')], ['Map', k('map')], ['Move items', k('inventory')], ['Emote', k('emote')]];
-      const kh = rows.map(([n, v]) => '<span>' + n + '</span><span>' + v + '</span>').join(''); if ($('kbHint').innerHTML !== kh) $('kbHint').innerHTML = kh; }
-    { const fresh = !d.matches && !d.tutDone, newish = !d.tutDone && (d.matches || 0) < 3;
-      $('welcome').hidden = !fresh; $('tutBadge').hidden = !newish; $('tutBtn').classList.toggle('new', newish); $('tutBtn').classList.toggle('small', !newish); }
+    { const newish = !d.tutDone && (d.matches || 0) < 3;
+      $('tutBtn').hidden = !!d.tutDone; $('tutBadge').hidden = !newish; $('tutBtn').classList.toggle('new', newish); $('tutBtn').classList.toggle('small', !newish); }
     { const el = $('coinLbl'), nv = d.coins.toLocaleString(); if (el.textContent !== nv && el.textContent !== '0') { const box = el.parentElement; box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); } el.textContent = nv; }   // the FortBux counter bounces when it changes
     [...$('tabs').children].forEach(b => b.classList.toggle('on', b.dataset.tab === this.tab));
     if (this.tab === 'players' && !Players.link()) this.tab = 'play';
@@ -9623,6 +10349,11 @@ const Lobby = {
     if (this.tab === 'players') { Players.render(); Players.load(false); }
     if (document.activeElement !== $('nameIn')) $('nameIn').value = Profile.d.name || '';
     $('lobby').classList.toggle('shop-wide', this.tab === 'shop' || this.tab === 'locker');
+    $('lobby').classList.toggle('play-view', this.tab === 'play');
+    if (this.placedTab !== this.tab) { this.placedTab = this.tab; if (this.cam) this.place(); }
+    { const room = Net.state === 'room';
+      $('partySum').textContent = room ? 'Room ' + Net.code : 'Play with friends';
+      $('partySub').textContent = room ? Net.members.length + ' of 8 players' + (Net.isHost ? ' · you are the host' : '') : 'Make a room and share its code'; }
     if (this.tab === 'shop') {
       this.shopHero();
       $('shopBal').textContent = d.coins.toLocaleString();
@@ -9646,10 +10377,8 @@ const Lobby = {
     [...$('modeGrid').children].forEach(b => b.classList.toggle('on', b.dataset.mode === d.mode));
     [...$('buildSeg').children].forEach(b => b.classList.toggle('on', (b.dataset.build === '1') === d.build));
     $('buildHint').textContent = d.build ? 'Harvest wood, brick and metal with your tool, then throw up walls, ramps and floors mid-fight.' : 'No construction. Use natural cover, mantle up ledges, and lean on a 50-point overshield that regenerates when you are out of combat.';
-    const cur = MapRotation.current(), nxt = MapRotation.next(); if (d.theme !== cur) { d.theme = cur; Profile.save(); }
-    $('islGrid').innerHTML = THEME_ORDER.map(k => { const t = THEMES[k], open = k === cur; return `<button class="isl ${open ? 'on' : 'locked'}" data-isl="${k}" style="--sw:${t.swatch}" aria-disabled="${!open}">${open ? '' : '<i class="isl-lock" aria-hidden="true"></i>'}<b>${t.name}</b><span>${open ? 'Open now · closes in ' + MapRotation.left() : k === nxt ? 'Opens in ' + MapRotation.left() : 'Locked'}</span></button>`; }).join('');
-    $('islNote').textContent = MapRotation.start() ? THEMES[cur].name + ' is open for ' + MapRotation.left() + ', then ' + THEMES[nxt].name + ' opens and ' + THEMES[cur].name + ' closes.' : 'Every player starts on Greenvale. After 30 days the next island opens and this one closes.';
-    $('rankedChk').checked = !!d.ranked; $('rankedChk').disabled = d.mode === 'rumble';
+    const cur = MapRotation.current(); if (d.theme !== cur) { d.theme = cur; Profile.save(); }   // the open island (it changes every 30 days)
+    this.modeBar();
     if (this.tab === 'locker') this.lockerView();
     if (this.tab === 'pass') {
       const rw = passRewards();
@@ -9765,7 +10494,7 @@ function boot() {
   try { CharModel.load(); } catch (e) { console.warn(e); }
   HUD.init();
   Input.init(); Settings.init(); Tutorial.init(); Inv.init();
-  Lobby.init(); Track.init(); Players.init(); Victory.init(); LobbyMusic.init(); Chat.init();
+  Lobby.init(); Track.init(); Players.init(); Victory.init(); LobbyMusic.init(); Chat.init(); Social.init();
   // back from the $1 checkout: ?bp=CODE in the address unlocks the Battle Pass, then the code is removed from the address
   (async () => {
     let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
@@ -9784,6 +10513,8 @@ function boot() {
   $('dLobbyBtn').addEventListener('click', () => { Match.showResults(); });
   $('rLobbyBtn').addEventListener('click', () => Match.toLobby());
   $('sensIn').value = Profile.d.sens; $('sensIn').addEventListener('input', e => { Profile.d.sens = +e.target.value; Profile.save(); });
+  { const f = clamp(+Profile.d.fov || 70, 60, 100); $('fovIn').value = f; $('fovVal').textContent = f; }
+  $('fovIn').addEventListener('input', e => { Profile.d.fov = +e.target.value; $('fovVal').textContent = Profile.d.fov; Profile.save(); });
   $('shadowChk').checked = !!Profile.d.shadows; $('shadowChk').addEventListener('change', e => { Profile.d.shadows = e.target.checked; sun.castShadow = GFX.shadows(); Profile.save(); });
   $('perfChk').checked = !!Profile.d.perf; $('perfChk').addEventListener('change', e => { Perf.set(e.target.checked); $('shadowChk').disabled = e.target.checked; $('gfxNote').textContent = e.target.checked ? 'Performance Mode is on. Edge smoothing turns off after you reload the page.' : 'Performance Mode is off. Edge smoothing comes back after you reload the page.'; });
   $('shadowChk').disabled = !!Profile.d.perf;
@@ -9864,6 +10595,17 @@ setInterval(() => {
   let n = Math.min(24, Math.floor((performance.now() - lastFrame) / 50));
   while (n-- > 0) step(lastFrame + 50);
 }, 250);
+// One broken part of the game must not freeze the whole match. Each part runs on its own: an error in one is
+// reported (once per kind, with the part's name) and skipped for that frame, while everything else keeps going.
+const Guard = {
+  seen: new Set(),
+  run(name, fn) { try { fn(); } catch (e) { this.report(name, e); } },
+  report(name, e) {
+    const m = name + ': ' + (e && e.message ? e.message : e); Diag.log(m);
+    if (this.seen.has(m)) return; this.seen.add(m); console.error('[' + name + ']', e);
+    if (this.seen.size <= 3) showProblem('Part of the game hit an error (' + m + ') and skipped it, so the match kept going. If something looks wrong, send a screenshot of this.');
+  },
+};
 function step(now) {
   let dt = Math.min(0.05, Math.max(0.0005, (now - lastFrame) / 1000)); lastFrame = now;
   Input.pollPad();
@@ -9873,28 +10615,28 @@ function step(now) {
   if (Match.paused && !Net.inMatch) { renderer.render(scene, camera); return; }   // a shared match keeps running while you are in the menu
   gameTime += dt;
   if (Match.state === 'play') {
-    if (Match.paused) { if (player) { player.input.f = player.input.r = 0; player.input.fire = player.input.jump = false; } Input.pressed.clear(); Input.mdx = Input.mdy = 0; } else updatePlayer(dt);
-    for (let i = 0; i < actors.length; i++) { const a = actors[i]; if (a.ai && a.alive && !a.remote) updateBot(a, dt); }
-    for (let i = 0; i < actors.length; i++) { const a = actors[i]; if (a.remote) Net.tickRemote(a, dt); else { actorTick(a, dt); physicsActor(a, dt); } }
-    Vehicles.update(dt);
-    Creatures.update(dt);
-    Rockets.update(dt);
-    Match.update(dt); Net.update(dt); Tutorial.update(dt); Reboot.update(dt);
-    Interact.find();
+    if (Match.paused) { if (player) { player.input.f = player.input.r = 0; player.input.fire = player.input.jump = false; } Input.pressed.clear(); Input.mdx = Input.mdy = 0; } else Guard.run('player', () => updatePlayer(dt));
+    for (let i = 0; i < actors.length; i++) { const a = actors[i]; if (a.ai && a.alive && !a.remote) { try { updateBot(a, dt); } catch (e) { Guard.report('bots', e); } } }
+    for (let i = 0; i < actors.length; i++) { const a = actors[i]; try { if (a.remote) Net.tickRemote(a, dt); else { actorTick(a, dt); physicsActor(a, dt); } } catch (e) { Guard.report('movement', e); } }
+    Guard.run('cars', () => Vehicles.update(dt));
+    Guard.run('creatures', () => Creatures.update(dt));
+    Guard.run('rockets', () => Rockets.update(dt));
+    Guard.run('match', () => Match.update(dt)); Guard.run('online', () => Net.update(dt)); Guard.run('tutorial', () => Tutorial.update(dt)); Guard.run('reboot', () => Reboot.update(dt));
+    Guard.run('interact', () => Interact.find());
   }
-  Pickups.update(dt); Build.update(dt); FX.update(dt); Houses.update(dt); flushStaticBreaks();
-  Cam.update(dt); View.update();
+  Guard.run('loot', () => Pickups.update(dt)); Guard.run('builds', () => Build.update(dt)); Guard.run('effects', () => FX.update(dt)); Guard.run('houses', () => Houses.update(dt)); Guard.run('breaks', () => flushStaticBreaks());
+  Guard.run('camera', () => Cam.update(dt)); Guard.run('view', () => View.update());
   const v = Cam.view || player;
   if (PlayerRig && player) {
     const show = (player.alive || player._dissolveAt > Match.time) && player.state !== 'bus' && !player.vehicle && !Cam.scoped;
     PlayerRig.root.visible = show;
-    if (show) animateRig(PlayerRig, player, dt, gameTime);
+    if (show) Guard.run('your character', () => animateRig(PlayerRig, player, dt, gameTime));
   }
-  BotRig.update(gameTime);
-  CharPool.update(dt);
-  ElimFX.update(dt);
-  Trails.update(); SprintWind.update(dt);
-  Nature.update(dt);
+  Guard.run('bot bodies', () => BotRig.update(gameTime));
+  Guard.run('characters', () => CharPool.update(dt));
+  Guard.run('eliminations', () => ElimFX.update(dt));
+  Guard.run('trails', () => { Trails.update(); SprintWind.update(dt); });
+  Guard.run('nature', () => Nature.update(dt));
   sky.position.copy(camera.position); stars.position.copy(camera.position);
   if (v) {
     const f = v.state === 'bus' ? Bus.pos : v.pos;
@@ -9911,7 +10653,7 @@ function step(now) {
     if (inStorm) { scene.fog.near = Math.min(scene.fog.near, 18); scene.fog.far = Math.min(scene.fog.far, 110); }
     if (hemi) hemi.intensity = th.hemiI * (inStorm ? 0.7 : 1) + Lightning.flash * 0.3 * Lightning.near;
   }
-  if (Match.state === 'play' || Match.state === 'results') { HUD.update(dt); Waypoints.update(); Chat.update(); }
+  if (Match.state === 'play' || Match.state === 'results') { Guard.run('hud', () => HUD.update(dt)); Guard.run('markers', () => Waypoints.update()); Guard.run('chat', () => Chat.update()); }
   if (Inv.on && (Match.state !== 'play' || Match.paused || !player || !player.alive)) Inv.close();
   renderer.render(scene, camera);
 }
