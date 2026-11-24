@@ -218,6 +218,7 @@
   </svg></div>
   <div id="dmgNums"></div>
   <div id="killfeed"></div>
+  <div id="voiceTag" hidden role="status"></div>
   <div id="chat" hidden><div id="chatLog" aria-live="polite"></div><div class="chat-row"><input id="chatIn" maxlength="120" placeholder="Message your team…" autocomplete="off" spellcheck="false"><button id="chatBtn" type="button" title="Team chat">Chat</button></div><div id="chatHint">Press <kbd>Enter</kbd> to chat with your team</div></div>
   <div id="teamList"></div>
   <div id="scoreBox" hidden><div class="blue" id="scoreBlue">0</div><div class="red" id="scoreRed">0</div></div>
@@ -306,6 +307,10 @@
     <div id="musList"></div>
     <div class="mus-acts"><label class="buy equip" for="musFile">Add songs</label><input type="file" id="musFile" accept="audio/*" multiple hidden><label class="check"><input type="checkbox" id="musOn"> Play in the lobby</label></div>
     <div class="sens"><label for="musVol">Music volume</label><input type="range" id="musVol" min="0" max="1" step="0.05"></div>
+    <h3 class="set-h">Team voice chat</h3>
+    <div class="hint">Talk to friends on your team in online Duos, Trios and Squads. Push to talk: hold <b id="voiceKey">T</b>. Your browser asks for the microphone the first time you talk.</div>
+    <div class="seg voice-seg" id="voiceSeg"></div>
+    <div class="sens"><label for="voiceVol">Teammates’ volume</label><input type="range" id="voiceVol" min="0" max="1.5" step="0.05"></div>
     <h3 class="set-h">Keybinds</h3>
     <div class="hint">Click a key, then press the new key or mouse button. If another action already uses it, the two swap.</div>
     <div class="kb-list" id="kbList"></div>

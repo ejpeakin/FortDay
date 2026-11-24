@@ -1,14 +1,19 @@
 // =====================================================================
 //  Lobby: 3D character stage, play options, locker, pass, career
 // =====================================================================
+// the move each skin shows off with when you equip it (or try it on) in the lobby
+const SKIN_SHOW = { rae: 'wave', ranger: 'jacks', moss: 'groove', comet: 'robot', siren: 'robot', toast: 'wave', nightwarden: 'micdrop', tycoon: 'groove',
+  stormborn: 'groove', nova: 'airguitar', tripy: 'micdrop', uzi: 'jacks', headliner: 'airguitar', week: 'groove', bruno: 'wave' };
+// the lobby stage's colours (sky top to horizon, the two neon arches, light beams, sparkles, screen text)
+const LOBBY_PAL = { sky: ['#020207', '#08081a', '#110c26', '#2a0c18', '#6e0f18'], arcA: 0xff2a3a, arcB: 0xe8f0ff, beams: [0xff2a3a, 0xffffff], spark: [0xff3b4a, 0xffffff, 0xff8a8a, 0xbfd6ff], accent: '#ff3b4a', glow: '#ff1a2e', ring: 0xff2a3a };
 const Lobby = {
   scene: null, cam: null, rig: null, fake: null, t: 0, tab: 'play', cat: 'outfit', bus: null,
   init() {
-    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0b1630, 24, 80);
+    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0c0a1c, 24, 80);
     s.add(new THREE.HemisphereLight(0xb8d4ff, 0x10284f, 0.85));
     const key = new THREE.DirectionalLight(0xffd9b0, 1.05); key.position.set(3, 6, 6); s.add(key);
     const rim = new THREE.DirectionalLight(0x5a9bff, 0.9); rim.position.set(-4, 4, -6); s.add(rim);
-    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x163a7a)); plat.position.y = -0.2; s.add(plat);
+    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x1c1622)); plat.position.y = -0.2; s.add(plat);
     const ring = this.ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
     this.festival(s);
     const isl = new THREE.Group(); const rock = new THREE.Mesh(new THREE.ConeGeometry(7, 9, 7), lam(0x4a5a7a)); rock.rotation.x = Math.PI; rock.position.y = -4.5; isl.add(rock);
@@ -22,8 +27,8 @@ const Lobby = {
     // two party spots beside you: an empty platform with a + to invite, or a friend from your room standing on it
     this.slots = [-1, 1].map(side => {
       const x = side * 2.55, z = -1.15, g = new THREE.Group(); g.position.set(x, 0, z);
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x12306a)); p.position.y = -0.15; g.add(p);
-      const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(0x2f6fd8)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x17121c)); p.position.y = -0.15; g.add(p);
+      const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(0xe8eaf2)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
       s.add(g);
       const add = document.createElement('button'); add.type = 'button'; add.className = 'slot-add'; add.title = 'Invite a friend'; add.innerHTML = '<i aria-hidden="true">+</i><span>Invite</span>';
       add.addEventListener('click', () => this.openParty());
@@ -39,23 +44,23 @@ const Lobby = {
   // ---- the season's stage: a sunset sky, neon arches, a big screen with the season's name, sweeping spotlights and sparkles
   skyTex() {
     const c = document.createElement('canvas'); c.width = 4; c.height = 256; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
-    gr.addColorStop(0, '#03050d'); gr.addColorStop(0.45, '#08122b'); gr.addColorStop(0.75, '#0f2147'); gr.addColorStop(0.9, '#1f2a44'); gr.addColorStop(1, '#8a4a1c');
+    [0, 0.45, 0.72, 0.9, 1].forEach((k, i) => gr.addColorStop(k, LOBBY_PAL.sky[i]));
     g.fillStyle = gr; g.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; return t;
   },
   screenTex() {
     const c = this._scr || (this._scr = document.createElement('canvas')); c.width = 1024; c.height = 320; const g = c.getContext('2d');
-    const gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, '#05080f'); gr.addColorStop(1, '#0d1a2e'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
-    g.fillStyle = 'rgba(255,255,255,0.05)'; for (let y = 0; y < 320; y += 6) g.fillRect(0, y, 1024, 2);   // LED rows
+    const gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, '#050307'); gr.addColorStop(1, '#14050a'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
+    g.fillStyle = 'rgba(255,255,255,0.04)'; for (let y = 0; y < 320; y += 6) g.fillRect(0, y, 1024, 2);   // LED rows
     g.textAlign = 'center'; g.textBaseline = 'middle'; const sid = Season.id();
-    g.font = '900 italic 62px "Barlow Condensed", Impact, sans-serif'; g.fillStyle = '#ffb347'; g.fillText('SEASON ' + (sid + 1) + ' · LIVE NOW', 512, 82);
+    g.font = '900 italic 62px "Barlow Condensed", Impact, sans-serif'; g.fillStyle = LOBBY_PAL.accent; g.fillText('SEASON ' + (sid + 1) + ' · LIVE NOW', 512, 82);
     let fs = 150; const nm = Season.name().toUpperCase(); do { g.font = '900 italic ' + fs + 'px "Barlow Condensed", Impact, sans-serif'; fs -= 8; } while (g.measureText(nm).width > 960 && fs > 60);
-    g.shadowColor = '#2fd8ff'; g.shadowBlur = 26; g.fillStyle = '#ffffff'; g.fillText(nm, 512, 205); g.shadowBlur = 0;
+    g.shadowColor = LOBBY_PAL.glow; g.shadowBlur = 26; g.fillStyle = '#ffffff'; g.fillText(nm, 512, 205); g.shadowBlur = 0;
     if (this.scrTex) this.scrTex.needsUpdate = true; this.scrSeason = sid; return c;
   },
   festival(s) {
     const F = this.fest = { beams: [], arcs: [], bulbs: null, spark: null }, Z = -9;
     // neon arches over the stage (outer pink, inner cyan) with a row of warm bulbs on the outer one
-    for (const [r, col, t] of [[7.6, 0xff9a2a, 0.15], [6.7, 0x2fd8ff, 0.11]]) { const a = new THREE.Mesh(new THREE.TorusGeometry(r, t, 8, 72, Math.PI), new THREE.MeshBasicMaterial({ color: col })); a.position.set(0, -0.4, Z); s.add(a); F.arcs.push(a); }
+    for (const [r, col, t] of [[7.6, LOBBY_PAL.arcA, 0.15], [6.7, LOBBY_PAL.arcB, 0.1]]) { const a = new THREE.Mesh(new THREE.TorusGeometry(r, t, 8, 72, Math.PI), new THREE.MeshBasicMaterial({ color: col })); a.position.set(0, -0.4, Z); s.add(a); F.arcs.push(a); }
     { const P = []; for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI, g = new THREE.SphereGeometry(0.13, 8, 6).translate(Math.cos(a) * 8.05, -0.4 + Math.sin(a) * 8.05, Z + 0.05); P.push([g, 0xffe6a8]); }
       F.bulbs = mergedColored(P); F.bulbs.material = new THREE.MeshBasicMaterial({ vertexColors: true }); s.add(F.bulbs); }
     // truss towers each side, with a light rig on top
@@ -66,7 +71,7 @@ const Lobby = {
       T.push([new THREE.CylinderGeometry(0.28, 0.36, 0.5, 12).translate(ox, 9.3, oz), 0x1d2030]);
       s.add(mergedColored(T));
       // spotlight beams from the top of each tower, sweeping across the stage
-      for (const [k, col] of [[0, 0x2fd8ff], [1, sx < 0 ? 0xffffff : 0xffb347]]) {
+      for (const [k, col] of [[0, LOBBY_PAL.beams[0]], [1, LOBBY_PAL.beams[1]]]) {
         const pivot = new THREE.Group(); pivot.position.set(sx * 9.2, 9.3, Z + 0.6); s.add(pivot);
         const beam = new THREE.Mesh(new THREE.ConeGeometry(1.5, 12, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.1, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
         beam.position.y = -6; pivot.add(beam); F.beams.push({ pivot, sx, k, ph: Math.random() * 6 });
@@ -80,7 +85,7 @@ const Lobby = {
     const deck = new THREE.Mesh(new THREE.CylinderGeometry(11, 11.4, 0.6, 48, 1, false, Math.PI * 0.08, Math.PI * 0.84), lam(0x121a2c)); deck.rotation.y = Math.PI; deck.position.set(0, -0.62, Z + 1); s.add(deck);
     { const S = []; for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) { S.push([new THREE.BoxGeometry(1.1, 1.25, 0.9).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.4), 0x16161e]); S.push([new THREE.CircleGeometry(0.36, 18).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.86), 0x2c2c3a]); } s.add(mergedColored(S)); }   // speaker stacks
     // sparkles drifting up through the light
-    const N = 220, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), C = new THREE.Color(), pal = [0x2fd8ff, 0xffffff, 0xffb347, 0x8fd8ff];
+    const N = 220, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), C = new THREE.Color(), pal = LOBBY_PAL.spark;
     for (let i = 0; i < N; i++) { pos[i * 3] = rnd(-11, 11); pos[i * 3 + 1] = rnd(-0.5, 10); pos[i * 3 + 2] = rnd(-11, 2.5); C.setHex(pal[i % pal.length]); col.set([C.r, C.g, C.b], i * 3); }
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); sg.setAttribute('color', new THREE.BufferAttribute(col, 3));
     F.spark = new THREE.Points(sg, new THREE.PointsMaterial({ size: 0.09, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending })); s.add(F.spark);
@@ -94,8 +99,8 @@ const Lobby = {
     const t = this.t;
     for (const b of F.beams) { b.pivot.rotation.z = -b.sx * (0.42 + Math.sin(t * (0.5 + b.k * 0.23) + b.ph) * 0.24); b.pivot.rotation.x = 0.04 + Math.sin(t * 0.37 + b.ph) * 0.1; }   // they sweep across the stage, not into your face
     const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * 1.05)), 8);   // a little pulse, about 125 beats a minute
-    F.arcs[0].material.color.setHSL(0.08, 1, 0.52 + beat * 0.12); F.arcs[1].material.color.setHSL(0.53, 1, 0.5 + beat * 0.12);
-    if (this.ring) this.ring.material.color.setHSL(0.58 + Math.sin(t * 0.3) * 0.08, 1, 0.55 + beat * 0.2);
+    F.arcs[0].material.color.setHex(LOBBY_PAL.arcA).offsetHSL(0, 0, beat * 0.12); F.arcs[1].material.color.setHex(LOBBY_PAL.arcB).offsetHSL(0, 0, beat * 0.1);
+    if (this.ring) this.ring.material.color.setHex(LOBBY_PAL.ring).offsetHSL(0, 0, beat * 0.15);
     const p = F.spark.geometry.attributes.position, a = p.array;
     for (let i = 0; i < a.length; i += 3) { a[i + 1] += dt * (0.35 + (i % 7) * 0.06); a[i] += Math.sin(t * 0.8 + i) * dt * 0.08; if (a[i + 1] > 10.5) { a[i + 1] = -0.4; a[i] = rnd(-11, 11); } }
     p.needsUpdate = true;
@@ -146,7 +151,39 @@ const Lobby = {
     const eq = Profile.d.eq, sel = this.tab === 'shop' ? this.shopSel : this.tab === 'locker' ? this.lockSel : null;
     return sel && sel.cat !== 'car' && (this.tab === 'shop' || sel.cat === this.cat) ? Object.assign({}, eq, { [sel.cat]: sel.id }) : eq;
   },
-  rebuild() { const eq = this.viewEq(); this.rigKey = JSON.stringify(eq); if (this.rig) this.scene.remove(this.rig.root); this.rig = makeRig(eq); this.scene.add(this.rig.root); },
+  rebuild() {
+    const eq = this.viewEq(); this.rigKey = JSON.stringify(eq); if (this.rig) this.scene.remove(this.rig.root); this.rig = makeRig(eq); this.scene.add(this.rig.root);
+    const prev = this._outfit; this._outfit = eq.outfit; if (prev && prev !== eq.outfit) this.showOff(eq.outfit);
+  },
+  // a new skin on: a spin with a hop, a ring and a column of light in its rarity colour, then its signature move
+  showOff(id) {
+    const it = cosById('outfit', id), col = (RARITY[it.r] || RARITY[0]).hex, em = SKIN_SHOW[id] || 'groove';
+    this.show = { t: 0, emote: COS.emote.some(e => e.id === em) ? em : 'groove', yaw0: this.fake.yaw };
+    if (this.showFx) { this.scene.remove(this.showFx); this.showFx = null; }
+    if (!Perf.on) {
+      const g = new THREE.Group(), add = m => { g.add(m); return m; };
+      add(new THREE.Mesh(new THREE.TorusGeometry(1, 0.05, 8, 48), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 1, depthWrite: false }))).rotation.x = Math.PI / 2;
+      add(new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.4, 6, 32, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }))).position.y = 3;
+      const N = 60, pos = new Float32Array(N * 3), vel = []; for (let i = 0; i < N; i++) { const a = Math.random() * TAU, r = 0.4 + Math.random() * 0.8; pos.set([Math.cos(a) * r, 0.2 + Math.random() * 0.6, Math.sin(a) * r], i * 3); vel.push([Math.cos(a) * (1 + Math.random() * 2), 2 + Math.random() * 3.5, Math.sin(a) * (1 + Math.random() * 2)]); }
+      const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const pts = add(new THREE.Points(pg, new THREE.PointsMaterial({ color: col, size: 0.12, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }))); pts.userData.vel = vel;
+      g.position.y = 0.02; this.scene.add(g); this.showFx = g;
+    }
+    Sfx.init(); [523, 659, 784, 1047].forEach((f, i) => Sfx.tone(f, 0.16, 'triangle', 0.07, 0, i * 0.07));
+  },
+  showTick(dt, f) {
+    const S = this.show; if (!S) return; S.t += dt; const t = S.t;
+    if (t < 0.9) { const k = t / 0.9, e = 1 - Math.pow(1 - k, 3); f.yaw = S.yaw0 + e * TAU; f.pos.y += Math.sin(k * Math.PI) * 0.35; }   // spin and hop
+    else if (t < 3.6) { if (f.emote !== S.emote) f.emoteT = 0; f.emote = S.emote; f.emoteT += dt; }   // then the skin's own move
+    else { this.show = null; f.emote = null; }
+    const g = this.showFx; if (g) {
+      const k = Math.min(1, t / 1.1), ring = g.children[0], beam = g.children[1], pts = g.children[2];
+      ring.scale.setScalar(0.6 + k * 1.8); ring.material.opacity = 1 - k; beam.material.opacity = 0.35 * (1 - k); beam.scale.set(1 - k * 0.5, 1, 1 - k * 0.5);
+      const p = pts.geometry.attributes.position, v = pts.userData.vel; for (let i = 0; i < v.length; i++) { v[i][1] -= 6 * dt; p.array[i * 3] += v[i][0] * dt; p.array[i * 3 + 1] = Math.max(0.02, p.array[i * 3 + 1] + v[i][1] * dt); p.array[i * 3 + 2] += v[i][2] * dt; }
+      p.needsUpdate = true; pts.material.opacity = 1 - Math.min(1, t / 1.6);
+      if (t > 1.7) { this.scene.remove(g); this.showFx = null; }
+    }
+  },
   render(dt) {
     if (Perf.on && !Opening.on) { this.acc = (this.acc || 0) + dt; if (this.acc < 1 / 30) return; dt = this.acc; this.acc = 0; }   // Performance Mode: the lobby draws at 30 fps
     this.t += dt; const f = this.fake, sel = this.shopSel, cat = this.tab === 'locker' ? this.cat : this.tab === 'shop' ? sel.cat : 'outfit';
@@ -155,6 +192,7 @@ const Lobby = {
     f.yaw = cat === 'backpack' ? Math.PI + Math.sin(this.t * 0.6) * 0.5 : Math.sin(this.t * 0.4) * 0.45 - 0.2;
     if (cat === 'emote') { if (!f.emote) f.emoteT = 0; f.emote = veq.emote; f.emoteT += dt; } else f.emote = null;
     f.pos.set(0, cat === 'glider' ? 0.6 + Math.sin(this.t * 1.5) * 0.1 : 0, 0);
+    if (this.show && cat !== 'emote' && cat !== 'glider') this.showTick(dt, f); else if (this.show) { this.show = null; }
     animateRig(this.rig, f, dt, this.t);
     const showCar = cat === 'car';
     const which = this.tab === 'shop' ? sel.id : this.tab === 'locker' && this.lockSel && this.lockSel.cat === 'car' ? this.lockSel.id : Profile.d.eq.car;
@@ -185,7 +223,7 @@ const Lobby = {
     // one shop item in the spotlight each day
     const pool = COS.outfit.filter(c => c.unlock === 'shop' && !Profile.owns(c) && !(c.limitedSeason != null && sid > c.limitedSeason));
     const f = $('scFeat'); f.hidden = !pool.length;
-    if (pool.length) { const it = pool[Profile.today() % pool.length]; this.featured = it; f.innerHTML = '<i>FEATURED</i><span></span><em>' + (it.price || 0).toLocaleString() + ' FortBux</em>'; f.querySelector('span').textContent = it.name; }
+    if (pool.length) { const it = pool.find(c => c.id === 'nova') || pool[Profile.today() % pool.length]; this.featured = it; f.innerHTML = '<i>FEATURED</i><span></span><em>' + (it.price || 0).toLocaleString() + ' FortBux</em>'; f.querySelector('span').textContent = it.name; }
   },
   // what PLAY will start, in plain words (shown on the button)
   summary() {

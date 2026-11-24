@@ -170,6 +170,7 @@ const KEY_ACTIONS = [
   ['slot1', 'Harvesting tool', 'Digit1'], ['slot2', 'Slot 2', 'Digit2'], ['slot3', 'Slot 3', 'Digit3'], ['slot4', 'Slot 4', 'Digit4'], ['slot5', 'Slot 5', 'Digit5'], ['slot6', 'Slot 6', 'Digit6'],
   ['build', 'Build mode on / off', 'KeyQ'], ['wall', 'Build wall', 'KeyZ'], ['ramp', 'Build ramp', 'KeyX'], ['floor', 'Build floor', 'KeyC'], ['cone', 'Build cone (roof)', 'KeyF'], ['material', 'Switch material', 'KeyG'],
   ['emote', 'Emote', 'KeyB'], ['map', 'Full map', 'KeyM'], ['inventory', 'Inventory (move items between slots)', 'Tab'],
+  ['talk', 'Team voice: push to talk (hold)', 'KeyT'],
 ];
 const KEY_DEF = Object.fromEntries(KEY_ACTIONS.map(k => [k[0], k[2]]));
 const Keys = {
@@ -239,7 +240,7 @@ const COS = {
     { id: 'tripy', build: 'slim', name: 'Tripy Red', r: 4, shirt: 0x161618, pants: 0x18181c, skin: 0x8a5a3c, sleeve: 0x161618, hair: 0x6a0c10,
       hat: 'dreads', hatC: 0x6a0c10, tip: 0xff2a2a, hairSeed: 777, hoodie: true, cargo: true, shades: 0x0c0c0e, faceTats: true, drip: 0xe0142a, personal: true, unlock: 'shop', price: 1500 },
     { id: 'uzi', build: 'slim', name: 'Lil Uzi', r: 4, shirt: 0xff4fa8, jacket: 0x141418, pants: 0x121216, skin: 0x7a4a30, sleeve: 0x141418, hair: 0x141010, shoes: 0xf2f2f2,
-      hat: 'spikes', hatC: 0x141010, tip: 0x1c1616, spikeScale: 0.55, hairSeed: 1212, leather: true, studBelt: true, earring: true, faceTats: 'uzi', personal: true, unlock: 'shop', price: 1500 },
+      hat: 'spikes', hatC: 0x141010, tip: 0x1c1616, spikeScale: 0.55, hairSeed: 1212, leather: true, studBelt: true, earring: true, baggy: true, faceTats: 'uzi', personal: true, unlock: 'shop', price: 1500 },
     { id: 'headliner', build: 'muscular', name: 'Headliner', r: 4, shirt: 0x1a1426, pants: 0x101018, skin: 0xc68a5e, sleeve: 0xffd84a, hair: 0x2a1a10, hat: 'headphones', hatC: 0xff3fa6,
       jacket: 0xffd84a, leather: true, studBelt: true, unlock: 'shop', price: 1500, music: true },
     { id: 'week', build: 'slim', name: 'The Week', r: 4, shirt: 0x17171c, pants: 0x17171c, skin: 0x6e4630, sleeve: 0x17171c, hair: 0x0e0b0a, shoes: 0x0c0c0e,
@@ -290,6 +291,12 @@ const COS = {
     { id: 'wave', name: 'Big Wave', r: 3, unlock: 'tier:28' },
     { id: 'airguitar', name: 'Air Guitar', r: 3, unlock: 'shop', price: 600, music: true },
     { id: 'micdrop', name: 'Mic Drop', r: 2, unlock: 'shop', price: 500, music: true },
+    { id: 'spin', name: 'Spin Cycle', r: 1, unlock: 'tier:7' },
+    { id: 'bounce', name: 'Bass Bounce', r: 2, unlock: 'shop', price: 500, music: true },
+    { id: 'headbang', name: 'Headbanger', r: 2, unlock: 'shop', price: 500, music: true },
+    { id: 'flex', name: 'Big Flex', r: 3, unlock: 'shop', price: 800 },
+    { id: 'slowmo', name: 'Slow Motion', r: 3, unlock: 'shop', price: 800 },
+    { id: 'tornado', name: 'Tornado', r: 4, unlock: 'shop', price: 1200 },
   ],
 };
 const COS_CATS = [['outfit', 'Skins'], ['backpack', 'Back Bling'], ['pickaxe', 'Harvest Tool'], ['glider', 'Glider'], ['wrap', 'Weapon Wrap'], ['emote', 'Emote'], ['car', 'Car']];

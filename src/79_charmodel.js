@@ -65,6 +65,7 @@ const CharModel = {
       if (e.blue > n / 2) for (const i of e.v) ringV[i] = 1;
     }
     this.shellGeo = this.buildShirt(P, reg, SI, SW, bones, idx);
+    this._shellArgs = { P, reg, SI, SW, bones, idx };   // kept to make looser trousers (baggy outfits) on demand
     // other builds (woman, slim, average, heavy): the same rig with a reshaped figure, and clothes measured from that figure
     this.variants = { muscular: { shell: this.shellGeo } };
     for (const name in this.BUILDS) {
@@ -157,6 +158,8 @@ const CharModel = {
       handR: mk('hand_r', [-0.8, 1.425, -0.055], [ik, ik, ik], handRot),
       handL: mk('hand_l', [0.8, 1.425, -0.055], [ik, ik, ik], handRotL),
     };
+    // leg mounts in the figure's own space (cargo pockets ride on the thighs, bunched hems on the calves)
+    for (const b of ['thigh_l', 'thigh_r', 'calf_l', 'calf_r']) { this.frames[b] = mk(b, [0, 0, 0], [1, 1, 1]); this.frames[b].side = Math.sign(bind[b].elements[12]) || (b.endsWith('_l') ? 1 : -1); }
     // ---- split every clip into a lower-body and an upper-body half so guns and swings can play over running legs
     for (const c of g.animations) {
       const L = [], U = [];
@@ -201,7 +204,7 @@ const CharModel = {
   // ---- a smooth shirt that stretches over the figure's chest, shoulders and arms, hiding the joint grooves.
   // Its shape is measured from the body (largest radius around each slice, then filled across the grooves and smoothed);
   // its bone weights are blended from the nearest body vertices so it bends with the spine and arms like cloth.
-  buildShirt(P, reg, SI, SW, bones, idx) {
+  buildShirt(P, reg, SI, SW, bones, idx, opt = {}) {
     const AT = this.AT, pos = [], uvs = [], sIdx = [], sWt = [], index = [];
     const ang = (a, b) => (Math.atan2(a, b) / Math.PI + 1) / 2, sym = (x, z) => Math.abs(Math.atan2(x, z)) / Math.PI;
     const toUV = (r, u, v, m) => { const c = AT[r]; u = Math.min(1 - m, Math.max(m, u)); v = Math.min(0.97, Math.max(0.03, v)); return [(c[0] + u * c[2]) / 256, (c[1] + (1 - v) * c[3]) / 256]; };
@@ -307,7 +310,7 @@ const CharModel = {
       for (const [cell, y0, y1] of [['calf', 0.047, 0.525], ['thigh', 0.525, 1.0]]) {
         const segRows = ys.map((y, i) => [y, i]).filter(([y]) => y >= y0 - 0.013 && y <= y1 + 0.013);
         for (const [y, ri] of segRows) for (let j = 0; j <= LC; j++) {
-          const th = (j / LC - 0.5) * 2 * Math.PI, [xc, zc] = at(y), rr = (LR[ri][j] + 0.008) * (1 - 0.34 * Math.pow(clamp((y - 0.86) / 0.12, 0, 1), 1.5)), xl = xc + Math.sin(th) * rr, z = zc + Math.cos(th) * rr, x = xl * side;
+          const th = (j / LC - 0.5) * 2 * Math.PI, [xc, zc] = at(y), sm = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }, bag = opt.baggy ? (0.017 + 0.019 * sm(0.62, 0.32, y) + 0.012 * sm(0.3, 0.12, y)) * (1 - sm(0.84, 0.97, y)) : 0, rr = (LR[ri][j] + 0.008 + bag) * (1 - 0.34 * Math.pow(clamp((y - 0.86) / 0.12, 0, 1), 1.5)), xl = xc + Math.sin(th) * rr, z = zc + Math.cos(th) * rr, x = xl * side;   // baggy: loose thighs, wide from the knee down, stacking at the ankle, fitted at the waist
           pos.push(x, y, z); uvs.push(...toUV(cell, ang(xl - (cell === 'thigh' ? 0.09 : 0.095), z + (cell === 'thigh' ? 0 : 0.026)), (y - y0) / (y1 - y0), 0.03)); weights(x, y, z, lCand, LEG_B);
         }
         tube(null, segRows.length, LC, side < 0);
@@ -574,7 +577,7 @@ const CharModel = {
   // ---- build a full character (player, lobby) with every accessory from the built-in rig mounted on bones
   make(eq) {
     const o = cosById('outfit', eq.outfit), R = this.base(this.material(o), true);
-    this.setBody(R, this.buildFor(o, eq.body || 'woman'));
+    this.setBody(R, this.buildFor(o, eq.body || 'woman'), o);
     const A = buildCharacter(eq, true);
     R.eq = A.eq; R.gunKey = null; R.heldKey = null;
     A.head.position.set(0, 0, 0); R.mHead.add(A.head);
@@ -584,6 +587,7 @@ const CharModel = {
     R.body.add(A.gun); R.gun = A.gun; R.body.add(A.glider); R.glider = A.glider;
     if (o.chain) this.chainOn(R, o);
     if (o.back) this.backDecal(R, o);
+    this.cargoOn(R, o, R.build);
     // box-headed skins (Sir Toastworth): tuck the real head away inside the box
     if (cosById('outfit', eq.outfit).head) { const k = 0.3; R.B.head.scale.setScalar(k); R.mHead.position.multiplyScalar(1 / k); R.mHead.scale.multiplyScalar(1 / k); }
     R.root.traverse(m => { if (m.isMesh) m.castShadow = true; });
@@ -698,7 +702,36 @@ const CharModel = {
     } catch (e) { console.warn('FortDay head kit', outfit, e); kit = null; }
     this._kits.set(key, kit); return kit;
   },
-  _chains: new Map(), _prints: new Map(),
+  _chains: new Map(), _prints: new Map(), _cargo: new Map(),
+  // cargo pants: a pocket with a flap and two buttons on the outside of each thigh, and bunched hems above the boots
+  cargoParts(o, build) {
+    const key = o.id + ':' + build; if (this._cargo.has(key)) return this._cargo.get(key);
+    const S = this.shellOf(build, o).attributes.position, pc = new THREE.Color(o.pants);
+    const tone = k => pc.clone().multiplyScalar(k).getHex();
+    const slice = (side, y0) => { let x0 = 9, x1 = -9, z0 = 9, z1 = -9; for (let i = 0; i < S.count; i++) { const x = S.getX(i) * side, y = S.getY(i); if (x < 0.02 || Math.abs(y - y0) > 0.014 || y > 1.0) continue; const z = S.getZ(i); x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); } return { x0, x1, z0, z1, xc: (x0 + x1) / 2, zc: (z0 + z1) / 2, rx: (x1 - x0) / 2, rz: (z1 - z0) / 2 }; };
+    const out = {};
+    for (const b of ['thigh_l', 'thigh_r', 'calf_l', 'calf_r']) {
+      const side = this.frames[b].side, L = [];
+      if (b.startsWith('thigh')) {
+        const py = 0.6, sl = slice(side, py), x = side * (sl.x1 + 0.011), z = sl.zc + 0.004;
+        L.push([new THREE.BoxGeometry(0.026, 0.13, 0.115).translate(x, py, z), tone(0.92)]);                       // pocket
+        L.push([new THREE.BoxGeometry(0.03, 0.036, 0.124).translate(x + side * 0.003, py + 0.06, z), tone(0.78)]);  // flap
+        for (const dz of [-0.032, 0.032]) L.push([new THREE.SphereGeometry(0.008, 8, 6).translate(x + side * 0.02, py + 0.055, z + dz), 0x2a2018]);   // snap buttons
+        L.push([new THREE.BoxGeometry(0.006, 0.09, 0.004).translate(x + side * 0.014, py - 0.005, z), tone(0.7)]); // pleat down the middle
+      } else {
+        const sl = slice(side, 0.372), r = (sl.rx + sl.rz) / 2;
+        for (const [hy, k, c] of [[0.352, 1.16, 0.84], [0.385, 1.1, 0.9]]) { const g = new THREE.TorusGeometry(r * k, 0.017, 6, 24).rotateX(Math.PI / 2); g.scale(sl.rx / r, 1, sl.rz / r); g.translate(side * sl.xc, hy, sl.zc); L.push([g, tone(c)]); }
+      }
+      out[b] = mergedColored(L);
+    }
+    this._cargo.set(key, out); return out;
+  },
+  cargoOn(R, o, build) {
+    for (const m of R.cargo || []) m.parent && m.parent.remove(m); R.cargo = [];
+    if (!o.cargo) return;
+    const parts = this.cargoParts(o, build);
+    for (const b in parts) { const m = parts[b].clone(); R.mLeg[b].add(m); R.cargo.push(m); }
+  },
   restRig(build) { const T = this._rest || (this._rest = this.base(this.material(COS.outfit[0]), false)); this.setBody(T, build); T.root.updateMatrixWorld(true); return T; },
   dressLite(R, o, look) {
     const build = this.buildFor(o, look.body), pf = Perf.on;
@@ -712,9 +745,10 @@ const CharModel = {
     const kit = pf && !o.head ? null : this.headKit(o.id, look.body === 'man' ? 'man' : 'woman');
     if (kit) { R.kit = kit.clone(); R.mHead.add(R.kit); }
     R.face.visible = !R.kit;
+    this.cargoOn(R, pf ? {} : o, build);
     if (pf) return;
     if (o.chain) { const k = o.id + ':' + build; if (!this._chains.has(k)) this._chains.set(k, this.chainGroup(this.restRig(build), o)); const c = this._chains.get(k); if (c) { R.chain = c.clone(); R.mTorso.add(R.chain); } }
-    if (o.back) { const k = o.id + ':' + build; if (!this._prints.has(k)) this._prints.set(k, this.backDecalParts((this.variants[build] || this.variants.average).shell, o)); const p = this._prints.get(k); if (p) R.backPrint = this.addSkinned(R, p.geo, p.mat); }
+    if (o.back) { const k = o.id + ':' + build; if (!this._prints.has(k)) this._prints.set(k, this.backDecalParts(this.shellOf(build, o), o)); const p = this._prints.get(k); if (p) R.backPrint = this.addSkinned(R, p.geo, p.mat); }
   },
   // ---- light character for nearby bots: body, face, hair, backpack, plain gun, glider
   makeLite() {
@@ -730,10 +764,17 @@ const CharModel = {
   },
   _gliderMats: {},
   buildFor(o, body) { return !o.personal && body === 'woman' ? 'woman' : (o.build || 'average'); },
-  setBody(R, build) { const v = this.variants[build] || this.variants.average; R.mesh.geometry = v.geo; R.shirt.geometry = v.shell; R.bodyK = (this.BUILDS[build] || {}).k || 1; R.build = build; },
+  shellOf(build, o) {
+    const v = this.variants[build] || this.variants.average; if (!(o && o.baggy) || !this._shellArgs) return v.shell;
+    if (!v.baggy) { const A = this._shellArgs, B = this.BUILDS[build]; let P = A.P;
+      if (B) { const f = this.shapeOf(B); P = new THREE.Float32BufferAttribute(new Float32Array(A.P.array), 3); for (let i = 0; i < P.count; i++) { const q = f(P.getX(i), P.getY(i), P.getZ(i), A.reg[i]); P.setXYZ(i, q[0], q[1], q[2]); } }
+      v.baggy = this.buildShirt(P, A.reg, A.SI, A.SW, A.bones, A.idx, { baggy: true }); }
+    return v.baggy;
+  },
+  setBody(R, build, o) { const v = this.variants[build] || this.variants.average; R.mesh.geometry = v.geo; R.shirt.geometry = this.shellOf(build, o); R.bodyK = (this.BUILDS[build] || {}).k || 1; R.build = build; },
   setLook(R, look) {
     const o = cosById('outfit', look.outfit || 'ranger');
-    this.setBody(R, this.buildFor(o, look.body));
+    this.setBody(R, this.buildFor(o, look.body), o);
     R.mesh.material = R.shirt.material = this.material(o);
     if (R.lite) this.dressLite(R, o, look);
     R.pack.material = lam(look.pack ?? 0x6b5a3a);
@@ -746,6 +787,7 @@ const CharModel = {
     model.traverse(o => { if (o.isBone) R.B[o.name] = o; if (o.isSkinnedMesh) { R.mesh = o; o.material = mat; o.frustumCulled = false; o.castShadow = true; } });
     const mount = f => { const g = new THREE.Group(); g.position.copy(f.p); g.quaternion.copy(f.q); g.scale.copy(f.s); R.B[f.bone].add(g); return g; };
     R.mHead = mount(this.frames.head); R.mTorso = mount(this.frames.torso); R.mHandR = mount(this.frames.handR); R.mHandL = mount(this.frames.handL);
+    R.mLeg = {}; for (const b of ['thigh_l', 'thigh_r', 'calf_l', 'calf_r']) R.mLeg[b] = mount(this.frames[b]);
     R.shirt = new THREE.SkinnedMesh(this.shellGeo, mat); R.shirt.bind(R.mesh.skeleton, R.mesh.bindMatrix); R.shirt.frustumCulled = false; R.shirt.castShadow = true; R.mesh.parent.add(R.shirt);
     R.mixer = new THREE.AnimationMixer(model);
     R.L = { set: 'L', cur: null, act: null, acts: {} }; R.U = { set: 'U', cur: null, act: null, acts: {} };
@@ -767,7 +809,20 @@ const CharModel = {
   },
   TWIST: ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'upperarm_l', 'lowerarm_l', 'hand_l', 'upperarm_r', 'lowerarm_r', 'hand_r', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r'],   // re-set every frame (procedural turns and the two-hand grip)
   reset(R) { if (R.pure) this.TWIST.forEach((n, i) => R.B[n].quaternion.copy(R.pure[i])); R.mixer.stopAllAction(); R.L.cur = R.U.cur = null; R.L.act = R.U.act = null; R.st.fresh = true; R.st.legYaw = 0; R.st.rev = false; R.st.vy = null; },
-  emoteClip: { groove: 'Dance_Body_Roll', robot: 'Dance_Charleston', jacks: 'Jumping_Jacks', wave: 'Greeting', airguitar: 'Dance_Simple', micdrop: 'Victory' },
+  emoteClip: { groove: 'Dance_Body_Roll', robot: 'Dance_Charleston', jacks: 'Jumping_Jacks', wave: 'Greeting', airguitar: 'Dance_Simple', micdrop: 'Victory',
+    spin: 'Dance_Simple', bounce: 'Dance_Simple', headbang: 'Dance_Charleston', flex: 'Victory', slowmo: 'Dance_Body_Roll', tornado: 'Dance_Charleston' },
+  emoteSpeed: { bounce: 1.6, headbang: 1.35, flex: 0.55, slowmo: 0.32, tornado: 1.5, spin: 1.1 },
+  // the move layered on top of an emote's clip: turn (yaw), lift (height) and bends at the spine, neck and arms
+  emoteMove(id, t) {
+    const m = { yaw: 0, lift: 0, spine: 0, neck: 0, armL: 0, armR: 0 };
+    if (id === 'spin') { const k = (t % 2.4) / 2.4; m.yaw = k < 0.5 ? (1 - Math.cos(k * 2 * Math.PI)) * Math.PI : TAU; m.lift = k < 0.5 ? Math.sin(k * 2 * Math.PI) * 0.12 : 0; }
+    else if (id === 'bounce') { const b = Math.abs(Math.sin(t * Math.PI * 2.1)); m.lift = b * 0.16; m.spine = -0.12 + b * 0.18; m.armL = -0.5 * b; m.armR = -0.5 * b; }
+    else if (id === 'headbang') { const b = Math.sin(t * Math.PI * 4); m.neck = 0.25 + b * 0.38; m.spine = 0.2 + b * 0.15; }
+    else if (id === 'flex') { const k = Math.min(1, t * 2); m.armL = -1.4 * k; m.armR = -1.4 * k; m.spine = -0.12 * k; m.yaw = Math.sin(t * 1.2) * 0.35; }
+    else if (id === 'slowmo') { m.yaw = Math.sin(t * 0.7) * 0.5; m.lift = Math.sin(t * 0.9) * 0.05 + 0.04; }
+    else if (id === 'tornado') { m.yaw = t * 5.5; m.lift = Math.abs(Math.sin(t * 5.5)) * 0.1; m.armL = -1.2; m.armR = -1.2; }
+    return m;
+  },
   // a crawling player glows red so everyone can see they are hurt
   redTint(R, a) {
     const want = !!(a.crawl && a.alive);
@@ -790,7 +845,7 @@ const CharModel = {
     if (!a.alive) full = 'Death_A';
     else if (a.state === 'sky') full = 'Flying_Forward';
     else if (a.state === 'glide') { full = 'Glide'; glider = true; oy = 0.04; }
-    else if (a.emote) full = this.emoteClip[a.emote] || 'Dance_Simple';
+    else if (a.emote) { full = this.emoteClip[a.emote] || 'Dance_Simple'; ts = this.emoteSpeed[a.emote] || 1; }
     else if (a.mantleT > 0) full = 'ClimbUp_1m_RM';
     else if (a.crawl && !a.inWater) { full = 'Crawl'; ts = sp > 0.3 ? clamp(sp / 1.2, 0.6, 1.5) : 0.08; showHeld = !!held && held === 'medkit'; }
     else if (a.inWater) { full = sp > 1 ? 'Swim_Fwd' : 'Swim_Idle'; ts = sp > 1 ? clamp(sp / 2.5, 0.7, 1.6) : 1; oy = sp > 1 ? -0.1 : -0.55; }
@@ -857,6 +912,27 @@ const CharModel = {
       bend(B.spine_01, 0.28 * ck);
       for (const sd of ['_l', '_r']) { bend(B['thigh' + sd], -th); bend(B['calf' + sd], 2 * th); bend(B['foot' + sd], -th); }
       oy -= R.legLen * (1 - Math.cos(th));
+    }
+    // ---- emote moves layered on the clip (spins, hops, head nods, flexes)
+    if (a.emote && a.alive && this.emoteSpeed[a.emote] != null) {
+      const mv = this.emoteMove(a.emote, a.emoteT || 0); R.root.updateMatrixWorld(true);
+      const right = _cmV2.copy(X_AXIS).applyQuaternion(R.root.getWorldQuaternion(_cmQ3));
+      const bend = (bone, ang) => { if (!bone || Math.abs(ang) < 1e-4) return; bone.parent.getWorldQuaternion(_cmQ3).invert(); _cmV.copy(right).applyQuaternion(_cmQ3); _cmQ2.setFromAxisAngle(_cmV, ang); bone.quaternion.premultiply(_cmQ2); bone.updateMatrixWorld(true); };
+      bend(B.spine_02, mv.spine); bend(B.neck_01, mv.neck); bend(B.upperarm_l, mv.armL); bend(B.upperarm_r, mv.armR);
+      R.root.rotation.y += mv.yaw; oy += mv.lift;
+    }
+    // ---- sprint-jump: a running leap, lead leg driven forward, trailing leg kicked back with the heel up, leaning in, arms swinging the other way
+    const lt = !full && a.state === 'ground' && a.longJ && !a.onGround ? 1 : 0;
+    st.leap = (st.leap || 0) + (lt - (st.leap || 0)) * Math.min(1, dt * (lt ? 14 : 7));
+    if (st.leap > 0.01) {
+      R.root.updateMatrixWorld(true);
+      const right = _cmV2.copy(X_AXIS).applyQuaternion(R.root.getWorldQuaternion(_cmQ3)), k = st.leap;
+      const bend = (bone, ang) => { if (!bone) return; bone.parent.getWorldQuaternion(_cmQ3).invert(); _cmV.copy(right).applyQuaternion(_cmQ3); _cmQ2.setFromAxisAngle(_cmV, ang); bone.quaternion.premultiply(_cmQ2); bone.updateMatrixWorld(true); };
+      const [L, T] = a.leapSide ? ['_l', '_r'] : ['_r', '_l'];
+      bend(B.spine_01, 0.24 * k);
+      bend(B['thigh' + L], -1.1 * k); bend(B['calf' + L], 0.9 * k);
+      bend(B['thigh' + T], 0.55 * k); bend(B['calf' + T], 1.35 * k);
+      if (!gun) { bend(B['upperarm' + T], -0.85 * k); bend(B['upperarm' + L], 0.65 * k); }
     }
     if (a.state === 'sky') { const tilt = 0.08 + (a.dive || 0) * 1.05, h = 1.3; R.body.rotation.x = tilt; R.body.position.set(0, h - h * Math.cos(tilt), -h * Math.sin(tilt)); }
     else { R.body.rotation.x = 0; R.body.position.set(0, oy, 0); }

@@ -2,7 +2,7 @@
 //  Physics: ground, collision, movement, mantling, water
 // =====================================================================
 const GRAV = 28, JUMP = 9.4, STEP = 0.6, SPRINT_BOOST = 1.3;
-const JUMP_REST = 0.45, LONG_JUMP_COST = 30, LONG_JUMP_K = 1.4;   // time on the ground between jumps; a sprint-jump costs 30 stamina and goes 40% faster   // sprinting is 20% faster than it used to be (about 10 m/s)
+const JUMP_REST = 0.45, LONG_JUMP_COST = 30, LONG_JUMP_K = 1.55;   // time on the ground between jumps; a sprint-jump costs 30 stamina and goes 55% faster   // sprinting is 20% faster than it used to be (about 10 m/s)
 const _cands = [], _cands2 = [], _cands3 = [];
 
 function rampY(c, x, z) {
@@ -112,15 +112,16 @@ function physicsActor(a, dt) {
     if (!a.inWater && sprint && hs0 > 7 && a.stamina >= LONG_JUMP_COST) {
       // sprint-jump: launch forward, much further than a standing jump, for a big chunk of stamina
       const dl = Math.hypot(mx, mz) || 1, v = Math.max(hs0, speed) * LONG_JUMP_K;
-      a.vel.x = mx / dl * v; a.vel.z = mz / dl * v; a.vel.y = JUMP * 0.95; a.longJ = true;
+      a.vel.x = mx / dl * v; a.vel.z = mz / dl * v; a.vel.y = JUMP * 1.08; a.longJ = true; a.leapSide = !a.leapSide;
       a.stamina -= LONG_JUMP_COST; a.stamRest = 1.2;
-      if (a === player) Sfx.noise(0.3, 1100, 0.7, 0.13);
+      if (a === player || Sfx.vol(a.pos.x, a.pos.y, a.pos.z) > 0.25) { FX.burst(a.pos.x, a.pos.y + 0.1, a.pos.z, 0xcbbd9a, 8, 3, 0.45, 0.1, 1); }   // a kick of dust from the take-off
+      if (a === player) { Sfx.noise(0.45, 900, 0.6, 0.2); Sfx.tone(180, 0.18, 'triangle', 0.08, 220); Cam.shake = Math.max(Cam.shake || 0, 0.06); }
     } else a.vel.y = a.inWater ? 6 : JUMP;
     a.onGround = false; a.jumpCD = 0.3; a.emote = null;
   } else if (press && a.state === 'ground' && !a.onGround && !a.inWater && a.jumpCD <= 0.15 && (a.wallJumps || 0) < 2) {
     if (wallJump(a)) return;
   }
-  if (a.onGround) { a.wallJumps = 0; a.longJ = false; }
+  if (a.onGround) { a.wallJumps = 0; if (a.longJ) { a.longJ = false; leapLand(a); } }
   const wasGround = a.onGround, prevY = a.pos.y;
   const hs = Math.hypot(a.vel.x, a.vel.z);
   const n = Math.min(5, Math.max(1, Math.ceil(hs * dt / 0.3)));
@@ -168,6 +169,12 @@ function physicsActor(a, dt) {
   if (!Number.isFinite(a.pos.x + a.pos.y + a.pos.z + a.vel.x + a.vel.y + a.vel.z)) { a.vel.set(0, 0, 0); a.pos.set(clamp(a.pos.x || 0, -W.half, W.half), 0, clamp(a.pos.z || 0, -W.half, W.half)); a.pos.y = topSurface(a.pos.x, a.pos.z); }
   // auto-glider
   if (a.state === 'sky' && a.pos.y - g < GLIDER_AUTO) a.state = 'glide';   // the glider opens by itself this high above the ground
+}
+// landing a sprint-jump: a ring of dust, a thud and a little shake
+function leapLand(a) {
+  if (a !== player && Sfx.vol(a.pos.x, a.pos.y, a.pos.z) < 0.25) return;
+  for (let i = 0; i < 10; i++) { const t = i / 10 * TAU; FX.burst(a.pos.x + Math.cos(t) * 0.4, a.pos.y + 0.08, a.pos.z + Math.sin(t) * 0.4, 0xcbbd9a, 1, 2.6, 0.5, 0.12, 0.6); }
+  if (a === player) { Sfx.noise(0.18, 260, 1, 0.32, 'lowpass'); Cam.shake = Math.max(Cam.shake || 0, 0.14); }
 }
 function onLand(a) {
   a.vel.x *= 0.4; a.vel.z *= 0.4; a.landT = Match.time;

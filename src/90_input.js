@@ -153,6 +153,7 @@ const Settings = {
   close() { if (!$('settings') || $('settings').hidden) return; this.stop(); $('settings').hidden = true; Lobby.refresh(); HUD.last = {}; HUD.dirty = true; },
   stop() { if (this.wait) { const b = $('kbList').querySelector('[data-kb="' + this.wait + '"]'); if (b) b.classList.remove('wait'); } this.wait = null; $('kbMsg').textContent = ''; },
   render() {
+    if (typeof Voice !== 'undefined') Voice.renderSettings();
     $('kbList').innerHTML = KEY_ACTIONS.map(([a, label]) => `<span>${esc(label)}</span><button type="button" data-kb="${a}" class="${Keys.get(a) !== KEY_DEF[a] ? 'changed' : ''}">${esc(Keys.of(a))}</button>`).join('');
   },
   take(code) {
@@ -302,7 +303,8 @@ const Cam = {
     const base = clamp(+Profile.d.fov || 70, 60, 100), zk = base / 70;   // field of view from Settings (70 unless changed); aiming zooms by the same amount at any setting
     this.fov(dt, this.scoped ? (this.scopeKind === 'smg' ? 56 : 22) : (a === player && a.input.ads && !a.vehicle) ? zk * (it && it.kind === 'weapon' && wstat(it).type === 'shotgun' ? 64 : it && it.kind === 'weapon' && wstat(it).type === 'smg' ? 52 : 58) : sprint ? base + 5 : a.vehicle ? base + 5 : base);
   },
-  fov(dt, target) { if (Math.abs(camera.fov - target) > 0.1) { camera.fov = lerp(camera.fov, target, Math.min(1, dt * 12)); camera.updateProjectionMatrix(); } },
+  fov(dt, target) { if (player && player.longJ && !player.onGround && !this.scoped) target += 10;   // a sprint-jump widens the view for a moment
+    if (Math.abs(camera.fov - target) > 0.1) { camera.fov = lerp(camera.fov, target, Math.min(1, dt * 12)); camera.updateProjectionMatrix(); } },
 };
 function viewTarget() {
   if (!player) return null;
