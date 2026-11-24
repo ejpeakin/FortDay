@@ -381,16 +381,52 @@ function hatModel(o, head, hs, skn) {
   switch (o.hat) {
     case 'cap': add(new THREE.BoxGeometry(0.54, 0.16, 0.54), lam(c), 0, top + 0.05, 0); add(new THREE.BoxGeometry(0.5, 0.05, 0.3), lam(c), 0, top - 0.01, 0.36); break;
     case 'bun': add(new THREE.BoxGeometry(0.53, 0.12, 0.53), lam(c), 0, top + 0.02, -0.01); add(new THREE.SphereGeometry(0.16, 10, 8), lam(c), 0, top + 0.08, -0.26); break;
-    case 'leaves': add(new THREE.IcosahedronGeometry(0.34, 0), lam(c), 0, top + 0.14, 0); break;
-    case 'helmet': add(new THREE.BoxGeometry(0.62, 0.62, 0.62), lam(c), 0, 0.03, 0); add(new THREE.BoxGeometry(0.48, 0.24, 0.05), basic(0x5ab8ff), 0, 0.04, 0.32); break;
-    case 'antenna': for (const sx of [-0.13, 0.13]) { add(new THREE.BoxGeometry(0.04, 0.38, 0.04), lam(0x333344), sx, top + 0.19, 0); add(new THREE.SphereGeometry(0.07, 8, 6), basic(c), sx, top + 0.4, 0); } break;
+    case 'leaves': {   // a cushion of moss over the head, a few leaves sprouting from it and a small flower
+      const moss = lam(c), deep = lam(new THREE.Color(c).multiplyScalar(0.72).getHex()), leaf = lam(new THREE.Color(c).lerp(new THREE.Color(0xd8ff7a), 0.35).getHex());
+      const R = seededRand(4211);
+      for (let i = 0; i < 11; i++) { const a = i / 11 * TAU + R() * 0.3, r = i < 8 ? 0.2 : 0.08, m = add(new THREE.IcosahedronGeometry(0.1 + R() * 0.035, 1), i % 3 ? moss : deep, Math.cos(a) * r, top - 0.03 + (i < 8 ? 0 : 0.05) + R() * 0.02, Math.sin(a) * r - 0.02); m.scale.set(1.25, 0.62, 1.25); }
+      for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + 0.4, m = add(new THREE.SphereGeometry(0.06, 10, 6), leaf, Math.cos(a) * 0.12, top + 0.11, Math.sin(a) * 0.12 - 0.02); m.scale.set(0.5, 0.18, 1.6); m.rotation.y = -a + Math.PI / 2; m.rotation.x = 0.55; }
+      for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; add(new THREE.SphereGeometry(0.026, 8, 6), lam(0xffb3d1), 0.13 + Math.cos(a) * 0.03, top + 0.07, 0.12 + Math.sin(a) * 0.03).scale.set(1, 0.45, 1); }
+      add(new THREE.SphereGeometry(0.02, 8, 6), lam(0xffd84a), 0.13, top + 0.08, 0.12);
+      break;
+    }
+    case 'helmet': {   // space helmet: white shell with a clear tinted window over the face, orange frame and a little comet light on top
+      const g = new THREE.Group(); g.position.set(0, 0.03, 0); head.add(g);
+      const put = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+      const R = 0.34, w = 0.62, t1 = Math.PI * 0.3, t2 = Math.PI * 0.68, F = Math.PI / 2;   // window: +-w around the front, from t1 to t2 down from the top
+      const shell = new THREE.MeshPhongMaterial({ color: c, shininess: 70, specular: 0x6a6a78, side: THREE.DoubleSide });
+      put(new THREE.SphereGeometry(R, 32, 20, F + w, TAU - 2 * w, 0, Math.PI), shell);   // back and sides
+      put(new THREE.SphereGeometry(R, 10, 8, F - w, 2 * w, 0, t1), shell);                // over the window
+      put(new THREE.SphereGeometry(R, 10, 6, F - w, 2 * w, t2, Math.PI - t2), shell);     // under it
+      put(new THREE.SphereGeometry(R + 0.004, 12, 10, F - w, 2 * w, t1, t2 - t1), new THREE.MeshPhongMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.22, shininess: 140, specular: 0xffffff, depthWrite: false, side: THREE.DoubleSide })).renderOrder = 2;
+      const sp = (ph, th, r = R + 0.012) => new THREE.Vector3(-r * Math.cos(ph) * Math.sin(th), r * Math.cos(th), r * Math.sin(ph) * Math.sin(th));
+      const edge = []; for (let i = 0; i <= 8; i++) edge.push(sp(F - w + 2 * w * i / 8, t1)); for (let i = 1; i <= 6; i++) edge.push(sp(F + w, t1 + (t2 - t1) * i / 6));
+      for (let i = 1; i <= 8; i++) edge.push(sp(F + w - 2 * w * i / 8, t2)); for (let i = 1; i < 6; i++) edge.push(sp(F - w, t2 - (t2 - t1) * i / 6));
+      put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge, true), 64, 0.02, 6, true), lam(0xff7a2a));   // orange frame round the window
+      put(new THREE.TorusGeometry(0.2, 0.03, 8, 24), lam(0xd8dce4), 0, -0.31, 0).rotation.x = Math.PI / 2;         // neck ring
+      put(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6), lam(0x8a8f9a), 0.14, 0.34, -0.08);
+      put(new THREE.SphereGeometry(0.032, 10, 8), basic(0xffd27a), 0.14, 0.43, -0.08);
+      const over = []; for (let i = 0; i <= 10; i++) over.push(sp(F, t1 * (1 - i / 10), R + 0.008)); for (let i = 1; i <= 10; i++) over.push(sp(F + Math.PI, Math.PI * 0.7 * i / 10, R + 0.008));
+      put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(over), 40, 0.016, 6, false), lam(0xff7a2a));   // orange stripe from the window, over the top and down the back
+      break;
+    }
+    case 'antenna': for (const sx of [-0.13, 0.13]) { add(new THREE.CylinderGeometry(0.018, 0.024, 0.44, 8), lam(0x2a2a3a), sx, top + 0.13, -0.01); add(new THREE.SphereGeometry(0.07, 12, 10), basic(c), sx, top + 0.37, -0.01); add(new THREE.TorusGeometry(0.03, 0.009, 6, 14), lam(0xd8dce6), sx, top - 0.06, -0.01).rotation.x = Math.PI / 2; } break;
     case 'horns': hornsModel(o, head, hs, c); break;   // two horns straight out of the head
     case 'headphones': {
       const band = new THREE.TorusGeometry(0.29, 0.035, 8, 24, Math.PI); add(band, lam(0x18181c), 0, top - 0.08, 0);
       for (const sx of [-1, 1]) { const cup = add(new THREE.CylinderGeometry(0.11, 0.11, 0.09, 18), lam(0x18181c), sx * 0.29, top - 0.2, 0); cup.rotation.z = Math.PI / 2; const pad = add(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 18), basic(c), sx * 0.345, top - 0.2, 0); pad.rotation.z = Math.PI / 2; }
       break;
     }
-    case 'tophat': add(new THREE.CylinderGeometry(0.36, 0.36, 0.04, 14), lam(c), 0, top + 0.02, 0); add(new THREE.CylinderGeometry(0.22, 0.22, 0.42, 14), lam(c), 0, top + 0.24, 0); add(new THREE.CylinderGeometry(0.225, 0.225, 0.07, 14), lam(0xd4a72c), 0, top + 0.09, 0); break;
+    case 'tophat': {   // tall silk hat with a gold band, sitting down on the head
+      const g = new THREE.Group(); g.position.set(0, top - 0.06, 0.005); g.rotation.x = 0.05; head.add(g);
+      const put = (geo, mat, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; m.castShadow = true; g.add(m); return m; };
+      const silk = new THREE.MeshPhongMaterial({ color: c, shininess: 60, specular: 0x3a3a44 });
+      put(new THREE.CylinderGeometry(0.36, 0.36, 0.024, 26), silk, 0).scale.set(1, 1, 1.08);
+      put(new THREE.CylinderGeometry(0.232, 0.25, 0.44, 24), silk, 0.232);
+      put(new THREE.CylinderGeometry(0.253, 0.253, 0.07, 24), new THREE.MeshPhongMaterial({ color: 0xd4a72c, shininess: 80, specular: 0x8a6a20 }), 0.05);
+      put(new THREE.CylinderGeometry(0.232, 0.232, 0.012, 24), lam(new THREE.Color(c).multiplyScalar(1.6).getHex()), 0.455);   // a sheen on the crown's top edge
+      break;
+    }
     case 'crown': add(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 10), basic(c), 0, top + 0.04, 0); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; add(new THREE.ConeGeometry(0.06, 0.2, 5), basic(c), Math.cos(a) * 0.24, top + 0.16, Math.sin(a) * 0.24); } break;
     case 'toast': add(new THREE.BoxGeometry(0.5 * hs[0] + 0.08, 0.5 * hs[1] + 0.08, 0.18), lam(c), 0, 0, -0.06); break;
     case 'fedora': {   // short-brim fedora, tipped forward a touch, with a band and a creased crown
@@ -755,7 +791,7 @@ function buildCharacter(eq, skinned) {
   let faceZ = 0;
   if (boxHead) { M(B(0.5 * hs[0] * 0.6, 0.5 * hs[1] * 0.6, 0.5 * hs[2] * 0.6), o.skin, 0, 0, 0, head); faceZ = 0.25 * hs[2] * 0.6; }
   else if (!SKN) M(G.head, o.skin, 0, 0, 0, head);
-  if (o.hat !== 'helmet') {
+  {
     const iris = lam(0x2e2016);
     for (const sx of [-1, 1]) {
       const wz = boxHead ? faceZ + 0.004 : 0.122;

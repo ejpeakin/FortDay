@@ -89,9 +89,22 @@ button:focus-visible{outline:2px solid var(--sun-2);outline-offset:2px}
 .check input{width:18px;height:18px;accent-color:var(--sun)}
 .lb-foot{grid-column:2;grid-row:3;display:flex;flex-direction:column;gap:8px;position:relative}
 #buildTag{position:fixed;left:10px;bottom:6px;font:600 11px var(--f-body);color:rgba(200,215,255,.35);pointer-events:none}
-#readyBtn{flex:1;font-family:var(--f-display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:30px;padding:14px 18px;border:0;border-radius:14px;color:#ffffff;
-  background:linear-gradient(180deg,var(--sun-2),var(--sun));box-shadow:0 5px 0 #144bb0,0 10px 24px rgba(47,134,255,.35)}
-#readyBtn:active{transform:translateY(3px);box-shadow:0 2px 0 #144bb0}
+#readyBtn{flex:1;font-family:var(--f-display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:30px;padding:14px 18px;border:0;border-radius:14px;color:#2a1405;text-shadow:0 1px 0 rgba(255,255,255,.45);
+  background:linear-gradient(180deg,#ffe56b 0%,#ffbe2e 58%,#ff9a1f 100%);box-shadow:0 5px 0 #b8600c,0 10px 26px rgba(255,170,40,.45);animation:playGlow 2.4s ease-in-out infinite}
+#readyBtn .rb-sub{color:#5a2c08}
+#readyBtn:active{transform:translateY(3px);box-shadow:0 2px 0 #b8600c}
+@keyframes playGlow{0%,100%{box-shadow:0 5px 0 #b8600c,0 10px 26px rgba(255,170,40,.42)}50%{box-shadow:0 5px 0 #b8600c,0 10px 38px rgba(255,140,60,.75)}}
+/* the season card on the Play tab: what's on now, your level, today's bonus and a featured item */
+.season-card{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(135deg,rgba(14,22,40,.95),rgba(10,30,62,.95));border:1px solid rgba(47,216,255,.3);border-left:3px solid #ffb347;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+.sc-top{display:flex;justify-content:space-between;align-items:center;font:800 11px var(--f-body);letter-spacing:.12em;text-transform:uppercase}
+.sc-k{color:#2fd8ff}.sc-left{color:#ffb347}
+.sc-name{font-family:var(--f-display);font-weight:900;font-style:italic;font-size:26px;line-height:1;text-transform:uppercase;letter-spacing:.01em}
+.sc-lvl{display:flex;justify-content:space-between;font:700 12.5px var(--f-body);color:#e8f1ff}.sc-lvl .num{color:var(--mute)}
+.sc-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.sc-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#2fd8ff,#ffb347);transition:width .6s}
+.sc-daily{font:600 12px var(--f-body);color:#cfe9ff}.sc-daily b{color:#7dffb0}
+.sc-feat{display:flex;align-items:center;gap:8px;margin-top:2px;padding:7px 10px;border-radius:10px;border:1px solid rgba(255,216,74,.35);background:rgba(10,8,30,.45);color:#fff;font:700 12.5px var(--f-body);text-align:left;cursor:pointer}
+.sc-feat:hover{background:rgba(255,216,74,.14)}.sc-feat em{font-style:normal;color:#ffd84a;margin-left:auto;white-space:nowrap}.sc-feat i{font-style:normal;font:800 10px var(--f-body);letter-spacing:.1em;color:#2fd8ff}
 #readyBtn{position:relative;overflow:hidden;transition:transform .15s,filter .15s}
 #readyBtn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.07)}
 #readyBtn::after{content:"";position:absolute;top:0;bottom:0;left:-40%;width:30%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-18deg);animation:playShine 3.4s ease-in-out infinite;pointer-events:none}
@@ -854,6 +867,14 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
         <summary><span class="w-k">Party</span><b id="partySum">Play with friends</b><span class="w-sub" id="partySub">Make a room and share its code</span></summary>
         <div class="mp" id="mpBox"></div>
       </details>
+      <div class="season-card" id="seasonCard">
+        <div class="sc-top"><span class="sc-k" id="scKicker">Season 1</span><span class="sc-left" id="scLeft"></span></div>
+        <b class="sc-name" id="scName">Music Festival 2026</b>
+        <div class="sc-lvl"><span id="scLvl">Level 1</span><span class="num" id="scXp"></span></div>
+        <div class="sc-bar"><i id="scFill"></i></div>
+        <div class="sc-daily" id="scDaily"></div>
+        <button class="sc-feat" id="scFeat" type="button" title="Open the Item Shop"></button>
+      </div>
     </section>
 
     <section class="panel shop" id="tab-locker" hidden>
@@ -1166,7 +1187,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1124-1613';
+const BUILD_ID = '1124-1733';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -1391,7 +1412,7 @@ const STYLES = {
 const COS = {
   outfit: [
     { id: 'rae', build: 'average', hair: 0x1a120c, name: 'Rookie Rae', r: 0, shirt: 0xe85d75, pants: 0x2c3e66, skin: 0x8d5a3b, sleeve: 0xf3f3f3, hat: 'bun', hatC: 0x2b1a12 },
-    { id: 'ranger', build: 'average', hair: 0x5a3a1a, name: 'Rookie Ranger', r: 0, shirt: 0x2fa3a0, pants: 0x5b4a3a, skin: 0xe0b48c, sleeve: 0x2fa3a0, hat: 'cap', hatC: 0xff8a3d },
+    { id: 'ranger', build: 'average', hair: 0x5a3a1a, name: 'Rookie Ranger', r: 0, shirt: 0x2fa3a0, pants: 0x5b4a3a, skin: 0xe0b48c, sleeve: 0x2fa3a0, hat: 'cap', hatC: 0xff8a3d, badge: 0xff8a3d },
     { id: 'moss', build: 'heavy', hair: 0x3f6a2a, name: 'Moss Golem', r: 1, shirt: 0x4f7a3a, pants: 0x3e2f22, skin: 0x6f9a4c, sleeve: 0x4f7a3a, hat: 'leaves', hatC: 0x8bc34a, unlock: 'tier:3' },
     { id: 'comet', build: 'average', hair: 0x6a4a2a, name: 'Comet Cadet', r: 2, shirt: 0xeeeeee, pants: 0xdddddd, skin: 0xf0c9a0, sleeve: 0xff7a2a, hat: 'helmet', hatC: 0xf4f4f4, unlock: 'tier:6' },
     { id: 'siren', build: 'slim', hair: 0x2be3ff, name: 'Circuit Siren', r: 2, shirt: 0x1b1b3a, pants: 0x2be3ff, skin: 0xc9a0ff, sleeve: 0xff2fd0, hat: 'antenna', hatC: 0x2be3ff, unlock: 'tier:10' },
@@ -1402,11 +1423,11 @@ const COS = {
     { id: 'nightwarden', build: 'slim', name: 'Play Carti', r: 5, shirt: 0x131317, pants: 0x141418, skin: 0x6a4330, sleeve: 0x131317, hair: 0x0c0b0d,
       hat: 'dreads', hatC: 0x0c0b0d, tip: 0xd0142c, tipCut: [17, 18], hairSeed: 9090, horns: 0x17171b, rockstar: 0xd0142c, chain: 'star', back: 'I AM MUSIC', backFill: '#ffffff', backEdge: '#0c0b0d', personal: true, unlock: 'chest' },
     { id: 'tycoon', build: 'heavy', hair: 0x1a1a1a, name: 'Gilt Tycoon', r: 4, shirt: 0xd4a72c, pants: 0xd4a72c, skin: 0xe8c06a, sleeve: 0x1a1a1a, hat: 'tophat', hatC: 0x1a1a1a, unlock: 'tier:25' },
-    { id: 'stormborn', build: 'average', hair: 0x0e0e10, name: 'Pluma Peso', r: 4, shirt: 0x141416, pants: 0x17181d, skin: 0xf1cdb0, sleeve: 0x141416, hat: 'none', hoodie: true, jeans: true, shiesty: 0x0e0e10, sneakers: 0xf6f6f4, unlock: 'tier:30' },
+    { id: 'stormborn', build: 'average', hair: 0x0e0e10, name: 'Pluma Peso', r: 4, shirt: 0x141416, pants: 0x17181d, skin: 0xf1cdb0, sleeve: 0x141416, hat: 'none', hoodie: true, jeans: true, shiesty: 0x0e0e10, sneakers: 0xf6f6f4, stripes: 0xe6e8ee, unlock: 'tier:30' },
     { id: 'nova', build: 'average', name: 'Juice Earth', r: 4, shirt: 0xf3f2ee, pants: 0xe8731e, skin: 0x70482f, sleeve: 0xf3f2ee,
       hat: 'dreads', hatC: 0x110c0a, tip: 0xb8792e, knot: true, limitedSeason: 0, collar: true, cargo: true, chain: true, beard: true, shoes: 0x6b4423, boots: true, back: '999', chestLogo: '999', personal: true, unlock: 'shop', price: 5000 },
     { id: 'tripy', build: 'slim', name: 'Tripy Red', r: 4, shirt: 0x161618, pants: 0x18181c, skin: 0x8a5a3c, sleeve: 0x161618, hair: 0x6a0c10,
-      hat: 'dreads', hatC: 0x6a0c10, tip: 0xff2a2a, hairSeed: 777, hoodie: true, cargo: true, shades: 0x0c0c0e, faceTats: true, personal: true, unlock: 'shop', price: 1500 },
+      hat: 'dreads', hatC: 0x6a0c10, tip: 0xff2a2a, hairSeed: 777, hoodie: true, cargo: true, shades: 0x0c0c0e, faceTats: true, drip: 0xe0142a, personal: true, unlock: 'shop', price: 1500 },
     { id: 'uzi', build: 'slim', name: 'Lil Uzi', r: 4, shirt: 0xff4fa8, jacket: 0x141418, pants: 0x121216, skin: 0x7a4a30, sleeve: 0x141418, hair: 0x141010, shoes: 0xf2f2f2,
       hat: 'spikes', hatC: 0x141010, tip: 0x1c1616, spikeScale: 0.55, hairSeed: 1212, leather: true, studBelt: true, earring: true, faceTats: 'uzi', personal: true, unlock: 'shop', price: 1500 },
     { id: 'headliner', build: 'muscular', name: 'Headliner', r: 4, shirt: 0x1a1426, pants: 0x101018, skin: 0xc68a5e, sleeve: 0xffd84a, hair: 0x2a1a10, hat: 'headphones', hatC: 0xff3fa6,
@@ -3806,16 +3827,52 @@ function hatModel(o, head, hs, skn) {
   switch (o.hat) {
     case 'cap': add(new THREE.BoxGeometry(0.54, 0.16, 0.54), lam(c), 0, top + 0.05, 0); add(new THREE.BoxGeometry(0.5, 0.05, 0.3), lam(c), 0, top - 0.01, 0.36); break;
     case 'bun': add(new THREE.BoxGeometry(0.53, 0.12, 0.53), lam(c), 0, top + 0.02, -0.01); add(new THREE.SphereGeometry(0.16, 10, 8), lam(c), 0, top + 0.08, -0.26); break;
-    case 'leaves': add(new THREE.IcosahedronGeometry(0.34, 0), lam(c), 0, top + 0.14, 0); break;
-    case 'helmet': add(new THREE.BoxGeometry(0.62, 0.62, 0.62), lam(c), 0, 0.03, 0); add(new THREE.BoxGeometry(0.48, 0.24, 0.05), basic(0x5ab8ff), 0, 0.04, 0.32); break;
-    case 'antenna': for (const sx of [-0.13, 0.13]) { add(new THREE.BoxGeometry(0.04, 0.38, 0.04), lam(0x333344), sx, top + 0.19, 0); add(new THREE.SphereGeometry(0.07, 8, 6), basic(c), sx, top + 0.4, 0); } break;
+    case 'leaves': {   // a cushion of moss over the head, a few leaves sprouting from it and a small flower
+      const moss = lam(c), deep = lam(new THREE.Color(c).multiplyScalar(0.72).getHex()), leaf = lam(new THREE.Color(c).lerp(new THREE.Color(0xd8ff7a), 0.35).getHex());
+      const R = seededRand(4211);
+      for (let i = 0; i < 11; i++) { const a = i / 11 * TAU + R() * 0.3, r = i < 8 ? 0.2 : 0.08, m = add(new THREE.IcosahedronGeometry(0.1 + R() * 0.035, 1), i % 3 ? moss : deep, Math.cos(a) * r, top - 0.03 + (i < 8 ? 0 : 0.05) + R() * 0.02, Math.sin(a) * r - 0.02); m.scale.set(1.25, 0.62, 1.25); }
+      for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + 0.4, m = add(new THREE.SphereGeometry(0.06, 10, 6), leaf, Math.cos(a) * 0.12, top + 0.11, Math.sin(a) * 0.12 - 0.02); m.scale.set(0.5, 0.18, 1.6); m.rotation.y = -a + Math.PI / 2; m.rotation.x = 0.55; }
+      for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; add(new THREE.SphereGeometry(0.026, 8, 6), lam(0xffb3d1), 0.13 + Math.cos(a) * 0.03, top + 0.07, 0.12 + Math.sin(a) * 0.03).scale.set(1, 0.45, 1); }
+      add(new THREE.SphereGeometry(0.02, 8, 6), lam(0xffd84a), 0.13, top + 0.08, 0.12);
+      break;
+    }
+    case 'helmet': {   // space helmet: white shell with a clear tinted window over the face, orange frame and a little comet light on top
+      const g = new THREE.Group(); g.position.set(0, 0.03, 0); head.add(g);
+      const put = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+      const R = 0.34, w = 0.62, t1 = Math.PI * 0.3, t2 = Math.PI * 0.68, F = Math.PI / 2;   // window: +-w around the front, from t1 to t2 down from the top
+      const shell = new THREE.MeshPhongMaterial({ color: c, shininess: 70, specular: 0x6a6a78, side: THREE.DoubleSide });
+      put(new THREE.SphereGeometry(R, 32, 20, F + w, TAU - 2 * w, 0, Math.PI), shell);   // back and sides
+      put(new THREE.SphereGeometry(R, 10, 8, F - w, 2 * w, 0, t1), shell);                // over the window
+      put(new THREE.SphereGeometry(R, 10, 6, F - w, 2 * w, t2, Math.PI - t2), shell);     // under it
+      put(new THREE.SphereGeometry(R + 0.004, 12, 10, F - w, 2 * w, t1, t2 - t1), new THREE.MeshPhongMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.22, shininess: 140, specular: 0xffffff, depthWrite: false, side: THREE.DoubleSide })).renderOrder = 2;
+      const sp = (ph, th, r = R + 0.012) => new THREE.Vector3(-r * Math.cos(ph) * Math.sin(th), r * Math.cos(th), r * Math.sin(ph) * Math.sin(th));
+      const edge = []; for (let i = 0; i <= 8; i++) edge.push(sp(F - w + 2 * w * i / 8, t1)); for (let i = 1; i <= 6; i++) edge.push(sp(F + w, t1 + (t2 - t1) * i / 6));
+      for (let i = 1; i <= 8; i++) edge.push(sp(F + w - 2 * w * i / 8, t2)); for (let i = 1; i < 6; i++) edge.push(sp(F - w, t2 - (t2 - t1) * i / 6));
+      put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge, true), 64, 0.02, 6, true), lam(0xff7a2a));   // orange frame round the window
+      put(new THREE.TorusGeometry(0.2, 0.03, 8, 24), lam(0xd8dce4), 0, -0.31, 0).rotation.x = Math.PI / 2;         // neck ring
+      put(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6), lam(0x8a8f9a), 0.14, 0.34, -0.08);
+      put(new THREE.SphereGeometry(0.032, 10, 8), basic(0xffd27a), 0.14, 0.43, -0.08);
+      const over = []; for (let i = 0; i <= 10; i++) over.push(sp(F, t1 * (1 - i / 10), R + 0.008)); for (let i = 1; i <= 10; i++) over.push(sp(F + Math.PI, Math.PI * 0.7 * i / 10, R + 0.008));
+      put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(over), 40, 0.016, 6, false), lam(0xff7a2a));   // orange stripe from the window, over the top and down the back
+      break;
+    }
+    case 'antenna': for (const sx of [-0.13, 0.13]) { add(new THREE.CylinderGeometry(0.018, 0.024, 0.44, 8), lam(0x2a2a3a), sx, top + 0.13, -0.01); add(new THREE.SphereGeometry(0.07, 12, 10), basic(c), sx, top + 0.37, -0.01); add(new THREE.TorusGeometry(0.03, 0.009, 6, 14), lam(0xd8dce6), sx, top - 0.06, -0.01).rotation.x = Math.PI / 2; } break;
     case 'horns': hornsModel(o, head, hs, c); break;   // two horns straight out of the head
     case 'headphones': {
       const band = new THREE.TorusGeometry(0.29, 0.035, 8, 24, Math.PI); add(band, lam(0x18181c), 0, top - 0.08, 0);
       for (const sx of [-1, 1]) { const cup = add(new THREE.CylinderGeometry(0.11, 0.11, 0.09, 18), lam(0x18181c), sx * 0.29, top - 0.2, 0); cup.rotation.z = Math.PI / 2; const pad = add(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 18), basic(c), sx * 0.345, top - 0.2, 0); pad.rotation.z = Math.PI / 2; }
       break;
     }
-    case 'tophat': add(new THREE.CylinderGeometry(0.36, 0.36, 0.04, 14), lam(c), 0, top + 0.02, 0); add(new THREE.CylinderGeometry(0.22, 0.22, 0.42, 14), lam(c), 0, top + 0.24, 0); add(new THREE.CylinderGeometry(0.225, 0.225, 0.07, 14), lam(0xd4a72c), 0, top + 0.09, 0); break;
+    case 'tophat': {   // tall silk hat with a gold band, sitting down on the head
+      const g = new THREE.Group(); g.position.set(0, top - 0.06, 0.005); g.rotation.x = 0.05; head.add(g);
+      const put = (geo, mat, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; m.castShadow = true; g.add(m); return m; };
+      const silk = new THREE.MeshPhongMaterial({ color: c, shininess: 60, specular: 0x3a3a44 });
+      put(new THREE.CylinderGeometry(0.36, 0.36, 0.024, 26), silk, 0).scale.set(1, 1, 1.08);
+      put(new THREE.CylinderGeometry(0.232, 0.25, 0.44, 24), silk, 0.232);
+      put(new THREE.CylinderGeometry(0.253, 0.253, 0.07, 24), new THREE.MeshPhongMaterial({ color: 0xd4a72c, shininess: 80, specular: 0x8a6a20 }), 0.05);
+      put(new THREE.CylinderGeometry(0.232, 0.232, 0.012, 24), lam(new THREE.Color(c).multiplyScalar(1.6).getHex()), 0.455);   // a sheen on the crown's top edge
+      break;
+    }
     case 'crown': add(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 10), basic(c), 0, top + 0.04, 0); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; add(new THREE.ConeGeometry(0.06, 0.2, 5), basic(c), Math.cos(a) * 0.24, top + 0.16, Math.sin(a) * 0.24); } break;
     case 'toast': add(new THREE.BoxGeometry(0.5 * hs[0] + 0.08, 0.5 * hs[1] + 0.08, 0.18), lam(c), 0, 0, -0.06); break;
     case 'fedora': {   // short-brim fedora, tipped forward a touch, with a band and a creased crown
@@ -4180,7 +4237,7 @@ function buildCharacter(eq, skinned) {
   let faceZ = 0;
   if (boxHead) { M(B(0.5 * hs[0] * 0.6, 0.5 * hs[1] * 0.6, 0.5 * hs[2] * 0.6), o.skin, 0, 0, 0, head); faceZ = 0.25 * hs[2] * 0.6; }
   else if (!SKN) M(G.head, o.skin, 0, 0, 0, head);
-  if (o.hat !== 'helmet') {
+  {
     const iris = lam(0x2e2016);
     for (const sx of [-1, 1]) {
       const wz = boxHead ? faceZ + 0.004 : 0.122;
@@ -6346,7 +6403,7 @@ const CharModel = {
     for (let i = 0; i < P.count; i++) {
       let bi = 0, bw = -1; for (let k = 0; k < 4; k++) if (SW[i * 4 + k] > bw) { bw = SW[i * 4 + k]; bi = SI[i * 4 + k]; }
       const n = bones[bi].name, y = P.getY(i);
-      reg[i] = n === 'head' || n === 'head_leaf' ? 'head' : n === 'neck_01' ? (y < 1.47 ? 'torso' : 'neck')
+      reg[i] = n === 'head' || n === 'head_leaf' ? 'head' : n === 'neck_01' ? (y < 1.5 || (y < 1.548 && Math.abs(P.getX(i)) > 0.064) ? 'torso' : 'neck')   // the bottom of the neck and the slope of the shoulders beside it count as chest, so the shirt covers them (no skin poking up through the neckline)
         : /^(spine|clavicle|pelvis)/.test(n) ? (y < 1.0 ? 'hips' : 'torso') : n.startsWith('upperarm') ? 'upper' : n.startsWith('lowerarm') ? 'fore'
         : n.startsWith('thigh') ? 'thigh' : n.startsWith('calf') ? 'calf' : n.startsWith('foot') || n.startsWith('ball') ? 'shoe' : 'hand';
     }
@@ -6411,15 +6468,15 @@ const CharModel = {
       else if (r === 'shoe') v = y / 0.2;
       else if (r === 'belt') u = sym(x, z);
       else if (r === 'head') { u = sym(x, z); v = (y - 1.541) / 0.288; }
-      const c = AT[r], m = r === 'torso' || r === 'hips' || r === 'belt' || r === 'head' ? 0.004 : 0.03;
+      const c = AT[r], m = r === 'torso' || r === 'hips' ? 0.012 : r === 'belt' || r === 'head' ? 0.004 : 0.03;   // torso and hips sit side by side in the atlas: keep clear of the shared edge
       return [(c[0] + cl(u, m) * c[2]) / 256, (c[1] + (1 - cl(v)) * c[3]) / 256];
     };
     const src = { position: P, normal: geo.attributes.normal, skinIndex: geo.attributes.skinIndex, skinWeight: geo.attributes.skinWeight };
     const out = {}; for (const k in src) out[k] = Array.from(src[k].array);
-    const uvs = [], vr = reg.slice(), dup = new Map(), nIdx = [];
+    const uvs = [], vr = reg.slice(), orig = Array.from({ length: P.count }, (_, i) => i), dup = new Map(), nIdx = [];   // orig: the vertex each copy came from
     // body parts now covered by the shirt and trousers are dropped so they can never poke through the cloth
     // (the belt, the rings at the tops of the legs, wrists and ankles stay to close any gaps)
-    const COVERED = new Set(['torso', 'upper', 'fore', 'calf', 'shoe', 'sock', 'hand']), covered = (tr, a, b, c) => COVERED.has(tr) || (tr === 'thigh' && !(ringV[a] && ringV[b] && ringV[c]));
+    const COVERED = new Set(['torso', 'upper', 'fore', 'calf', 'shoe', 'sock', 'hand']), covered = (tr, a, b, c) => COVERED.has(tr) || (tr === 'thigh' && !(ringV[a] && ringV[b] && ringV[c])) || (tr === 'neck' && (reg[a] === 'torso' || reg[b] === 'torso' || reg[c] === 'torso'));   // neck triangles that reach down onto the chest would poke out of the collar
     for (let i = 0; i < P.count; i++) uvs.push(...project(P.getX(i), P.getY(i), P.getZ(i), reg[i]));
     for (let t = 0; t < idx.length; t += 3) {
       const r0 = reg[idx[t]], r1 = reg[idx[t + 1]], r2 = reg[idx[t + 2]], tr = r0 === r1 || r0 === r2 ? r0 : r1 === r2 ? r1 : r0;
@@ -6428,7 +6485,7 @@ const CharModel = {
         const vi = idx[t + k]; if (reg[vi] === tr) { nIdx.push(vi); continue; }
         const key = vi + ':' + tr; let ni = dup.get(key);
         if (ni == null) {
-          ni = vr.length; vr.push(tr); dup.set(key, ni);
+          ni = vr.length; vr.push(tr); orig.push(vi); dup.set(key, ni);
           for (const a in src) { const s = src[a].itemSize; for (let j = 0; j < s; j++) out[a].push(src[a].array[vi * s + j]); }
           uvs.push(...project(P.getX(vi), P.getY(vi), P.getZ(vi), tr));
         }
@@ -6446,7 +6503,7 @@ const CharModel = {
     this.variants.muscular.geo = geo;
     for (const name in this.BUILDS) {
       const f = this.shapeOf(this.BUILDS[name]), g = geo.clone(), pa = g.attributes.position;
-      for (let i = 0; i < pa.count; i++) { const q = f(pa.getX(i), pa.getY(i), pa.getZ(i), vr[i]); pa.setXYZ(i, q[0], q[1], q[2]); }
+      for (let i = 0; i < pa.count; i++) { const q = f(pa.getX(i), pa.getY(i), pa.getZ(i), reg[orig[i]]); pa.setXYZ(i, q[0], q[1], q[2]); }   // copies move with their original, so pieces never split apart
       g.computeBoundingSphere(); this.variants[name].geo = g;
     }
     // ---- mount frames: map the built-in body's head / chest / hand spaces onto this model's bones (bind pose)
@@ -6489,7 +6546,7 @@ const CharModel = {
       kx *= 1 + (B.chestX - 1) * cb; kz *= 1 + (B.chestZ - 1) * cb;   // chest
       kx *= 1 + (B.hips - 1) * bell((y - 0.93) / 0.09);                 // hips
       kx *= 1 - (1 - B.shoulders) * sm(1.25, 1.5, y);                    // shoulders
-      if (r === 'neck') { kx *= B.neck; kz *= B.neck; }
+      if (r === 'neck') { const nk = B.neck + (1 - B.neck) * sm(1.5, 1.56, y); kx *= nk; kz *= nk; }   // eases back to full width where the neck meets the head (no gap under the jaw)
       x *= kx; z = zc + (z - zc) * kz;
       if (B.bust && r === 'torso' && z > 0) z += B.bust * bell((y - 1.315) / 0.06) * bell((ax - 0.075) / 0.045) * Math.min(1, z / 0.08);
       if (B.belly && (r === 'torso' || r === 'belt' || r === 'hips') && z > 0) z += B.belly * bell((y - 1.08) / 0.12) * bell(ax / 0.14) * Math.min(1, z / 0.06);
@@ -6560,21 +6617,25 @@ const CharModel = {
       }
     };
     // ---- torso: hem just over the belt, up to the shoulders, then in to a collar around the neck
-    const ZC = -0.015, TC = 40, rows = [], tPts = [], tCand = [], nPts = [];
+    const ZC = -0.015, TC = 40, rows = [], tPts = [], tCand = [], nPts = [], nCand = [];
     for (let y = 1.062; y <= 1.505; y += 0.0246) rows.push(y);
     for (let i = 0; i < P.count; i++) {
       const r = reg[i], x = P.getX(i), y = P.getY(i), z = P.getZ(i);
       const inTorso = r === 'torso' || r === 'belt' || (r === 'upper' && Math.abs(x) < 0.205) || (r === 'neck' && y < 1.53) || (r === 'hips' && y > 1.0);
       if (!inTorso) continue;
       tCand.push(i); if (r === 'neck' && y > 1.47) nPts.push([y, Math.atan2(x, z - ZC), Math.hypot(x, z - ZC)]);
+      if (r === 'neck' || (r === 'head' && y < 1.58)) nCand.push(i);   // at the back the neck belongs to the head piece
     }
     for (const [x, y, z] of surface(tCand)) if (Math.abs(x) < 0.21) tPts.push([y, Math.atan2(x, z - ZC), Math.hypot(x, z - ZC)]);
-    const TR = grid(rows, TC, tPts, 0.016, 2), NR = grid([1.5], TC, nPts, 0.04, 0)[0];
-    const ringsY = [...rows, 1.522, 1.545], RN = ringsY.length;
+    const TR = grid(rows, TC, tPts, 0.016, 2);
+    // the collar: two rings that hug the neck at their own heights (measured over the neck's surface, evened out without shrinking)
+    const nSurf = surface(nCand).filter(p => p[1] > 1.49 && p[1] < 1.57).map(([x, y, z]) => [y, Math.atan2(x, z - ZC), Math.hypot(x, z - ZC)]);
+    const NRr = grid([1.518, 1.536], TC, nSurf.length ? nSurf : nPts, 0.01, 0).map(row => { const o = row.map((r, j) => Math.max(r, (row[(j + TC - 1) % TC] + r + row[(j + 1) % TC]) / 3)); o[TC] = o[0]; return o; });
+    const ringsY = [...rows, 1.518, 1.536], RN = ringsY.length;   // the collar stops just under the jaw
     for (let i = 0; i < RN; i++) for (let j = 0; j <= TC; j++) {
-      const th = (j / TC - 0.5) * 2 * Math.PI, y = ringsY[i], rr = i < rows.length ? TR[i][j] + 0.013 : NR[j] + (i === rows.length ? 0.03 : 0.016);
+      const th = (j / TC - 0.5) * 2 * Math.PI, y = ringsY[i], rr = i < rows.length ? TR[i][j] + 0.013 : NRr[i - rows.length][j] + (i === rows.length ? 0.011 : 0.006);
       const x = Math.sin(th) * rr, z = ZC + Math.cos(th) * rr;
-      pos.push(x, y, z); uvs.push(...toUV('torso', sym(x, z), (y - 1.0) / 0.53, 0.004)); weights(x, y, z, tCand, TORSO_B);
+      pos.push(x, y, z); uvs.push(...toUV('torso', sym(x, z), (y - 1.0) / 0.53, 0.012)); weights(x, y, z, tCand, TORSO_B);
     }
     tube(null, RN, TC, false);
     // ---- sleeves: from inside the chest out to the wrist, in two parts so the upper/fore textures line up
@@ -6588,7 +6649,7 @@ const CharModel = {
       for (const [cell, x0, x1, len] of [['upper', 0.14, 0.468, 0.29], ['fore', 0.468, 0.751, 0.292]]) {
         const segRows = xs.map((ax, i) => [ax, i]).filter(([ax]) => ax >= x0 - 0.013 && ax <= x1 + 0.013);
         for (const [ax, ri] of segRows) for (let j = 0; j <= AC; j++) {
-          const ph = (j / AC - 0.5) * 2 * Math.PI, [yc, zc] = axis(ax), rr = AR[ri][j] + 0.01, y = yc + Math.cos(ph) * rr, z = zc + Math.sin(ph) * rr, x = ax * side;
+          const ph = (j / AC - 0.5) * 2 * Math.PI, [yc, zc] = axis(ax), tuck = ax < 0.24 ? 0.78 + 0.22 * Math.max(0, (ax - 0.14) / 0.1) : 1, rr = (AR[ri][j] + 0.01) * tuck, y = yc + Math.cos(ph) * rr, z = zc + Math.sin(ph) * rr, x = ax * side;
           pos.push(x, y, z); uvs.push(...toUV(cell, ang(z - zc, y - yc), (ax - (cell === 'upper' ? 0.18 : 0.468)) / len, 0.03)); weights(x, y, z, aCand, ARM_B);
         }
         tube(null, segRows.length, AC, side < 0);
@@ -6704,6 +6765,8 @@ const CharModel = {
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(sIdx, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sWt, 4));
     g.setIndex(index); g.computeVertexNormals(); g.computeBoundingSphere();
+    { const N = g.attributes.normal, seam = new Map(); for (let i = 0; i < pos.length / 3; i++) { const k = Math.round(pos[i * 3] * 1e4) + ',' + Math.round(pos[i * 3 + 1] * 1e4) + ',' + Math.round(pos[i * 3 + 2] * 1e4); (seam.get(k) || seam.set(k, []).get(k)).push(i); }
+      for (const L of seam.values()) if (L.length > 1) { let x = 0, y = 0, z = 0; for (const i of L) { x += N.getX(i); y += N.getY(i); z += N.getZ(i); } const l = Math.hypot(x, y, z) || 1; for (const i of L) N.setXYZ(i, x / l, y / l, z / l); } }
     g.userData.torso = { RN, TC, ys: ringsY };   // the first RN x (TC + 1) vertices are the torso rings (chains and back prints sit on them)
     return g;
   },
@@ -6712,7 +6775,7 @@ const CharModel = {
     key = key || o.id; if (this.mats.has(key)) return this.mats.get(key);
     const cv = document.createElement('canvas'); cv.width = cv.height = 256; this.paint(cv.getContext('2d'), o);
     const tex = new THREE.CanvasTexture(cv); tex.flipY = false; tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter;
-    const m = new THREE.MeshLambertMaterial({ map: tex, skinning: true }); this.mats.set(key, m); return m;
+    const m = new THREE.MeshLambertMaterial({ map: tex, skinning: true, side: THREE.DoubleSide }); this.mats.set(key, m); return m;   // both sides: a hairline gap between body pieces shows skin, not the sky
   },
   paint(x, o) {
     const AT = this.AT, C = new THREE.Color();
@@ -6732,7 +6795,7 @@ const CharModel = {
       for (let v = 0.04; v < 1; v += 0.045) line('head', [[0, v], [1, v]], 1, 'rgba(255,255,255,0.05)');
       for (let u = 0.02; u < 1; u += 0.03) line('head', [[u, 0], [u, 1]], 0.6, 'rgba(0,0,0,0.35)');
       rect('head', 0, 0.515, 0.2, 0.635, hex(o.skin)); line('head', [[0, 0.512], [0.205, 0.512], [0.205, 0.638], [0, 0.638]], 2, hex(o.shiesty, 1.4));
-    } else if (o.hat !== 'helmet' && !o.head) {
+    } else if (!o.head) {
       const hc = o.hat === 'dreads' ? o.hatC : (o.hair ?? 0x2a1a10), pts = [];
       if (o.lineup) {   // sharp shape-up: straight across the forehead, square corners at the temples, clean sideburns
         pts.push([0, 0.74], [0.17, 0.74], [0.175, 0.64], [0.33, 0.64], [0.335, 0.49], [0.42, 0.49], [0.5, 0.6], [0.75, 0.48], [1, 0.38]);
@@ -6835,11 +6898,11 @@ const CharModel = {
     }
     if (o.leather) {
       rect('torso', 0, 0, 0.12, 1, hex(o.shirt)); line('torso', [[0.12, 0], [0.12, 1]], 2, '#c8ccd4');
-      for (let i = 0; i < 4; i++) dot('torso', 0.4 + i * 0.06, 0.95, 1.6, '#dfe3ea');
+      for (let i = 0; i < 4; i++) dot('torso', 0.4 + i * 0.06, 0.9, 1.6, '#dfe3ea');
       line('upper', [[0, 0.02], [1, 0.02]], 2, '#2a2a30');
     }
     if (o.hoodie) {
-      line('torso', [[0.06, 0.95], [0.06, 0.66]], 2, '#f4f4f4');
+      line('torso', [[0.06, 0.95], [0.065, 0.66]], 3, '#f4f4f4'); rect('torso', 0.05, 0.62, 0.08, 0.66, '#c8ccd4');   // drawstrings with metal tips
       rect('torso', 0, 0.06, 0.2, 0.32, 'rgba(0,0,0,0.18)'); line('torso', [[0, 0.32], [0.2, 0.32]], 1.5, 'rgba(0,0,0,0.35)');
     }
     if (o.rockstar) {   // red winged emblem across the chest, red stripes down the sleeves and red side stripes on the jeans
@@ -6851,7 +6914,26 @@ const CharModel = {
       for (const n of ['thigh', 'calf']) line(n, [[0.75, 0], [0.75, 1]], 2.5, rc);
       line('torso', [[0, 0.995], [0.45, 0.99]], 2.5, rd);   // collar
     }
+    if (o.stripes) {   // track stripes down the outside of the sleeves and trouser legs
+      const sc = hex(o.stripes);
+      for (const n of ['upper', 'fore']) { line(n, [[0.455, 0], [0.455, 1]], 2.4, sc); line(n, [[0.545, 0], [0.545, 1]], 2.4, sc); }
+      for (const n of ['thigh', 'calf']) { line(n, [[0.71, 0], [0.71, 1]], 2.4, sc); line(n, [[0.79, 0], [0.79, 1]], 2.4, sc); }
+    }
+    if (o.badge) {   // a small shield badge on the chest, and a pocket under it
+      const bc = hex(o.badge), r = AT.torso, cx = r[0] + 0.15 * r[2], cy = r[1] + (1 - 0.8) * r[3];
+      x.fillStyle = hex(o.shirt, 0.78); x.fillRect(cx - 7, cy + 7, 14, 12); x.strokeStyle = hex(o.shirt, 0.6); x.lineWidth = 1; x.strokeRect(cx - 7, cy + 7, 14, 12);
+      x.fillStyle = bc; x.beginPath(); x.moveTo(cx - 5, cy - 6); x.lineTo(cx + 5, cy - 6); x.lineTo(cx + 5, cy + 1); x.quadraticCurveTo(cx, cy + 6, cx - 5, cy + 1); x.closePath(); x.fill();
+      x.fillStyle = '#fff3d6'; x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? 1.2 : 2.8; x[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * q, cy - 1.5 + Math.sin(a) * q); } x.closePath(); x.fill();
+    }
+    if (o.drip) {   // a dripping logo on the chest
+      const dc = hex(o.drip), r = AT.torso, cx = r[0] + 0.13 * r[2], cy = r[1] + (1 - 0.8) * r[3];
+      x.fillStyle = dc; x.beginPath(); x.arc(cx, cy, 5.5, 0, TAU); x.fill();
+      for (const [dx, len] of [[-3, 7], [0.5, 10], [3.5, 6]]) { x.fillRect(cx + dx - 1, cy, 2, len); x.beginPath(); x.arc(cx + dx, cy + len, 1.4, 0, TAU); x.fill(); }
+      x.fillStyle = hex(o.shirt); x.beginPath(); x.arc(cx - 1.5, cy - 1.5, 1.6, 0, TAU); x.fill();
+    }
     if (o.id === 'tycoon') poly('torso', [[0, 0.98], [0.024, 0.98], [0.032, 0.45], [0, 0.4]], '#1a1a1a');
+    // neckline: the top of the shirt (stretched over the shoulders up to the collar) is a plain ribbed band, so nothing smears there
+    if (!o.suit) { const nc = o.tiedye ? '#2a2a30' : hex(torsoC, 0.82); rect('torso', 0, 0.958, 1, 1, nc); line('torso', [[0, 0.958], [1, 0.958]], 1, hex(torsoC, 0.68)); }
   },
   // ---- build a full character (player, lobby) with every accessory from the built-in rig mounted on bones
   make(eq) {
@@ -6895,8 +6977,9 @@ const CharModel = {
     return out;
   },
   // a chain that goes round the neck on the collar, over the tops of the shoulders and down onto the chest
-  chainOn(R, o) {
-    const G = this.shirtGrid(R); if (!G) return;
+  chainOn(R, o) { const g = this.chainGroup(R, o); if (g) { R.mTorso.add(g); R.chain = g; } },
+  chainGroup(R, o) {
+    const G = this.shirtGrid(R); if (!G) return null;
     const C = CHAIN_SKN, s = this.K * C.size, N = 120, pts = [], nrms = [];
     const rBack = G.RN - 1 - C.collar, rowAt = y => { let i = 0; while (i < G.ys.length - 2 && G.ys[i + 1] < y) i++; return i + (y - G.ys[i]) / (G.ys[i + 1] - G.ys[i]); }, rFront = rowAt(C.low);
     for (let k = 0; k < N; k++) {
@@ -6922,11 +7005,13 @@ const CharModel = {
     pg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n0); grp.add(pg);
     grp.traverse(m => { if (m.isMesh) m.castShadow = true; });
     // built in world space at rest: hang it on the torso mount so it moves with the chest
-    R.mTorso.updateMatrixWorld(true); grp.matrixAutoUpdate = false; grp.matrix.copy(R.mTorso.matrixWorld).invert(); R.mTorso.add(grp); R.chain = grp;
+    R.mTorso.updateMatrixWorld(true); grp.matrixAutoUpdate = false; grp.matrix.copy(R.mTorso.matrixWorld).invert(); return grp;
   },
   // the big print across the back, printed onto the shirt: a patch cut from the shirt itself, so it bends with it
-  backDecal(R, o) {
-    const g = R.shirt.geometry, T = g.userData.torso; if (!T) return;
+  backDecal(R, o) { const pt = this.backDecalParts(R.shirt.geometry, o); if (pt) R.backPrint = this.addSkinned(R, pt.geo, pt.mat); },
+  addSkinned(R, geo, mat) { const m = new THREE.SkinnedMesh(geo, mat); m.bind(R.mesh.skeleton, R.mesh.bindMatrix); m.frustumCulled = false; R.mesh.parent.add(m); return m; },
+  backDecalParts(g, o) {
+    const T = g.userData.torso; if (!T) return null;
     const P = g.attributes.position, Nm = g.attributes.normal, SI = g.attributes.skinIndex, SW = g.attributes.skinWeight, BP = BACK_PRINT_SKN;
     const pos = [], uv = [], nrm = [], si = [], sw = [], index = [], seen = new Map();
     const inside = k => P.getZ(k) < BP.zc && Math.abs(P.getX(k)) < BP.w * 0.62 && Math.abs(P.getY(k) - BP.y) < BP.h * 0.62;
@@ -6944,13 +7029,56 @@ const CharModel = {
       if (![a, b, c, d].every(inside)) continue;
       const A = vid(a), B = vid(b), C = vid(c), D = vid(d); index.push(A, C, B, B, C, D);
     }
-    if (!index.length) return;
+    if (!index.length) return null;
     const dg = new THREE.BufferGeometry();
     dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); dg.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3)); dg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     dg.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); dg.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4)); dg.setIndex(index);
     const tex = new THREE.CanvasTexture(backPrintCanvas(o.back, o.backFill || '#111114', o.backEdge || '#e8731e')); tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
     const mat = new THREE.MeshLambertMaterial({ map: tex, skinning: true, transparent: true, alphaTest: 0.04, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
-    const m = new THREE.SkinnedMesh(dg, mat); m.bind(R.mesh.skeleton, R.mesh.bindMatrix); m.frustumCulled = false; R.mesh.parent.add(m); R.backPrint = m;
+    return { geo: dg, mat };
+  },
+  // ---- outfit pieces for the light bodies of nearby bots and players, built once per outfit and shared:
+  // the whole head (hair, hats, horns, helmet, eyes, glasses) merged into a couple of meshes, the chain, the back print
+  _kits: new Map(),
+  headKit(outfit, body) {
+    const key = outfit + ':' + body; if (this._kits.has(key)) return this._kits.get(key);
+    let kit = null;
+    try {
+      const A = buildCharacter({ outfit, body, backpack: 'none', pickaxe: 'pick', glider: 'sail', wrap: 'none' }, true), head = A.head;
+      head.position.set(0, 0, 0); head.updateMatrixWorld(true);
+      const inv = new THREE.Matrix4().copy(head.matrixWorld).invert(), opaque = [], glow = [], keep = [];
+      head.traverse(m => {
+        if (!m.isMesh || !m.visible) return;
+        const mat = m.material, rel = new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld), plain = mat && !Array.isArray(mat) && !mat.map && !mat.transparent;
+        if (plain && mat.vertexColors) { keep.push([m, rel]); return; }   // already merged with its own colours (dreads, spikes)
+        if (plain && (mat.isMeshLambertMaterial || mat.isMeshPhongMaterial)) opaque.push([m.geometry.clone().applyMatrix4(rel), mat.color.getHex()]);
+        else if (plain && mat.isMeshBasicMaterial) glow.push([m.geometry.clone().applyMatrix4(rel), mat.color.getHex()]);
+        else keep.push([m, rel]);
+      });
+      kit = new THREE.Group();
+      if (opaque.length) kit.add(mergedColored(opaque));
+      if (glow.length) { const gm = mergedColored(glow); gm.material = new THREE.MeshBasicMaterial({ vertexColors: true }); gm.castShadow = false; kit.add(gm); }
+      for (const [m, rel] of keep) { const c = new THREE.Mesh(m.geometry, m.material); c.matrixAutoUpdate = false; c.matrix.copy(rel); c.renderOrder = m.renderOrder; c.castShadow = m.castShadow; kit.add(c); }
+    } catch (e) { console.warn('FortDay head kit', outfit, e); kit = null; }
+    this._kits.set(key, kit); return kit;
+  },
+  _chains: new Map(), _prints: new Map(),
+  restRig(build) { const T = this._rest || (this._rest = this.base(this.material(COS.outfit[0]), false)); this.setBody(T, build); T.root.updateMatrixWorld(true); return T; },
+  dressLite(R, o, look) {
+    const build = this.buildFor(o, look.body), pf = Perf.on;
+    if (R.kit) { R.mHead.remove(R.kit); R.kit = null; }
+    if (R.chain) { R.mTorso.remove(R.chain); R.chain = null; }
+    if (R.backPrint) { R.backPrint.parent && R.backPrint.parent.remove(R.backPrint); R.backPrint = null; }
+    // box-headed outfits tuck the real head away inside the box (as on the full body)
+    if (!R._mh0) R._mh0 = { p: R.mHead.position.clone(), s: R.mHead.scale.clone() };
+    R.B.head.scale.setScalar(1); R.mHead.position.copy(R._mh0.p); R.mHead.scale.copy(R._mh0.s);
+    if (o.head) { const k = 0.3; R.B.head.scale.setScalar(k); R.mHead.position.multiplyScalar(1 / k); R.mHead.scale.multiplyScalar(1 / k); }
+    const kit = pf && !o.head ? null : this.headKit(o.id, look.body === 'man' ? 'man' : 'woman');
+    if (kit) { R.kit = kit.clone(); R.mHead.add(R.kit); }
+    R.face.visible = !R.kit;
+    if (pf) return;
+    if (o.chain) { const k = o.id + ':' + build; if (!this._chains.has(k)) this._chains.set(k, this.chainGroup(this.restRig(build), o)); const c = this._chains.get(k); if (c) { R.chain = c.clone(); R.mTorso.add(R.chain); } }
+    if (o.back) { const k = o.id + ':' + build; if (!this._prints.has(k)) this._prints.set(k, this.backDecalParts((this.variants[build] || this.variants.average).shell, o)); const p = this._prints.get(k); if (p) R.backPrint = this.addSkinned(R, p.geo, p.mat); }
   },
   // ---- light character for nearby bots: body, face, hair, backpack, plain gun, glider
   makeLite() {
@@ -6971,6 +7099,7 @@ const CharModel = {
     const o = cosById('outfit', look.outfit || 'ranger');
     this.setBody(R, this.buildFor(o, look.body));
     R.mesh.material = R.shirt.material = this.material(o);
+    if (R.lite) this.dressLite(R, o, look);
     R.pack.material = lam(look.pack ?? 0x6b5a3a);
     const gc = look.glider ?? 0x3aa8ff; R.gliderMesh.material = this._gliderMats[gc] || (this._gliderMats[gc] = new THREE.MeshLambertMaterial({ color: gc, side: THREE.DoubleSide }));
   },
@@ -10392,18 +10521,15 @@ const Players = {
 const Lobby = {
   scene: null, cam: null, rig: null, fake: null, t: 0, tab: 'play', cat: 'outfit', bus: null,
   init() {
-    const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0x0b1f4a); s.fog = new THREE.Fog(0x0b1f4a, 18, 70);
+    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0b1630, 24, 80);
     s.add(new THREE.HemisphereLight(0xb8d4ff, 0x10284f, 0.85));
     const key = new THREE.DirectionalLight(0xffd9b0, 1.05); key.position.set(3, 6, 6); s.add(key);
     const rim = new THREE.DirectionalLight(0x5a9bff, 0.9); rim.position.set(-4, 4, -6); s.add(rim);
     const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x163a7a)); plat.position.y = -0.2; s.add(plat);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
-    for (let i = 0; i < 14; i++) {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), new THREE.MeshBasicMaterial({ color: i % 3 ? 0x1d4fa8 : 0x2f6fd8, transparent: true, opacity: 0.35, depthWrite: false }));
-      const a = i / 14 * TAU; m.position.set(Math.cos(a) * 24, 2 + Math.random() * 8, -18 + Math.sin(a) * 8); m.scale.set(8 + Math.random() * 6, 4 + Math.random() * 3, 6); s.add(m);
-    }
+    const ring = this.ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
+    this.festival(s);
     const isl = new THREE.Group(); const rock = new THREE.Mesh(new THREE.ConeGeometry(7, 9, 7), lam(0x4a5a7a)); rock.rotation.x = Math.PI; rock.position.y = -4.5; isl.add(rock);
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 1.2, 7), lam(0x4f9a5a)); isl.add(top); isl.position.set(-14, 3, -30); s.add(isl); this.isl = isl;
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 1.2, 7), lam(0x4f9a5a)); isl.add(top); isl.position.set(-14, 3, -30); isl.visible = false; s.add(isl); this.isl = isl;   // (the festival stage stands where the island used to float)
     const sp = []; for (let i = 0; i < 400; i++) sp.push(rnd(-60, 60), rnd(-5, 40), rnd(-60, -20));
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); s.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15 })));
     this.bus = buildBusModel(); this.bus.scale.setScalar(0.5); s.add(this.bus);
@@ -10426,6 +10552,70 @@ const Lobby = {
     this.fake = newActor({ state: 'ground', onGround: true, inv: [{ kind: 'pick' }, makeWeapon('ar', 4), null, null, null, null], slot: 0 });
     this.rebuild();
     this.bindUI(); this.refresh();
+  },
+  // ---- the season's stage: a sunset sky, neon arches, a big screen with the season's name, sweeping spotlights and sparkles
+  skyTex() {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 256; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
+    gr.addColorStop(0, '#03050d'); gr.addColorStop(0.45, '#08122b'); gr.addColorStop(0.75, '#0f2147'); gr.addColorStop(0.9, '#1f2a44'); gr.addColorStop(1, '#8a4a1c');
+    g.fillStyle = gr; g.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; return t;
+  },
+  screenTex() {
+    const c = this._scr || (this._scr = document.createElement('canvas')); c.width = 1024; c.height = 320; const g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, '#05080f'); gr.addColorStop(1, '#0d1a2e'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
+    g.fillStyle = 'rgba(255,255,255,0.05)'; for (let y = 0; y < 320; y += 6) g.fillRect(0, y, 1024, 2);   // LED rows
+    g.textAlign = 'center'; g.textBaseline = 'middle'; const sid = Season.id();
+    g.font = '900 italic 62px "Barlow Condensed", Impact, sans-serif'; g.fillStyle = '#ffb347'; g.fillText('SEASON ' + (sid + 1) + ' · LIVE NOW', 512, 82);
+    let fs = 150; const nm = Season.name().toUpperCase(); do { g.font = '900 italic ' + fs + 'px "Barlow Condensed", Impact, sans-serif'; fs -= 8; } while (g.measureText(nm).width > 960 && fs > 60);
+    g.shadowColor = '#2fd8ff'; g.shadowBlur = 26; g.fillStyle = '#ffffff'; g.fillText(nm, 512, 205); g.shadowBlur = 0;
+    if (this.scrTex) this.scrTex.needsUpdate = true; this.scrSeason = sid; return c;
+  },
+  festival(s) {
+    const F = this.fest = { beams: [], arcs: [], bulbs: null, spark: null }, Z = -9;
+    // neon arches over the stage (outer pink, inner cyan) with a row of warm bulbs on the outer one
+    for (const [r, col, t] of [[7.6, 0xff9a2a, 0.15], [6.7, 0x2fd8ff, 0.11]]) { const a = new THREE.Mesh(new THREE.TorusGeometry(r, t, 8, 72, Math.PI), new THREE.MeshBasicMaterial({ color: col })); a.position.set(0, -0.4, Z); s.add(a); F.arcs.push(a); }
+    { const P = []; for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI, g = new THREE.SphereGeometry(0.13, 8, 6).translate(Math.cos(a) * 8.05, -0.4 + Math.sin(a) * 8.05, Z + 0.05); P.push([g, 0xffe6a8]); }
+      F.bulbs = mergedColored(P); F.bulbs.material = new THREE.MeshBasicMaterial({ vertexColors: true }); s.add(F.bulbs); }
+    // truss towers each side, with a light rig on top
+    for (const sx of [-1, 1]) {
+      const T = [], ox = sx * 9.2, oz = Z + 0.6;   // the whole tower is one mesh
+      for (const [dx, dz] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) T.push([new THREE.BoxGeometry(0.08, 9.6, 0.08).translate(ox + dx, 4.4, oz + dz), 0x3a3f52]);
+      for (let y = 0.2; y < 9.2; y += 0.9) T.push([new THREE.BoxGeometry(0.78, 0.05, 0.05).rotateZ(0.7 * (Math.round(y / 0.9) % 2 ? 1 : -1)).translate(ox, y, oz + 0.35), 0x4a5066]);
+      T.push([new THREE.CylinderGeometry(0.28, 0.36, 0.5, 12).translate(ox, 9.3, oz), 0x1d2030]);
+      s.add(mergedColored(T));
+      // spotlight beams from the top of each tower, sweeping across the stage
+      for (const [k, col] of [[0, 0x2fd8ff], [1, sx < 0 ? 0xffffff : 0xffb347]]) {
+        const pivot = new THREE.Group(); pivot.position.set(sx * 9.2, 9.3, Z + 0.6); s.add(pivot);
+        const beam = new THREE.Mesh(new THREE.ConeGeometry(1.5, 12, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.1, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+        beam.position.y = -6; pivot.add(beam); F.beams.push({ pivot, sx, k, ph: Math.random() * 6 });
+      }
+    }
+    // the big screen with the season's name
+    this.scrTex = new THREE.CanvasTexture(this.screenTex()); this.scrTex.minFilter = THREE.LinearFilter;
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 2.56), new THREE.MeshBasicMaterial({ map: this.scrTex })); scr.position.set(0, 4.62, Z - 0.1); s.add(scr); F.scr = scr;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(8.5, 2.86, 0.12), lam(0x141522)); frame.position.set(0, 4.62, Z - 0.2); s.add(frame); F.frame = frame;
+    // stage floor behind you, and speaker stacks either side
+    const deck = new THREE.Mesh(new THREE.CylinderGeometry(11, 11.4, 0.6, 48, 1, false, Math.PI * 0.08, Math.PI * 0.84), lam(0x121a2c)); deck.rotation.y = Math.PI; deck.position.set(0, -0.62, Z + 1); s.add(deck);
+    { const S = []; for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) { S.push([new THREE.BoxGeometry(1.1, 1.25, 0.9).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.4), 0x16161e]); S.push([new THREE.CircleGeometry(0.36, 18).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.86), 0x2c2c3a]); } s.add(mergedColored(S)); }   // speaker stacks
+    // sparkles drifting up through the light
+    const N = 220, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), C = new THREE.Color(), pal = [0x2fd8ff, 0xffffff, 0xffb347, 0x8fd8ff];
+    for (let i = 0; i < N; i++) { pos[i * 3] = rnd(-11, 11); pos[i * 3 + 1] = rnd(-0.5, 10); pos[i * 3 + 2] = rnd(-11, 2.5); C.setHex(pal[i % pal.length]); col.set([C.r, C.g, C.b], i * 3); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); sg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    F.spark = new THREE.Points(sg, new THREE.PointsMaterial({ size: 0.09, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending })); s.add(F.spark);
+  },
+  festivalTick(dt) {
+    const F = this.fest; if (!F) return;
+    if (Season.id() !== this.scrSeason) this.screenTex();
+    F.scr.visible = F.frame.visible = innerWidth > 760;   // on phones the screen would sit behind the logo; the season card says it instead
+    const on = !Perf.on; for (const b of F.beams) b.pivot.visible = on; F.spark.visible = on;
+    if (!on) return;
+    const t = this.t;
+    for (const b of F.beams) { b.pivot.rotation.z = -b.sx * (0.42 + Math.sin(t * (0.5 + b.k * 0.23) + b.ph) * 0.24); b.pivot.rotation.x = 0.04 + Math.sin(t * 0.37 + b.ph) * 0.1; }   // they sweep across the stage, not into your face
+    const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * 1.05)), 8);   // a little pulse, about 125 beats a minute
+    F.arcs[0].material.color.setHSL(0.08, 1, 0.52 + beat * 0.12); F.arcs[1].material.color.setHSL(0.53, 1, 0.5 + beat * 0.12);
+    if (this.ring) this.ring.material.color.setHSL(0.58 + Math.sin(t * 0.3) * 0.08, 1, 0.55 + beat * 0.2);
+    const p = F.spark.geometry.attributes.position, a = p.array;
+    for (let i = 0; i < a.length; i += 3) { a[i + 1] += dt * (0.35 + (i % 7) * 0.06); a[i] += Math.sin(t * 0.8 + i) * dt * 0.08; if (a[i + 1] > 10.5) { a[i + 1] = -0.4; a[i] = rnd(-11, 11); } }
+    p.needsUpdate = true;
   },
   lift: 0, camX: 1.3,
   place() {
@@ -10495,9 +10685,24 @@ const Lobby = {
       for (const p of this.bus.userData.props) p.rotation.z += dt * 20;
       this.isl.rotation.y += dt * 0.05;
     }
+    this.festivalTick(dt);
     Opening.cam(this.cam, dt);
     this.stage(dt);
     renderer.render(this.scene, this.cam);
+  },
+  // the season card: the season's name, days left, your level and XP, today's bonus and a featured shop item
+  seasonCard() {
+    if (!$('seasonCard')) return;
+    const d = Profile.d, sid = Season.id(), dl = Season.daysLeft(), lv = Profile.tier(), xp = d.seasonXp % XP_PER_LEVEL;
+    $('scKicker').textContent = 'Season ' + (sid + 1); $('scName').textContent = Season.name();
+    $('scLeft').textContent = dl <= 1 ? 'Last day' : dl + ' days left';
+    $('scLvl').textContent = 'Level ' + lv; $('scXp').textContent = xp.toLocaleString() + ' / ' + XP_PER_LEVEL.toLocaleString() + ' XP';
+    $('scFill').style.width = (xp / XP_PER_LEVEL * 100).toFixed(1) + '%';
+    $('scDaily').innerHTML = (d.lastDaily || 0) >= Profile.today() ? 'Daily bonus <b>+' + DAILY_XP + ' XP collected</b> · come back tomorrow' : 'Open FortDay each day for <b>+' + DAILY_XP + ' XP</b>';
+    // one shop item in the spotlight each day
+    const pool = COS.outfit.filter(c => c.unlock === 'shop' && !Profile.owns(c) && !(c.limitedSeason != null && sid > c.limitedSeason));
+    const f = $('scFeat'); f.hidden = !pool.length;
+    if (pool.length) { const it = pool[Profile.today() % pool.length]; this.featured = it; f.innerHTML = '<i>FEATURED</i><span></span><em>' + (it.price || 0).toLocaleString() + ' FortBux</em>'; f.querySelector('span').textContent = it.name; }
   },
   // what PLAY will start, in plain words (shown on the button)
   summary() {
@@ -10517,6 +10722,8 @@ const Lobby = {
     if (guest && !$('modeMenu').hidden) $('modeMenu').hidden = true;
   },
   bindUI() {
+    $('scFeat').addEventListener('click', () => { Sfx.init(); if (!this.featured) return; this.tab = 'shop'; this.shopSel = { cat: 'outfit', id: this.featured.id }; this.refresh(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (this.fest) this.screenTex(); });   // redraw the stage screen once the display font has loaded
     // Enter starts the match from the lobby (not while typing, or while a menu or the opening is up)
     addEventListener('keydown', e => {
       if (e.key !== 'Enter' || e.repeat || Match.state !== 'lobby' || $('lobby').classList.contains('intro')) return;
@@ -10666,6 +10873,7 @@ const Lobby = {
   refresh() {
     const d = Profile.d;
     Net.render(); $('buildTag').textContent = 'build ' + BUILD_ID;
+    this.seasonCard();
     { const newish = !d.tutDone && (d.matches || 0) < 3;
       $('tutBtn').hidden = !!d.tutDone; $('tutBadge').hidden = !newish; $('tutBtn').classList.toggle('new', newish); $('tutBtn').classList.toggle('small', !newish); }
     { const el = $('coinLbl'), nv = d.coins.toLocaleString(); if (el.textContent !== nv && el.textContent !== '0') { const box = el.parentElement; box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); } el.textContent = nv; }   // the FortBux counter bounces when it changes

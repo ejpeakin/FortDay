@@ -222,7 +222,7 @@ const STYLES = {
 const COS = {
   outfit: [
     { id: 'rae', build: 'average', hair: 0x1a120c, name: 'Rookie Rae', r: 0, shirt: 0xe85d75, pants: 0x2c3e66, skin: 0x8d5a3b, sleeve: 0xf3f3f3, hat: 'bun', hatC: 0x2b1a12 },
-    { id: 'ranger', build: 'average', hair: 0x5a3a1a, name: 'Rookie Ranger', r: 0, shirt: 0x2fa3a0, pants: 0x5b4a3a, skin: 0xe0b48c, sleeve: 0x2fa3a0, hat: 'cap', hatC: 0xff8a3d },
+    { id: 'ranger', build: 'average', hair: 0x5a3a1a, name: 'Rookie Ranger', r: 0, shirt: 0x2fa3a0, pants: 0x5b4a3a, skin: 0xe0b48c, sleeve: 0x2fa3a0, hat: 'cap', hatC: 0xff8a3d, badge: 0xff8a3d },
     { id: 'moss', build: 'heavy', hair: 0x3f6a2a, name: 'Moss Golem', r: 1, shirt: 0x4f7a3a, pants: 0x3e2f22, skin: 0x6f9a4c, sleeve: 0x4f7a3a, hat: 'leaves', hatC: 0x8bc34a, unlock: 'tier:3' },
     { id: 'comet', build: 'average', hair: 0x6a4a2a, name: 'Comet Cadet', r: 2, shirt: 0xeeeeee, pants: 0xdddddd, skin: 0xf0c9a0, sleeve: 0xff7a2a, hat: 'helmet', hatC: 0xf4f4f4, unlock: 'tier:6' },
     { id: 'siren', build: 'slim', hair: 0x2be3ff, name: 'Circuit Siren', r: 2, shirt: 0x1b1b3a, pants: 0x2be3ff, skin: 0xc9a0ff, sleeve: 0xff2fd0, hat: 'antenna', hatC: 0x2be3ff, unlock: 'tier:10' },
@@ -233,11 +233,11 @@ const COS = {
     { id: 'nightwarden', build: 'slim', name: 'Play Carti', r: 5, shirt: 0x131317, pants: 0x141418, skin: 0x6a4330, sleeve: 0x131317, hair: 0x0c0b0d,
       hat: 'dreads', hatC: 0x0c0b0d, tip: 0xd0142c, tipCut: [17, 18], hairSeed: 9090, horns: 0x17171b, rockstar: 0xd0142c, chain: 'star', back: 'I AM MUSIC', backFill: '#ffffff', backEdge: '#0c0b0d', personal: true, unlock: 'chest' },
     { id: 'tycoon', build: 'heavy', hair: 0x1a1a1a, name: 'Gilt Tycoon', r: 4, shirt: 0xd4a72c, pants: 0xd4a72c, skin: 0xe8c06a, sleeve: 0x1a1a1a, hat: 'tophat', hatC: 0x1a1a1a, unlock: 'tier:25' },
-    { id: 'stormborn', build: 'average', hair: 0x0e0e10, name: 'Pluma Peso', r: 4, shirt: 0x141416, pants: 0x17181d, skin: 0xf1cdb0, sleeve: 0x141416, hat: 'none', hoodie: true, jeans: true, shiesty: 0x0e0e10, sneakers: 0xf6f6f4, unlock: 'tier:30' },
+    { id: 'stormborn', build: 'average', hair: 0x0e0e10, name: 'Pluma Peso', r: 4, shirt: 0x141416, pants: 0x17181d, skin: 0xf1cdb0, sleeve: 0x141416, hat: 'none', hoodie: true, jeans: true, shiesty: 0x0e0e10, sneakers: 0xf6f6f4, stripes: 0xe6e8ee, unlock: 'tier:30' },
     { id: 'nova', build: 'average', name: 'Juice Earth', r: 4, shirt: 0xf3f2ee, pants: 0xe8731e, skin: 0x70482f, sleeve: 0xf3f2ee,
       hat: 'dreads', hatC: 0x110c0a, tip: 0xb8792e, knot: true, limitedSeason: 0, collar: true, cargo: true, chain: true, beard: true, shoes: 0x6b4423, boots: true, back: '999', chestLogo: '999', personal: true, unlock: 'shop', price: 5000 },
     { id: 'tripy', build: 'slim', name: 'Tripy Red', r: 4, shirt: 0x161618, pants: 0x18181c, skin: 0x8a5a3c, sleeve: 0x161618, hair: 0x6a0c10,
-      hat: 'dreads', hatC: 0x6a0c10, tip: 0xff2a2a, hairSeed: 777, hoodie: true, cargo: true, shades: 0x0c0c0e, faceTats: true, personal: true, unlock: 'shop', price: 1500 },
+      hat: 'dreads', hatC: 0x6a0c10, tip: 0xff2a2a, hairSeed: 777, hoodie: true, cargo: true, shades: 0x0c0c0e, faceTats: true, drip: 0xe0142a, personal: true, unlock: 'shop', price: 1500 },
     { id: 'uzi', build: 'slim', name: 'Lil Uzi', r: 4, shirt: 0xff4fa8, jacket: 0x141418, pants: 0x121216, skin: 0x7a4a30, sleeve: 0x141418, hair: 0x141010, shoes: 0xf2f2f2,
       hat: 'spikes', hatC: 0x141010, tip: 0x1c1616, spikeScale: 0.55, hairSeed: 1212, leather: true, studBelt: true, earring: true, faceTats: 'uzi', personal: true, unlock: 'shop', price: 1500 },
     { id: 'headliner', build: 'muscular', name: 'Headliner', r: 4, shirt: 0x1a1426, pants: 0x101018, skin: 0xc68a5e, sleeve: 0xffd84a, hair: 0x2a1a10, hat: 'headphones', hatC: 0xff3fa6,

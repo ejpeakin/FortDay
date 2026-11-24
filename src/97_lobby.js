@@ -4,18 +4,15 @@
 const Lobby = {
   scene: null, cam: null, rig: null, fake: null, t: 0, tab: 'play', cat: 'outfit', bus: null,
   init() {
-    const s = this.scene = new THREE.Scene(); s.background = new THREE.Color(0x0b1f4a); s.fog = new THREE.Fog(0x0b1f4a, 18, 70);
+    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0b1630, 24, 80);
     s.add(new THREE.HemisphereLight(0xb8d4ff, 0x10284f, 0.85));
     const key = new THREE.DirectionalLight(0xffd9b0, 1.05); key.position.set(3, 6, 6); s.add(key);
     const rim = new THREE.DirectionalLight(0x5a9bff, 0.9); rim.position.set(-4, 4, -6); s.add(rim);
     const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x163a7a)); plat.position.y = -0.2; s.add(plat);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
-    for (let i = 0; i < 14; i++) {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), new THREE.MeshBasicMaterial({ color: i % 3 ? 0x1d4fa8 : 0x2f6fd8, transparent: true, opacity: 0.35, depthWrite: false }));
-      const a = i / 14 * TAU; m.position.set(Math.cos(a) * 24, 2 + Math.random() * 8, -18 + Math.sin(a) * 8); m.scale.set(8 + Math.random() * 6, 4 + Math.random() * 3, 6); s.add(m);
-    }
+    const ring = this.ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
+    this.festival(s);
     const isl = new THREE.Group(); const rock = new THREE.Mesh(new THREE.ConeGeometry(7, 9, 7), lam(0x4a5a7a)); rock.rotation.x = Math.PI; rock.position.y = -4.5; isl.add(rock);
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 1.2, 7), lam(0x4f9a5a)); isl.add(top); isl.position.set(-14, 3, -30); s.add(isl); this.isl = isl;
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 1.2, 7), lam(0x4f9a5a)); isl.add(top); isl.position.set(-14, 3, -30); isl.visible = false; s.add(isl); this.isl = isl;   // (the festival stage stands where the island used to float)
     const sp = []; for (let i = 0; i < 400; i++) sp.push(rnd(-60, 60), rnd(-5, 40), rnd(-60, -20));
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); s.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15 })));
     this.bus = buildBusModel(); this.bus.scale.setScalar(0.5); s.add(this.bus);
@@ -38,6 +35,70 @@ const Lobby = {
     this.fake = newActor({ state: 'ground', onGround: true, inv: [{ kind: 'pick' }, makeWeapon('ar', 4), null, null, null, null], slot: 0 });
     this.rebuild();
     this.bindUI(); this.refresh();
+  },
+  // ---- the season's stage: a sunset sky, neon arches, a big screen with the season's name, sweeping spotlights and sparkles
+  skyTex() {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 256; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
+    gr.addColorStop(0, '#03050d'); gr.addColorStop(0.45, '#08122b'); gr.addColorStop(0.75, '#0f2147'); gr.addColorStop(0.9, '#1f2a44'); gr.addColorStop(1, '#8a4a1c');
+    g.fillStyle = gr; g.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; return t;
+  },
+  screenTex() {
+    const c = this._scr || (this._scr = document.createElement('canvas')); c.width = 1024; c.height = 320; const g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, '#05080f'); gr.addColorStop(1, '#0d1a2e'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
+    g.fillStyle = 'rgba(255,255,255,0.05)'; for (let y = 0; y < 320; y += 6) g.fillRect(0, y, 1024, 2);   // LED rows
+    g.textAlign = 'center'; g.textBaseline = 'middle'; const sid = Season.id();
+    g.font = '900 italic 62px "Barlow Condensed", Impact, sans-serif'; g.fillStyle = '#ffb347'; g.fillText('SEASON ' + (sid + 1) + ' · LIVE NOW', 512, 82);
+    let fs = 150; const nm = Season.name().toUpperCase(); do { g.font = '900 italic ' + fs + 'px "Barlow Condensed", Impact, sans-serif'; fs -= 8; } while (g.measureText(nm).width > 960 && fs > 60);
+    g.shadowColor = '#2fd8ff'; g.shadowBlur = 26; g.fillStyle = '#ffffff'; g.fillText(nm, 512, 205); g.shadowBlur = 0;
+    if (this.scrTex) this.scrTex.needsUpdate = true; this.scrSeason = sid; return c;
+  },
+  festival(s) {
+    const F = this.fest = { beams: [], arcs: [], bulbs: null, spark: null }, Z = -9;
+    // neon arches over the stage (outer pink, inner cyan) with a row of warm bulbs on the outer one
+    for (const [r, col, t] of [[7.6, 0xff9a2a, 0.15], [6.7, 0x2fd8ff, 0.11]]) { const a = new THREE.Mesh(new THREE.TorusGeometry(r, t, 8, 72, Math.PI), new THREE.MeshBasicMaterial({ color: col })); a.position.set(0, -0.4, Z); s.add(a); F.arcs.push(a); }
+    { const P = []; for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI, g = new THREE.SphereGeometry(0.13, 8, 6).translate(Math.cos(a) * 8.05, -0.4 + Math.sin(a) * 8.05, Z + 0.05); P.push([g, 0xffe6a8]); }
+      F.bulbs = mergedColored(P); F.bulbs.material = new THREE.MeshBasicMaterial({ vertexColors: true }); s.add(F.bulbs); }
+    // truss towers each side, with a light rig on top
+    for (const sx of [-1, 1]) {
+      const T = [], ox = sx * 9.2, oz = Z + 0.6;   // the whole tower is one mesh
+      for (const [dx, dz] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) T.push([new THREE.BoxGeometry(0.08, 9.6, 0.08).translate(ox + dx, 4.4, oz + dz), 0x3a3f52]);
+      for (let y = 0.2; y < 9.2; y += 0.9) T.push([new THREE.BoxGeometry(0.78, 0.05, 0.05).rotateZ(0.7 * (Math.round(y / 0.9) % 2 ? 1 : -1)).translate(ox, y, oz + 0.35), 0x4a5066]);
+      T.push([new THREE.CylinderGeometry(0.28, 0.36, 0.5, 12).translate(ox, 9.3, oz), 0x1d2030]);
+      s.add(mergedColored(T));
+      // spotlight beams from the top of each tower, sweeping across the stage
+      for (const [k, col] of [[0, 0x2fd8ff], [1, sx < 0 ? 0xffffff : 0xffb347]]) {
+        const pivot = new THREE.Group(); pivot.position.set(sx * 9.2, 9.3, Z + 0.6); s.add(pivot);
+        const beam = new THREE.Mesh(new THREE.ConeGeometry(1.5, 12, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.1, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+        beam.position.y = -6; pivot.add(beam); F.beams.push({ pivot, sx, k, ph: Math.random() * 6 });
+      }
+    }
+    // the big screen with the season's name
+    this.scrTex = new THREE.CanvasTexture(this.screenTex()); this.scrTex.minFilter = THREE.LinearFilter;
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 2.56), new THREE.MeshBasicMaterial({ map: this.scrTex })); scr.position.set(0, 4.62, Z - 0.1); s.add(scr); F.scr = scr;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(8.5, 2.86, 0.12), lam(0x141522)); frame.position.set(0, 4.62, Z - 0.2); s.add(frame); F.frame = frame;
+    // stage floor behind you, and speaker stacks either side
+    const deck = new THREE.Mesh(new THREE.CylinderGeometry(11, 11.4, 0.6, 48, 1, false, Math.PI * 0.08, Math.PI * 0.84), lam(0x121a2c)); deck.rotation.y = Math.PI; deck.position.set(0, -0.62, Z + 1); s.add(deck);
+    { const S = []; for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) { S.push([new THREE.BoxGeometry(1.1, 1.25, 0.9).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.4), 0x16161e]); S.push([new THREE.CircleGeometry(0.36, 18).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.86), 0x2c2c3a]); } s.add(mergedColored(S)); }   // speaker stacks
+    // sparkles drifting up through the light
+    const N = 220, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), C = new THREE.Color(), pal = [0x2fd8ff, 0xffffff, 0xffb347, 0x8fd8ff];
+    for (let i = 0; i < N; i++) { pos[i * 3] = rnd(-11, 11); pos[i * 3 + 1] = rnd(-0.5, 10); pos[i * 3 + 2] = rnd(-11, 2.5); C.setHex(pal[i % pal.length]); col.set([C.r, C.g, C.b], i * 3); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); sg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    F.spark = new THREE.Points(sg, new THREE.PointsMaterial({ size: 0.09, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending })); s.add(F.spark);
+  },
+  festivalTick(dt) {
+    const F = this.fest; if (!F) return;
+    if (Season.id() !== this.scrSeason) this.screenTex();
+    F.scr.visible = F.frame.visible = innerWidth > 760;   // on phones the screen would sit behind the logo; the season card says it instead
+    const on = !Perf.on; for (const b of F.beams) b.pivot.visible = on; F.spark.visible = on;
+    if (!on) return;
+    const t = this.t;
+    for (const b of F.beams) { b.pivot.rotation.z = -b.sx * (0.42 + Math.sin(t * (0.5 + b.k * 0.23) + b.ph) * 0.24); b.pivot.rotation.x = 0.04 + Math.sin(t * 0.37 + b.ph) * 0.1; }   // they sweep across the stage, not into your face
+    const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * 1.05)), 8);   // a little pulse, about 125 beats a minute
+    F.arcs[0].material.color.setHSL(0.08, 1, 0.52 + beat * 0.12); F.arcs[1].material.color.setHSL(0.53, 1, 0.5 + beat * 0.12);
+    if (this.ring) this.ring.material.color.setHSL(0.58 + Math.sin(t * 0.3) * 0.08, 1, 0.55 + beat * 0.2);
+    const p = F.spark.geometry.attributes.position, a = p.array;
+    for (let i = 0; i < a.length; i += 3) { a[i + 1] += dt * (0.35 + (i % 7) * 0.06); a[i] += Math.sin(t * 0.8 + i) * dt * 0.08; if (a[i + 1] > 10.5) { a[i + 1] = -0.4; a[i] = rnd(-11, 11); } }
+    p.needsUpdate = true;
   },
   lift: 0, camX: 1.3,
   place() {
@@ -107,9 +168,24 @@ const Lobby = {
       for (const p of this.bus.userData.props) p.rotation.z += dt * 20;
       this.isl.rotation.y += dt * 0.05;
     }
+    this.festivalTick(dt);
     Opening.cam(this.cam, dt);
     this.stage(dt);
     renderer.render(this.scene, this.cam);
+  },
+  // the season card: the season's name, days left, your level and XP, today's bonus and a featured shop item
+  seasonCard() {
+    if (!$('seasonCard')) return;
+    const d = Profile.d, sid = Season.id(), dl = Season.daysLeft(), lv = Profile.tier(), xp = d.seasonXp % XP_PER_LEVEL;
+    $('scKicker').textContent = 'Season ' + (sid + 1); $('scName').textContent = Season.name();
+    $('scLeft').textContent = dl <= 1 ? 'Last day' : dl + ' days left';
+    $('scLvl').textContent = 'Level ' + lv; $('scXp').textContent = xp.toLocaleString() + ' / ' + XP_PER_LEVEL.toLocaleString() + ' XP';
+    $('scFill').style.width = (xp / XP_PER_LEVEL * 100).toFixed(1) + '%';
+    $('scDaily').innerHTML = (d.lastDaily || 0) >= Profile.today() ? 'Daily bonus <b>+' + DAILY_XP + ' XP collected</b> · come back tomorrow' : 'Open FortDay each day for <b>+' + DAILY_XP + ' XP</b>';
+    // one shop item in the spotlight each day
+    const pool = COS.outfit.filter(c => c.unlock === 'shop' && !Profile.owns(c) && !(c.limitedSeason != null && sid > c.limitedSeason));
+    const f = $('scFeat'); f.hidden = !pool.length;
+    if (pool.length) { const it = pool[Profile.today() % pool.length]; this.featured = it; f.innerHTML = '<i>FEATURED</i><span></span><em>' + (it.price || 0).toLocaleString() + ' FortBux</em>'; f.querySelector('span').textContent = it.name; }
   },
   // what PLAY will start, in plain words (shown on the button)
   summary() {
@@ -129,6 +205,8 @@ const Lobby = {
     if (guest && !$('modeMenu').hidden) $('modeMenu').hidden = true;
   },
   bindUI() {
+    $('scFeat').addEventListener('click', () => { Sfx.init(); if (!this.featured) return; this.tab = 'shop'; this.shopSel = { cat: 'outfit', id: this.featured.id }; this.refresh(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (this.fest) this.screenTex(); });   // redraw the stage screen once the display font has loaded
     // Enter starts the match from the lobby (not while typing, or while a menu or the opening is up)
     addEventListener('keydown', e => {
       if (e.key !== 'Enter' || e.repeat || Match.state !== 'lobby' || $('lobby').classList.contains('intro')) return;
@@ -278,6 +356,7 @@ const Lobby = {
   refresh() {
     const d = Profile.d;
     Net.render(); $('buildTag').textContent = 'build ' + BUILD_ID;
+    this.seasonCard();
     { const newish = !d.tutDone && (d.matches || 0) < 3;
       $('tutBtn').hidden = !!d.tutDone; $('tutBadge').hidden = !newish; $('tutBtn').classList.toggle('new', newish); $('tutBtn').classList.toggle('small', !newish); }
     { const el = $('coinLbl'), nv = d.coins.toLocaleString(); if (el.textContent !== nv && el.textContent !== '0') { const box = el.parentElement; box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); } el.textContent = nv; }   // the FortBux counter bounces when it changes

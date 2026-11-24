@@ -39,7 +39,7 @@ const CharModel = {
     for (let i = 0; i < P.count; i++) {
       let bi = 0, bw = -1; for (let k = 0; k < 4; k++) if (SW[i * 4 + k] > bw) { bw = SW[i * 4 + k]; bi = SI[i * 4 + k]; }
       const n = bones[bi].name, y = P.getY(i);
-      reg[i] = n === 'head' || n === 'head_leaf' ? 'head' : n === 'neck_01' ? (y < 1.47 ? 'torso' : 'neck')
+      reg[i] = n === 'head' || n === 'head_leaf' ? 'head' : n === 'neck_01' ? (y < 1.5 || (y < 1.548 && Math.abs(P.getX(i)) > 0.064) ? 'torso' : 'neck')   // the bottom of the neck and the slope of the shoulders beside it count as chest, so the shirt covers them (no skin poking up through the neckline)
         : /^(spine|clavicle|pelvis)/.test(n) ? (y < 1.0 ? 'hips' : 'torso') : n.startsWith('upperarm') ? 'upper' : n.startsWith('lowerarm') ? 'fore'
         : n.startsWith('thigh') ? 'thigh' : n.startsWith('calf') ? 'calf' : n.startsWith('foot') || n.startsWith('ball') ? 'shoe' : 'hand';
     }
@@ -104,15 +104,15 @@ const CharModel = {
       else if (r === 'shoe') v = y / 0.2;
       else if (r === 'belt') u = sym(x, z);
       else if (r === 'head') { u = sym(x, z); v = (y - 1.541) / 0.288; }
-      const c = AT[r], m = r === 'torso' || r === 'hips' || r === 'belt' || r === 'head' ? 0.004 : 0.03;
+      const c = AT[r], m = r === 'torso' || r === 'hips' ? 0.012 : r === 'belt' || r === 'head' ? 0.004 : 0.03;   // torso and hips sit side by side in the atlas: keep clear of the shared edge
       return [(c[0] + cl(u, m) * c[2]) / 256, (c[1] + (1 - cl(v)) * c[3]) / 256];
     };
     const src = { position: P, normal: geo.attributes.normal, skinIndex: geo.attributes.skinIndex, skinWeight: geo.attributes.skinWeight };
     const out = {}; for (const k in src) out[k] = Array.from(src[k].array);
-    const uvs = [], vr = reg.slice(), dup = new Map(), nIdx = [];
+    const uvs = [], vr = reg.slice(), orig = Array.from({ length: P.count }, (_, i) => i), dup = new Map(), nIdx = [];   // orig: the vertex each copy came from
     // body parts now covered by the shirt and trousers are dropped so they can never poke through the cloth
     // (the belt, the rings at the tops of the legs, wrists and ankles stay to close any gaps)
-    const COVERED = new Set(['torso', 'upper', 'fore', 'calf', 'shoe', 'sock', 'hand']), covered = (tr, a, b, c) => COVERED.has(tr) || (tr === 'thigh' && !(ringV[a] && ringV[b] && ringV[c]));
+    const COVERED = new Set(['torso', 'upper', 'fore', 'calf', 'shoe', 'sock', 'hand']), covered = (tr, a, b, c) => COVERED.has(tr) || (tr === 'thigh' && !(ringV[a] && ringV[b] && ringV[c])) || (tr === 'neck' && (reg[a] === 'torso' || reg[b] === 'torso' || reg[c] === 'torso'));   // neck triangles that reach down onto the chest would poke out of the collar
     for (let i = 0; i < P.count; i++) uvs.push(...project(P.getX(i), P.getY(i), P.getZ(i), reg[i]));
     for (let t = 0; t < idx.length; t += 3) {
       const r0 = reg[idx[t]], r1 = reg[idx[t + 1]], r2 = reg[idx[t + 2]], tr = r0 === r1 || r0 === r2 ? r0 : r1 === r2 ? r1 : r0;
@@ -121,7 +121,7 @@ const CharModel = {
         const vi = idx[t + k]; if (reg[vi] === tr) { nIdx.push(vi); continue; }
         const key = vi + ':' + tr; let ni = dup.get(key);
         if (ni == null) {
-          ni = vr.length; vr.push(tr); dup.set(key, ni);
+          ni = vr.length; vr.push(tr); orig.push(vi); dup.set(key, ni);
           for (const a in src) { const s = src[a].itemSize; for (let j = 0; j < s; j++) out[a].push(src[a].array[vi * s + j]); }
           uvs.push(...project(P.getX(vi), P.getY(vi), P.getZ(vi), tr));
         }
@@ -139,7 +139,7 @@ const CharModel = {
     this.variants.muscular.geo = geo;
     for (const name in this.BUILDS) {
       const f = this.shapeOf(this.BUILDS[name]), g = geo.clone(), pa = g.attributes.position;
-      for (let i = 0; i < pa.count; i++) { const q = f(pa.getX(i), pa.getY(i), pa.getZ(i), vr[i]); pa.setXYZ(i, q[0], q[1], q[2]); }
+      for (let i = 0; i < pa.count; i++) { const q = f(pa.getX(i), pa.getY(i), pa.getZ(i), reg[orig[i]]); pa.setXYZ(i, q[0], q[1], q[2]); }   // copies move with their original, so pieces never split apart
       g.computeBoundingSphere(); this.variants[name].geo = g;
     }
     // ---- mount frames: map the built-in body's head / chest / hand spaces onto this model's bones (bind pose)
@@ -182,7 +182,7 @@ const CharModel = {
       kx *= 1 + (B.chestX - 1) * cb; kz *= 1 + (B.chestZ - 1) * cb;   // chest
       kx *= 1 + (B.hips - 1) * bell((y - 0.93) / 0.09);                 // hips
       kx *= 1 - (1 - B.shoulders) * sm(1.25, 1.5, y);                    // shoulders
-      if (r === 'neck') { kx *= B.neck; kz *= B.neck; }
+      if (r === 'neck') { const nk = B.neck + (1 - B.neck) * sm(1.5, 1.56, y); kx *= nk; kz *= nk; }   // eases back to full width where the neck meets the head (no gap under the jaw)
       x *= kx; z = zc + (z - zc) * kz;
       if (B.bust && r === 'torso' && z > 0) z += B.bust * bell((y - 1.315) / 0.06) * bell((ax - 0.075) / 0.045) * Math.min(1, z / 0.08);
       if (B.belly && (r === 'torso' || r === 'belt' || r === 'hips') && z > 0) z += B.belly * bell((y - 1.08) / 0.12) * bell(ax / 0.14) * Math.min(1, z / 0.06);
@@ -253,21 +253,25 @@ const CharModel = {
       }
     };
     // ---- torso: hem just over the belt, up to the shoulders, then in to a collar around the neck
-    const ZC = -0.015, TC = 40, rows = [], tPts = [], tCand = [], nPts = [];
+    const ZC = -0.015, TC = 40, rows = [], tPts = [], tCand = [], nPts = [], nCand = [];
     for (let y = 1.062; y <= 1.505; y += 0.0246) rows.push(y);
     for (let i = 0; i < P.count; i++) {
       const r = reg[i], x = P.getX(i), y = P.getY(i), z = P.getZ(i);
       const inTorso = r === 'torso' || r === 'belt' || (r === 'upper' && Math.abs(x) < 0.205) || (r === 'neck' && y < 1.53) || (r === 'hips' && y > 1.0);
       if (!inTorso) continue;
       tCand.push(i); if (r === 'neck' && y > 1.47) nPts.push([y, Math.atan2(x, z - ZC), Math.hypot(x, z - ZC)]);
+      if (r === 'neck' || (r === 'head' && y < 1.58)) nCand.push(i);   // at the back the neck belongs to the head piece
     }
     for (const [x, y, z] of surface(tCand)) if (Math.abs(x) < 0.21) tPts.push([y, Math.atan2(x, z - ZC), Math.hypot(x, z - ZC)]);
-    const TR = grid(rows, TC, tPts, 0.016, 2), NR = grid([1.5], TC, nPts, 0.04, 0)[0];
-    const ringsY = [...rows, 1.522, 1.545], RN = ringsY.length;
+    const TR = grid(rows, TC, tPts, 0.016, 2);
+    // the collar: two rings that hug the neck at their own heights (measured over the neck's surface, evened out without shrinking)
+    const nSurf = surface(nCand).filter(p => p[1] > 1.49 && p[1] < 1.57).map(([x, y, z]) => [y, Math.atan2(x, z - ZC), Math.hypot(x, z - ZC)]);
+    const NRr = grid([1.518, 1.536], TC, nSurf.length ? nSurf : nPts, 0.01, 0).map(row => { const o = row.map((r, j) => Math.max(r, (row[(j + TC - 1) % TC] + r + row[(j + 1) % TC]) / 3)); o[TC] = o[0]; return o; });
+    const ringsY = [...rows, 1.518, 1.536], RN = ringsY.length;   // the collar stops just under the jaw
     for (let i = 0; i < RN; i++) for (let j = 0; j <= TC; j++) {
-      const th = (j / TC - 0.5) * 2 * Math.PI, y = ringsY[i], rr = i < rows.length ? TR[i][j] + 0.013 : NR[j] + (i === rows.length ? 0.03 : 0.016);
+      const th = (j / TC - 0.5) * 2 * Math.PI, y = ringsY[i], rr = i < rows.length ? TR[i][j] + 0.013 : NRr[i - rows.length][j] + (i === rows.length ? 0.011 : 0.006);
       const x = Math.sin(th) * rr, z = ZC + Math.cos(th) * rr;
-      pos.push(x, y, z); uvs.push(...toUV('torso', sym(x, z), (y - 1.0) / 0.53, 0.004)); weights(x, y, z, tCand, TORSO_B);
+      pos.push(x, y, z); uvs.push(...toUV('torso', sym(x, z), (y - 1.0) / 0.53, 0.012)); weights(x, y, z, tCand, TORSO_B);
     }
     tube(null, RN, TC, false);
     // ---- sleeves: from inside the chest out to the wrist, in two parts so the upper/fore textures line up
@@ -281,7 +285,7 @@ const CharModel = {
       for (const [cell, x0, x1, len] of [['upper', 0.14, 0.468, 0.29], ['fore', 0.468, 0.751, 0.292]]) {
         const segRows = xs.map((ax, i) => [ax, i]).filter(([ax]) => ax >= x0 - 0.013 && ax <= x1 + 0.013);
         for (const [ax, ri] of segRows) for (let j = 0; j <= AC; j++) {
-          const ph = (j / AC - 0.5) * 2 * Math.PI, [yc, zc] = axis(ax), rr = AR[ri][j] + 0.01, y = yc + Math.cos(ph) * rr, z = zc + Math.sin(ph) * rr, x = ax * side;
+          const ph = (j / AC - 0.5) * 2 * Math.PI, [yc, zc] = axis(ax), tuck = ax < 0.24 ? 0.78 + 0.22 * Math.max(0, (ax - 0.14) / 0.1) : 1, rr = (AR[ri][j] + 0.01) * tuck, y = yc + Math.cos(ph) * rr, z = zc + Math.sin(ph) * rr, x = ax * side;
           pos.push(x, y, z); uvs.push(...toUV(cell, ang(z - zc, y - yc), (ax - (cell === 'upper' ? 0.18 : 0.468)) / len, 0.03)); weights(x, y, z, aCand, ARM_B);
         }
         tube(null, segRows.length, AC, side < 0);
@@ -397,6 +401,8 @@ const CharModel = {
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(sIdx, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sWt, 4));
     g.setIndex(index); g.computeVertexNormals(); g.computeBoundingSphere();
+    { const N = g.attributes.normal, seam = new Map(); for (let i = 0; i < pos.length / 3; i++) { const k = Math.round(pos[i * 3] * 1e4) + ',' + Math.round(pos[i * 3 + 1] * 1e4) + ',' + Math.round(pos[i * 3 + 2] * 1e4); (seam.get(k) || seam.set(k, []).get(k)).push(i); }
+      for (const L of seam.values()) if (L.length > 1) { let x = 0, y = 0, z = 0; for (const i of L) { x += N.getX(i); y += N.getY(i); z += N.getZ(i); } const l = Math.hypot(x, y, z) || 1; for (const i of L) N.setXYZ(i, x / l, y / l, z / l); } }
     g.userData.torso = { RN, TC, ys: ringsY };   // the first RN x (TC + 1) vertices are the torso rings (chains and back prints sit on them)
     return g;
   },
@@ -405,7 +411,7 @@ const CharModel = {
     key = key || o.id; if (this.mats.has(key)) return this.mats.get(key);
     const cv = document.createElement('canvas'); cv.width = cv.height = 256; this.paint(cv.getContext('2d'), o);
     const tex = new THREE.CanvasTexture(cv); tex.flipY = false; tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter;
-    const m = new THREE.MeshLambertMaterial({ map: tex, skinning: true }); this.mats.set(key, m); return m;
+    const m = new THREE.MeshLambertMaterial({ map: tex, skinning: true, side: THREE.DoubleSide }); this.mats.set(key, m); return m;   // both sides: a hairline gap between body pieces shows skin, not the sky
   },
   paint(x, o) {
     const AT = this.AT, C = new THREE.Color();
@@ -425,7 +431,7 @@ const CharModel = {
       for (let v = 0.04; v < 1; v += 0.045) line('head', [[0, v], [1, v]], 1, 'rgba(255,255,255,0.05)');
       for (let u = 0.02; u < 1; u += 0.03) line('head', [[u, 0], [u, 1]], 0.6, 'rgba(0,0,0,0.35)');
       rect('head', 0, 0.515, 0.2, 0.635, hex(o.skin)); line('head', [[0, 0.512], [0.205, 0.512], [0.205, 0.638], [0, 0.638]], 2, hex(o.shiesty, 1.4));
-    } else if (o.hat !== 'helmet' && !o.head) {
+    } else if (!o.head) {
       const hc = o.hat === 'dreads' ? o.hatC : (o.hair ?? 0x2a1a10), pts = [];
       if (o.lineup) {   // sharp shape-up: straight across the forehead, square corners at the temples, clean sideburns
         pts.push([0, 0.74], [0.17, 0.74], [0.175, 0.64], [0.33, 0.64], [0.335, 0.49], [0.42, 0.49], [0.5, 0.6], [0.75, 0.48], [1, 0.38]);
@@ -528,11 +534,11 @@ const CharModel = {
     }
     if (o.leather) {
       rect('torso', 0, 0, 0.12, 1, hex(o.shirt)); line('torso', [[0.12, 0], [0.12, 1]], 2, '#c8ccd4');
-      for (let i = 0; i < 4; i++) dot('torso', 0.4 + i * 0.06, 0.95, 1.6, '#dfe3ea');
+      for (let i = 0; i < 4; i++) dot('torso', 0.4 + i * 0.06, 0.9, 1.6, '#dfe3ea');
       line('upper', [[0, 0.02], [1, 0.02]], 2, '#2a2a30');
     }
     if (o.hoodie) {
-      line('torso', [[0.06, 0.95], [0.06, 0.66]], 2, '#f4f4f4');
+      line('torso', [[0.06, 0.95], [0.065, 0.66]], 3, '#f4f4f4'); rect('torso', 0.05, 0.62, 0.08, 0.66, '#c8ccd4');   // drawstrings with metal tips
       rect('torso', 0, 0.06, 0.2, 0.32, 'rgba(0,0,0,0.18)'); line('torso', [[0, 0.32], [0.2, 0.32]], 1.5, 'rgba(0,0,0,0.35)');
     }
     if (o.rockstar) {   // red winged emblem across the chest, red stripes down the sleeves and red side stripes on the jeans
@@ -544,7 +550,26 @@ const CharModel = {
       for (const n of ['thigh', 'calf']) line(n, [[0.75, 0], [0.75, 1]], 2.5, rc);
       line('torso', [[0, 0.995], [0.45, 0.99]], 2.5, rd);   // collar
     }
+    if (o.stripes) {   // track stripes down the outside of the sleeves and trouser legs
+      const sc = hex(o.stripes);
+      for (const n of ['upper', 'fore']) { line(n, [[0.455, 0], [0.455, 1]], 2.4, sc); line(n, [[0.545, 0], [0.545, 1]], 2.4, sc); }
+      for (const n of ['thigh', 'calf']) { line(n, [[0.71, 0], [0.71, 1]], 2.4, sc); line(n, [[0.79, 0], [0.79, 1]], 2.4, sc); }
+    }
+    if (o.badge) {   // a small shield badge on the chest, and a pocket under it
+      const bc = hex(o.badge), r = AT.torso, cx = r[0] + 0.15 * r[2], cy = r[1] + (1 - 0.8) * r[3];
+      x.fillStyle = hex(o.shirt, 0.78); x.fillRect(cx - 7, cy + 7, 14, 12); x.strokeStyle = hex(o.shirt, 0.6); x.lineWidth = 1; x.strokeRect(cx - 7, cy + 7, 14, 12);
+      x.fillStyle = bc; x.beginPath(); x.moveTo(cx - 5, cy - 6); x.lineTo(cx + 5, cy - 6); x.lineTo(cx + 5, cy + 1); x.quadraticCurveTo(cx, cy + 6, cx - 5, cy + 1); x.closePath(); x.fill();
+      x.fillStyle = '#fff3d6'; x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? 1.2 : 2.8; x[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * q, cy - 1.5 + Math.sin(a) * q); } x.closePath(); x.fill();
+    }
+    if (o.drip) {   // a dripping logo on the chest
+      const dc = hex(o.drip), r = AT.torso, cx = r[0] + 0.13 * r[2], cy = r[1] + (1 - 0.8) * r[3];
+      x.fillStyle = dc; x.beginPath(); x.arc(cx, cy, 5.5, 0, TAU); x.fill();
+      for (const [dx, len] of [[-3, 7], [0.5, 10], [3.5, 6]]) { x.fillRect(cx + dx - 1, cy, 2, len); x.beginPath(); x.arc(cx + dx, cy + len, 1.4, 0, TAU); x.fill(); }
+      x.fillStyle = hex(o.shirt); x.beginPath(); x.arc(cx - 1.5, cy - 1.5, 1.6, 0, TAU); x.fill();
+    }
     if (o.id === 'tycoon') poly('torso', [[0, 0.98], [0.024, 0.98], [0.032, 0.45], [0, 0.4]], '#1a1a1a');
+    // neckline: the top of the shirt (stretched over the shoulders up to the collar) is a plain ribbed band, so nothing smears there
+    if (!o.suit) { const nc = o.tiedye ? '#2a2a30' : hex(torsoC, 0.82); rect('torso', 0, 0.958, 1, 1, nc); line('torso', [[0, 0.958], [1, 0.958]], 1, hex(torsoC, 0.68)); }
   },
   // ---- build a full character (player, lobby) with every accessory from the built-in rig mounted on bones
   make(eq) {
@@ -588,8 +613,9 @@ const CharModel = {
     return out;
   },
   // a chain that goes round the neck on the collar, over the tops of the shoulders and down onto the chest
-  chainOn(R, o) {
-    const G = this.shirtGrid(R); if (!G) return;
+  chainOn(R, o) { const g = this.chainGroup(R, o); if (g) { R.mTorso.add(g); R.chain = g; } },
+  chainGroup(R, o) {
+    const G = this.shirtGrid(R); if (!G) return null;
     const C = CHAIN_SKN, s = this.K * C.size, N = 120, pts = [], nrms = [];
     const rBack = G.RN - 1 - C.collar, rowAt = y => { let i = 0; while (i < G.ys.length - 2 && G.ys[i + 1] < y) i++; return i + (y - G.ys[i]) / (G.ys[i + 1] - G.ys[i]); }, rFront = rowAt(C.low);
     for (let k = 0; k < N; k++) {
@@ -615,11 +641,13 @@ const CharModel = {
     pg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n0); grp.add(pg);
     grp.traverse(m => { if (m.isMesh) m.castShadow = true; });
     // built in world space at rest: hang it on the torso mount so it moves with the chest
-    R.mTorso.updateMatrixWorld(true); grp.matrixAutoUpdate = false; grp.matrix.copy(R.mTorso.matrixWorld).invert(); R.mTorso.add(grp); R.chain = grp;
+    R.mTorso.updateMatrixWorld(true); grp.matrixAutoUpdate = false; grp.matrix.copy(R.mTorso.matrixWorld).invert(); return grp;
   },
   // the big print across the back, printed onto the shirt: a patch cut from the shirt itself, so it bends with it
-  backDecal(R, o) {
-    const g = R.shirt.geometry, T = g.userData.torso; if (!T) return;
+  backDecal(R, o) { const pt = this.backDecalParts(R.shirt.geometry, o); if (pt) R.backPrint = this.addSkinned(R, pt.geo, pt.mat); },
+  addSkinned(R, geo, mat) { const m = new THREE.SkinnedMesh(geo, mat); m.bind(R.mesh.skeleton, R.mesh.bindMatrix); m.frustumCulled = false; R.mesh.parent.add(m); return m; },
+  backDecalParts(g, o) {
+    const T = g.userData.torso; if (!T) return null;
     const P = g.attributes.position, Nm = g.attributes.normal, SI = g.attributes.skinIndex, SW = g.attributes.skinWeight, BP = BACK_PRINT_SKN;
     const pos = [], uv = [], nrm = [], si = [], sw = [], index = [], seen = new Map();
     const inside = k => P.getZ(k) < BP.zc && Math.abs(P.getX(k)) < BP.w * 0.62 && Math.abs(P.getY(k) - BP.y) < BP.h * 0.62;
@@ -637,13 +665,56 @@ const CharModel = {
       if (![a, b, c, d].every(inside)) continue;
       const A = vid(a), B = vid(b), C = vid(c), D = vid(d); index.push(A, C, B, B, C, D);
     }
-    if (!index.length) return;
+    if (!index.length) return null;
     const dg = new THREE.BufferGeometry();
     dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); dg.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3)); dg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     dg.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); dg.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4)); dg.setIndex(index);
     const tex = new THREE.CanvasTexture(backPrintCanvas(o.back, o.backFill || '#111114', o.backEdge || '#e8731e')); tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
     const mat = new THREE.MeshLambertMaterial({ map: tex, skinning: true, transparent: true, alphaTest: 0.04, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
-    const m = new THREE.SkinnedMesh(dg, mat); m.bind(R.mesh.skeleton, R.mesh.bindMatrix); m.frustumCulled = false; R.mesh.parent.add(m); R.backPrint = m;
+    return { geo: dg, mat };
+  },
+  // ---- outfit pieces for the light bodies of nearby bots and players, built once per outfit and shared:
+  // the whole head (hair, hats, horns, helmet, eyes, glasses) merged into a couple of meshes, the chain, the back print
+  _kits: new Map(),
+  headKit(outfit, body) {
+    const key = outfit + ':' + body; if (this._kits.has(key)) return this._kits.get(key);
+    let kit = null;
+    try {
+      const A = buildCharacter({ outfit, body, backpack: 'none', pickaxe: 'pick', glider: 'sail', wrap: 'none' }, true), head = A.head;
+      head.position.set(0, 0, 0); head.updateMatrixWorld(true);
+      const inv = new THREE.Matrix4().copy(head.matrixWorld).invert(), opaque = [], glow = [], keep = [];
+      head.traverse(m => {
+        if (!m.isMesh || !m.visible) return;
+        const mat = m.material, rel = new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld), plain = mat && !Array.isArray(mat) && !mat.map && !mat.transparent;
+        if (plain && mat.vertexColors) { keep.push([m, rel]); return; }   // already merged with its own colours (dreads, spikes)
+        if (plain && (mat.isMeshLambertMaterial || mat.isMeshPhongMaterial)) opaque.push([m.geometry.clone().applyMatrix4(rel), mat.color.getHex()]);
+        else if (plain && mat.isMeshBasicMaterial) glow.push([m.geometry.clone().applyMatrix4(rel), mat.color.getHex()]);
+        else keep.push([m, rel]);
+      });
+      kit = new THREE.Group();
+      if (opaque.length) kit.add(mergedColored(opaque));
+      if (glow.length) { const gm = mergedColored(glow); gm.material = new THREE.MeshBasicMaterial({ vertexColors: true }); gm.castShadow = false; kit.add(gm); }
+      for (const [m, rel] of keep) { const c = new THREE.Mesh(m.geometry, m.material); c.matrixAutoUpdate = false; c.matrix.copy(rel); c.renderOrder = m.renderOrder; c.castShadow = m.castShadow; kit.add(c); }
+    } catch (e) { console.warn('FortDay head kit', outfit, e); kit = null; }
+    this._kits.set(key, kit); return kit;
+  },
+  _chains: new Map(), _prints: new Map(),
+  restRig(build) { const T = this._rest || (this._rest = this.base(this.material(COS.outfit[0]), false)); this.setBody(T, build); T.root.updateMatrixWorld(true); return T; },
+  dressLite(R, o, look) {
+    const build = this.buildFor(o, look.body), pf = Perf.on;
+    if (R.kit) { R.mHead.remove(R.kit); R.kit = null; }
+    if (R.chain) { R.mTorso.remove(R.chain); R.chain = null; }
+    if (R.backPrint) { R.backPrint.parent && R.backPrint.parent.remove(R.backPrint); R.backPrint = null; }
+    // box-headed outfits tuck the real head away inside the box (as on the full body)
+    if (!R._mh0) R._mh0 = { p: R.mHead.position.clone(), s: R.mHead.scale.clone() };
+    R.B.head.scale.setScalar(1); R.mHead.position.copy(R._mh0.p); R.mHead.scale.copy(R._mh0.s);
+    if (o.head) { const k = 0.3; R.B.head.scale.setScalar(k); R.mHead.position.multiplyScalar(1 / k); R.mHead.scale.multiplyScalar(1 / k); }
+    const kit = pf && !o.head ? null : this.headKit(o.id, look.body === 'man' ? 'man' : 'woman');
+    if (kit) { R.kit = kit.clone(); R.mHead.add(R.kit); }
+    R.face.visible = !R.kit;
+    if (pf) return;
+    if (o.chain) { const k = o.id + ':' + build; if (!this._chains.has(k)) this._chains.set(k, this.chainGroup(this.restRig(build), o)); const c = this._chains.get(k); if (c) { R.chain = c.clone(); R.mTorso.add(R.chain); } }
+    if (o.back) { const k = o.id + ':' + build; if (!this._prints.has(k)) this._prints.set(k, this.backDecalParts((this.variants[build] || this.variants.average).shell, o)); const p = this._prints.get(k); if (p) R.backPrint = this.addSkinned(R, p.geo, p.mat); }
   },
   // ---- light character for nearby bots: body, face, hair, backpack, plain gun, glider
   makeLite() {
@@ -664,6 +735,7 @@ const CharModel = {
     const o = cosById('outfit', look.outfit || 'ranger');
     this.setBody(R, this.buildFor(o, look.body));
     R.mesh.material = R.shirt.material = this.material(o);
+    if (R.lite) this.dressLite(R, o, look);
     R.pack.material = lam(look.pack ?? 0x6b5a3a);
     const gc = look.glider ?? 0x3aa8ff; R.gliderMesh.material = this._gliderMats[gc] || (this._gliderMats[gc] = new THREE.MeshLambertMaterial({ color: gc, side: THREE.DoubleSide }));
   },
