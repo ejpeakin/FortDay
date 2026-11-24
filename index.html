@@ -1215,7 +1215,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1124-2046';
+const BUILD_ID = '1124-2052';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -7330,18 +7330,40 @@ const CharModel = {
       bend(B.spine_02, mv.spine); bend(B.neck_01, mv.neck); bend(B.upperarm_l, mv.armL); bend(B.upperarm_r, mv.armR);
       R.root.rotation.y += mv.yaw; oy += mv.lift;
     }
-    // ---- sprint-jump: a running leap, lead leg driven forward, trailing leg kicked back with the heel up, leaning in, arms swinging the other way
+    // ---- sprint-jump: a leap that moves through the flight instead of one frozen pose.
+    // u runs from take-off (0) through the top of the jump (0.5) to touch-down (1), read from how fast you're rising or falling.
+    // Take-off: knee driven up, push leg straight back, lean in. Top: the legs scissor past each other and the arms swap.
+    // Coming down: both legs reach forward. Landing: a quick knee-bend squash.
     const lt = !full && a.state === 'ground' && a.longJ && !a.onGround ? 1 : 0;
-    st.leap = (st.leap || 0) + (lt - (st.leap || 0)) * Math.min(1, dt * (lt ? 14 : 7));
-    if (st.leap > 0.01) {
+    if (lt && !st.leapOn) { st.leapOn = true; st.leapT = 0; }
+    if (!lt && st.leapOn) { st.leapOn = false; if (a.onGround && a.alive && !full) st.landT = 0.3; }
+    if (lt) st.leapT += dt;
+    st.leap = (st.leap || 0) + (lt - (st.leap || 0)) * Math.min(1, dt * (lt ? 18 : 9));
+    st.landT = Math.max(0, (st.landT || 0) - dt);
+    const landK = st.landT > 0 ? Math.sin(st.landT / 0.3 * Math.PI) : 0;
+    if (st.leap > 0.01 || landK > 0.01) {
       R.root.updateMatrixWorld(true);
-      const right = _cmV2.copy(X_AXIS).applyQuaternion(R.root.getWorldQuaternion(_cmQ3)), k = st.leap;
-      const bend = (bone, ang) => { if (!bone) return; bone.parent.getWorldQuaternion(_cmQ3).invert(); _cmV.copy(right).applyQuaternion(_cmQ3); _cmQ2.setFromAxisAngle(_cmV, ang); bone.quaternion.premultiply(_cmQ2); bone.updateMatrixWorld(true); };
+      const right = _cmV2.copy(X_AXIS).applyQuaternion(R.root.getWorldQuaternion(_cmQ3));
+      const bend = (bone, ang) => { if (!bone || Math.abs(ang) < 1e-4) return; bone.parent.getWorldQuaternion(_cmQ3).invert(); _cmV.copy(right).applyQuaternion(_cmQ3); _cmQ2.setFromAxisAngle(_cmV, ang); bone.quaternion.premultiply(_cmQ2); bone.updateMatrixWorld(true); };
       const [L, T] = a.leapSide ? ['_l', '_r'] : ['_r', '_l'];
-      bend(B.spine_01, 0.24 * k);
-      bend(B['thigh' + L], -1.1 * k); bend(B['calf' + L], 0.9 * k);
-      bend(B['thigh' + T], 0.55 * k); bend(B['calf' + T], 1.35 * k);
-      if (!gun) { bend(B['upperarm' + T], -0.85 * k); bend(B['upperarm' + L], 0.65 * k); }
+      if (st.leap > 0.01) {
+        const v0 = JUMP * 1.08, u = clamp((v0 - a.vel.y) / (2 * v0), 0, 1), ss = x => x * x * (3 - 2 * x);
+        // poses: [spine, lead thigh, lead calf, trail thigh, trail calf, arm on the trail side, arm on the lead side]
+        const P0 = [0.38, -1.25, 1.35, 0.62, 0.25, -1.15, 0.75], P1 = [0.22, 0.25, 1.25, -0.95, 0.55, 0.65, -0.95], P2 = [0.5, -1.2, 0.85, -1.15, 0.95, -0.9, -0.9];
+        const [A0, A1, w] = u < 0.55 ? [P0, P1, ss(u / 0.55)] : [P1, P2, ss((u - 0.55) / 0.45)], k = st.leap;
+        const p = A0.map((x, i) => (x + (A1[i] - x) * w) * k);
+        bend(B.spine_01, p[0]); bend(B['thigh' + L], p[1]); bend(B['calf' + L], p[2]); bend(B['thigh' + T], p[3]); bend(B['calf' + T], p[4]);
+        bend(B['foot' + L], -0.25 * k); bend(B['foot' + T], 0.35 * k * (1 - w));
+        if (!gun) { bend(B['upperarm' + T], p[5]); bend(B['upperarm' + L], p[6]); bend(B['lowerarm' + T], -0.6 * k); bend(B['lowerarm' + L], -0.6 * k); }
+      }
+      if (landK > 0.01) {   // soak up the landing
+        if (!R.legLen) { const p1 = B.thigh_l.getWorldPosition(new THREE.Vector3()), p2 = B.calf_l.getWorldPosition(new THREE.Vector3()), p3 = B.foot_l.getWorldPosition(new THREE.Vector3()); R.legLen = (p1.distanceTo(p2) + p2.distanceTo(p3)) / R.root.scale.y; }
+        const th = 0.75 * landK;
+        bend(B.spine_01, 0.4 * landK);
+        for (const sd of ['_l', '_r']) { bend(B['thigh' + sd], -th); bend(B['calf' + sd], 2 * th); bend(B['foot' + sd], -th); }
+        if (!gun) for (const sd of ['_l', '_r']) bend(B['upperarm' + sd], -0.7 * landK);
+        oy -= R.legLen * (1 - Math.cos(th));
+      }
     }
     if (a.state === 'sky') { const tilt = 0.08 + (a.dive || 0) * 1.05, h = 1.3; R.body.rotation.x = tilt; R.body.position.set(0, h - h * Math.cos(tilt), -h * Math.sin(tilt)); }
     else { R.body.rotation.x = 0; R.body.position.set(0, oy, 0); }
