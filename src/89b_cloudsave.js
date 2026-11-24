@@ -38,6 +38,7 @@ const CloudSave = {
     }
     if (!other) d.lastDaily = Math.max(d.lastDaily || 0, daily0);   // today's daily bonus counts once, whichever save wins
     d.acct = u.id; this.on = true; this.logPlay('visit');
+    sb.rpc('am_owner').then(({ data }) => { Players.owner = data === true; Players.db = null; Lobby.refresh(); }, () => {});   // the owner gets the Players tab
     try { localStorage.setItem('stormbreak.v1', JSON.stringify(d)); } catch (e) { /* ignore */ }
     if (typeof Profile.syncSeason === 'function') Profile.syncSeason();
     Lobby.refresh(); HUD.dirty = true;
@@ -46,7 +47,7 @@ const CloudSave = {
   },
   // for the owner's player list (Supabase: owner.player_activity): a visit when you sign in, a match each time you drop in
   logPlay(kind) { if (!this.on || !Social.sb) return; Social.sb.rpc('log_play', { kind }).then(({ error }) => { if (error) console.warn('FortDay play log:', error.message); }, () => {}); },
-  signedOut() { this.on = false; this.uid = null; clearTimeout(this.timer); },
+  signedOut() { this.on = false; this.uid = null; clearTimeout(this.timer); if (Players.owner) { Players.owner = false; Players.db = null; Lobby.refresh(); } },
   // every Profile.save() while signed in: upload a few seconds later (many saves in a row become one upload)
   dirty() { if (!this.on) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.upload(), 4000); },
   async upload() {

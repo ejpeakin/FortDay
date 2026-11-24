@@ -229,6 +229,15 @@ create table if not exists public.plays (
 );
 alter table public.plays enable row level security;   -- no policies: nobody reads it through the game
 
+-- one row per player per day they played (for the owner's chart)
+create table if not exists public.play_days (
+  id uuid not null references public.profiles (id) on delete cascade,
+  day date not null,
+  matches integer not null default 0,
+  primary key (id, day)
+);
+alter table public.play_days enable row level security;   -- no policies: nobody reads it through the game
+
 create or replace function public.log_play(kind text) returns void
 language plpgsql security definer set search_path = public as $$
 begin
@@ -240,6 +249,8 @@ begin
     matches = plays.matches + case when kind = 'match' then 1 else 0 end,
     days = plays.days + case when plays.last_day is distinct from current_date then 1 else 0 end,
     last_day = current_date, last_played = now();
+  insert into play_days (id, day, matches) values (auth.uid(), current_date, case when kind = 'match' then 1 else 0 end)
+  on conflict (id, day) do update set matches = play_days.matches + excluded.matches;
 end $$;
 
 -- the owner's list, with emails: lives in its own schema, which the game's API can't reach
@@ -252,6 +263,32 @@ create or replace view owner.player_activity as
   order by pl.last_played desc nulls last;
 revoke all on owner.player_activity from public, anon, authenticated;
 
+-- ---------------------------------------------------------------- the owner's Players tab in the game
+-- Accounts listed here see the Players tab: player names, how often and when they played (never emails).
+-- To add yourself, run once in the SQL Editor with your own player name:
+--   insert into public.owners (id) select id from public.profiles where lower(username) = lower('YourPlayerName') on conflict do nothing;
+create table if not exists public.owners (id uuid primary key references public.profiles (id) on delete cascade);
+alter table public.owners enable row level security;   -- no policies: only the functions below read it
+
+create or replace function public.am_owner() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from owners where id = auth.uid());
+$$;
+
+create or replace function public.owner_players() returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not exists (select 1 from owners where id = auth.uid()) then raise exception 'Only the owner can see this'; end if;
+  return json_build_object(
+    'players', coalesce((select json_agg(json_build_object('name', p.username, 'matches', coalesce(pl.matches, 0), 'visits', coalesce(pl.visits, 0),
+        'days', coalesce(pl.days, 0), 'first', pl.first_played, 'last', pl.last_played, 'joined', p.created_at) order by pl.last_played desc nulls last)
+      from profiles p left join plays pl on pl.id = p.id), '[]'::json),
+    'days', coalesce((select json_agg(json_build_object('day', d.day, 'players', d.n, 'matches', d.m) order by d.day)
+      from (select day, count(*) as n, sum(matches) as m from play_days where day > current_date - 14 group by day) d), '[]'::json),
+    'today', current_date
+  );
+end $$;
+
 -- ---------------------------------------------------------------- who may call what
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
 revoke execute on function public.are_friends(uuid, uuid) from public, anon, authenticated;
@@ -261,7 +298,7 @@ do $$
 declare f text;
 begin
   foreach f in array array['social_state()', 'search_players(text)', 'send_friend_request(uuid)', 'respond_friend_request(bigint, boolean)',
-    'cancel_friend_request(bigint)', 'remove_friend(uuid)', 'set_email_notify(boolean)', 'send_party_invite(uuid, text)', 'dismiss_party_invite(bigint)', 'load_progress()', 'save_progress(jsonb)', 'log_play(text)'] loop
+    'cancel_friend_request(bigint)', 'remove_friend(uuid)', 'set_email_notify(boolean)', 'send_party_invite(uuid, text)', 'dismiss_party_invite(bigint)', 'load_progress()', 'save_progress(jsonb)', 'log_play(text)', 'am_owner()', 'owner_players()'] loop
     execute 'revoke execute on function public.' || f || ' from public, anon';
     execute 'grant execute on function public.' || f || ' to authenticated';
   end loop;

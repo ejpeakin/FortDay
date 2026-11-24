@@ -28,8 +28,9 @@ const Track = {
 
 // ---------------------------------------------------------------- the maker's private Players tab
 const Players = {
-  rows: null, err: '', loading: false, at: 0,
+  rows: null, err: '', loading: false, at: 0, owner: false, db: null,
   link() { return Profile.d.ownerCsv || ''; },
+  available() { return this.owner || !!this.link(); },
   // ?owner in the address opens the box where the maker pastes the Sheet's published CSV link
   init() {
     $('ownBtn').addEventListener('click', () => this.saveLink());
@@ -48,6 +49,7 @@ const Players = {
     Profile.d.ownerCsv = v; Profile.save(); this.rows = null; $('owner').hidden = true; Lobby.tab = 'players'; Lobby.refresh();
   },
   async load(force) {
+    if (this.owner) return this.loadDb(force);
     if (!this.link() || this.loading || (!force && this.rows && Date.now() - this.at < 60000)) return;
     this.loading = true; this.err = ''; this.render();
     try {
@@ -86,8 +88,63 @@ const Players = {
     return [...by.values()].sort((a, b) => b.when - a.when);
   },
   fmtMin(m) { return m < 60 ? Math.round(m) + ' min' : (m / 60).toFixed(m < 600 ? 1 : 0) + ' h'; },
+  // ---- the owner's account: everyone who has played while signed in, straight from the accounts database
+  async loadDb(force) {
+    if (this.loading || (!force && this.db && Date.now() - this.at < 60000) || !Social.sb) return;
+    this.loading = true; this.err = ''; this.render();
+    const { data, error } = await Social.sb.rpc('owner_players');
+    if (error) this.err = 'Could not load players (' + error.message + ').'; else { this.db = data; this.at = Date.now(); }
+    this.loading = false; this.render();
+  },
+  renderDb(box) {
+    if (this.loading && !this.db) { box.innerHTML = '<div class="hint">Loading players…</div>'; return; }
+    const D = this.db || { players: [], days: [] }, P = (D.players || []).filter(p => p.matches || p.visits), day = 864e5;
+    const err = this.err ? '<div class="hint pl-err">' + esc(this.err) + '</div>' : '';
+    if (!P.length) { box.innerHTML = err + '<div class="hint">Nobody has played signed in yet. Players show up here once they sign in to FortDay and play.</div>'; return; }
+    const now = Date.now(), t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    const today = P.filter(p => p.last && new Date(p.last) >= t0).length, week = P.filter(p => p.last && now - new Date(p.last) < 7 * day).length, matches = P.reduce((a, p) => a + p.matches, 0);
+    // players per day, last 14 days (the server's dates)
+    const end = D.today ? new Date(D.today + 'T00:00:00') : t0, days = [];
+    for (let i = 13; i >= 0; i--) { const d = new Date(end.getTime() - i * day), k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); const r = (D.days || []).find(x => x.day === k); days.push({ d, n: r ? r.players : 0, m: r ? r.matches : 0 }); }
+    const W = 400, Hh = 150, padL = 34, padB = 22, padT = 10, bw = Math.min(18, (W - padL) / 14 - 6), maxN = Math.max(4, ...days.map(x => x.n));
+    const step = maxN <= 5 ? 1 : maxN <= 10 ? 2 : maxN <= 25 ? 5 : maxN <= 50 ? 10 : Math.ceil(maxN / 50) * 10, top = Math.ceil(maxN / step) * step;
+    const y = v => padT + (Hh - padT - padB) * (1 - v / top), x = i => padL + (i + 0.5) * (W - padL) / 14;
+    let svg = `<svg class="pl-chart" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Players per day, last 14 days">`;
+    for (let v = 0; v <= top; v += step) svg += `<line x1="${padL}" x2="${W}" y1="${y(v)}" y2="${y(v)}" class="pl-grid"/><text x="${padL - 6}" y="${y(v) + 3.5}" class="pl-ax" text-anchor="end">${v}</text>`;
+    days.forEach((b, i) => {
+      const h = Math.max(0, y(0) - y(b.n)), r = Math.min(4, h), x0 = x(i) - bw / 2, y0 = y(0);
+      if (h > 0.5) svg += `<path class="pl-bar" d="M${x0},${y0} V${y0 - h + r} Q${x0},${y0 - h} ${x0 + r},${y0 - h} H${x0 + bw - r} Q${x0 + bw},${y0 - h} ${x0 + bw},${y0 - h + r} V${y0} Z"/>`;
+      svg += `<rect class="pl-hit" x="${x(i) - (W - padL) / 28}" y="${padT}" width="${(W - padL) / 14}" height="${Hh - padT - padB}" data-i="${i}"/>`;
+      if (i % 2 === 1 || i === 13) svg += `<text x="${x(i)}" y="${Hh - 6}" class="pl-ax" text-anchor="middle">${i === 13 ? 'Today' : b.d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</text>`;
+    });
+    svg += `<line x1="${padL}" x2="${W}" y1="${y(0)}" y2="${y(0)}" class="pl-base"/></svg>`;
+    const when = v => { if (!v) return '–'; const t = new Date(v); return (t >= t0 ? 'Today' : now - t < 2 * day && t >= t0.getTime() - day ? 'Yesterday' : t.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) + ', ' + t.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); };
+    const me = (Profile.d.name || '').toLowerCase();
+    box.innerHTML = err + `
+      <div class="pl-tiles">
+        <div class="stat"><b>${P.length}</b><span>Players</span></div>
+        <div class="stat"><b>${today}</b><span>Played today</span></div>
+        <div class="stat"><b>${matches.toLocaleString()}</b><span>Matches</span></div>
+        <div class="stat"><b>${week}</b><span>Active this week</span></div>
+      </div>
+      <h3>Players per day</h3>
+      <div class="pl-wrap">${svg}<div class="pl-tip" id="plTip" hidden></div></div>
+      <h3>Everyone who played</h3>
+      <table class="pl-table"><thead><tr><th>Player</th><th>Matches</th><th>Days</th><th>Last played</th><th>First played</th></tr></thead><tbody>${P.map(p => `<tr><td>${esc(p.name)}${p.name.toLowerCase() === me ? ' (you)' : ''}</td><td>${p.matches}</td><td>${p.days}</td><td>${esc(when(p.last))}</td><td>${esc(when(p.first))}</td></tr>`).join('')}</tbody></table>
+      <p class="hint">Only signed-in players are counted. Emails are in Supabase: SQL Editor → <code>select * from owner.player_activity;</code></p>`;
+    const tip = $('plTip'), wrap = box.querySelector('.pl-wrap');
+    wrap.addEventListener('mousemove', e => {
+      const t = e.target.closest('.pl-hit'); if (!t) { tip.hidden = true; return; }
+      const b = days[+t.dataset.i], rr = wrap.getBoundingClientRect();
+      tip.innerHTML = `<b>${b.d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</b><span>${b.n} player${b.n === 1 ? '' : 's'} · ${b.m} match${b.m === 1 ? '' : 'es'}</span>`;
+      tip.hidden = false; tip.style.left = Math.min(rr.width - 150, Math.max(0, e.clientX - rr.left - 60)) + 'px'; tip.style.top = Math.max(0, e.clientY - rr.top - 70) + 'px';
+    });
+    wrap.addEventListener('mouseleave', () => { tip.hidden = true; });
+  },
   render() {
     const box = $('plBody'); if (!box) return;
+    $('plLink').hidden = this.owner; const hh = document.querySelector('#tab-players .pl-head .hint'); if (hh) hh.textContent = this.owner ? 'Only you can see this' : 'Only on this computer';
+    if (this.owner) return this.renderDb(box);
     if (this.loading && !this.rows) { box.innerHTML = '<div class="hint">Loading your Sheet…</div>'; return; }
     if (this.err) { box.innerHTML = '<div class="hint pl-err">' + esc(this.err) + '</div>'; if (!this.rows) return; }
     const R = this.rows || [];
