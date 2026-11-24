@@ -1166,7 +1166,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1124-1459';
+const BUILD_ID = '1124-1539';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -1397,7 +1397,10 @@ const COS = {
     { id: 'siren', build: 'slim', hair: 0x2be3ff, name: 'Circuit Siren', r: 2, shirt: 0x1b1b3a, pants: 0x2be3ff, skin: 0xc9a0ff, sleeve: 0xff2fd0, hat: 'antenna', hatC: 0x2be3ff, unlock: 'tier:10' },
     { id: 'toast', build: 'average', name: 'Sir Toastworth', r: 3, shirt: 0xc98a3c, pants: 0x6b4a2b, skin: 0xf2d29b, sleeve: 0xc98a3c, hat: 'toast', hatC: 0xb06a2a, head: [1.7, 1.55, 0.5], unlock: 'tier:14' },
     // chest find only: a 1 in 1,000 roll on any chest you open, once per player (never sold, no code, not on the Pass)
-    { id: 'nightwarden', build: 'slim', hair: 0x111114, name: 'Play Carti', r: 5, shirt: 0x24242c, pants: 0x1a1a20, skin: 0x2c2c36, sleeve: 0x24242c, hat: 'horns', hatC: 0x17171b, visor: 0xff2840, unlock: 'chest' },
+    // rockstar in black and red: black dreads with red-dyed tips, red-tinted shades, black long-sleeve with a red winged
+    // emblem and red sleeve stripes, black jeans with a red side stripe, silver chain with a red star, PLAY on the back
+    { id: 'nightwarden', build: 'slim', name: 'Play Carti', r: 5, shirt: 0x131317, pants: 0x141418, skin: 0x6a4330, sleeve: 0x131317, hair: 0x0c0b0d,
+      hat: 'dreads', hatC: 0x0c0b0d, tip: 0xd0142c, tipCut: [17, 18], hairSeed: 9090, shades: 0x5a0a14, rockstar: 0xd0142c, chain: 'star', back: 'PLAY', backFill: '#d0142c', backEdge: '#0c0b0d', personal: true, unlock: 'chest' },
     { id: 'tycoon', build: 'heavy', hair: 0x1a1a1a, name: 'Gilt Tycoon', r: 4, shirt: 0xd4a72c, pants: 0xd4a72c, skin: 0xe8c06a, sleeve: 0x1a1a1a, hat: 'tophat', hatC: 0x1a1a1a, unlock: 'tier:25' },
     { id: 'stormborn', build: 'average', hair: 0x0e0e10, name: 'Pluma Peso', r: 4, shirt: 0x141416, pants: 0x17181d, skin: 0xf1cdb0, sleeve: 0x141416, hat: 'none', hoodie: true, jeans: true, shiesty: 0x0e0e10, sneakers: 0xf6f6f4, unlock: 'tier:30' },
     { id: 'nova', build: 'average', name: 'Juice Earth', r: 4, shirt: 0xf3f2ee, pants: 0xe8731e, skin: 0x70482f, sleeve: 0xf3f2ee,
@@ -3705,7 +3708,7 @@ function dreadsModel(o, head, noCap) {
       dir.y -= k === 0 ? d0 : d1; dir.addScaledVector(out, fl); dir.x += (rnd() - 0.5) * 0.08; dir.z += (rnd() - 0.5) * 0.08; dir.normalize();
       pos = o2.free ? pos.clone().addScaledVector(dir, st) : outside(pos.clone().addScaledVector(dir, st)); pts.push(pos.clone());
     }
-    const full = new THREE.CatmullRomCurve3(pts), S = full.getPoints(20), cut1 = o2.cut1 ?? 13, cut2 = o2.cut2 ?? 15, r1 = r * (o2.taper ?? 0.72);
+    const full = new THREE.CatmullRomCurve3(pts), S = full.getPoints(20), cut1 = o2.cut1 ?? (o.tipCut ? o.tipCut[0] : 13), cut2 = o2.cut2 ?? (o.tipCut ? o.tipCut[1] : 15), r1 = r * (o2.taper ?? 0.72);
     const rAt = i => r + (r1 - r) * i / 20;
     tube(S.slice(0, cut1 + 1), rAt(0), rAt(cut1), root);
     tube(S.slice(cut1, cut2 + 1), rAt(cut1), rAt(cut2), mid);
@@ -4120,6 +4123,10 @@ function buildCharacter(eq, skinned) {
     if (o.chain === 'gold') {   // crescent moon pendant
       const moon = new THREE.Shape(); moon.absarc(0, 0, 0.032, Math.PI * 0.35, Math.PI * 1.65, false); moon.absarc(0.016, 0, 0.026, Math.PI * 1.55, Math.PI * 0.45, true);
       const mg = new THREE.ExtrudeGeometry(moon, { depth: 0.008, bevelEnabled: false }); const pm = M(mg, new THREE.MeshPhongMaterial({ color: 0xf0c64a, shininess: 80, specular: 0x8a6a20 }), 0, py - 0.005, pz - 0.004, torso); pm.rotation.z = -0.3;
+    } else if (o.chain === 'star') {   // red five-point star in a silver setting
+      const star = (R, r) => { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * q, Math.sin(a) * q); } s.closePath(); return s; };
+      M(new THREE.ExtrudeGeometry(star(0.04, 0.017), { depth: 0.006, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: 0xe6eaf0, shininess: 90, specular: 0x9aa0aa }), 0, py - 0.008, pz - 0.006, torso);
+      M(new THREE.ExtrudeGeometry(star(0.031, 0.013), { depth: 0.004, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: o.rockstar || 0xd0142c, emissive: 0x3a0006, shininess: 60 }), 0, py - 0.008, pz + 0.002, torso);
     } else {
       M(B(0.122, 0.058, 0.008), 0xd9dee5, 0, py, pz - 0.002, torso);                  // silver rim
       M(B(0.108, 0.045, 0.006), 0x1e2127, 0, py, pz + 0.002, torso);                  // dark face
@@ -4146,10 +4153,10 @@ function buildCharacter(eq, skinned) {
   if (boxHead) { M(B(0.5 * hs[0] * 0.6, 0.5 * hs[1] * 0.6, 0.5 * hs[2] * 0.6), o.skin, 0, 0, 0, head); faceZ = 0.25 * hs[2] * 0.6; }
   else if (!SKN) M(G.head, o.skin, 0, 0, 0, head);
   if (o.hat !== 'helmet') {
-    const iris = o.visor && o.id === 'nightwarden' ? basic(o.visor) : lam(0x2e2016);
+    const iris = lam(0x2e2016);
     for (const sx of [-1, 1]) {
       const wz = boxHead ? faceZ + 0.004 : 0.122;
-      const w = M(new THREE.SphereGeometry(0.021, 10, 8), o.id === 'nightwarden' ? 0x101014 : 0xf4f1ea, sx * 0.046, 0.018, wz, head); w.scale.set(1, 0.75, 0.55);
+      const w = M(new THREE.SphereGeometry(0.021, 10, 8), 0xf4f1ea, sx * 0.046, 0.018, wz, head); w.scale.set(1, 0.75, 0.55);
       M(new THREE.SphereGeometry(0.0115, 8, 6), iris, sx * 0.046, 0.018, wz + 0.009, head);
       if (o.shiesty) { if (!boxHead) { const ear = M(new THREE.SphereGeometry(1, 8, 6), o.shiesty, sx * 0.124, 0, -0.005, head); ear.scale.set(0.02, 0.037, 0.028); } continue; }
       const br = M(B(0.046, FEM ? 0.0055 : 0.011, 0.012), o.hair != null ? o.hair : 0x2a1a10, sx * 0.047, FEM ? 0.056 : 0.052, boxHead ? faceZ + 0.006 : 0.124, head); br.rotation.z = sx * (FEM ? 0.2 : 0.12);
@@ -6800,7 +6807,15 @@ const CharModel = {
       line('torso', [[0.06, 0.95], [0.06, 0.66]], 2, '#f4f4f4');
       rect('torso', 0, 0.06, 0.2, 0.32, 'rgba(0,0,0,0.18)'); line('torso', [[0, 0.32], [0.2, 0.32]], 1.5, 'rgba(0,0,0,0.35)');
     }
-    if (o.visor) rect('torso', 0, 0.6, 0.12, 0.68, hex(o.visor));
+    if (o.rockstar) {   // red winged emblem across the chest, red stripes down the sleeves and red side stripes on the jeans
+      const rc = hex(o.rockstar), rd = hex(o.rockstar, 0.6);
+      poly('torso', [[0, 0.8], [0.05, 0.84], [0.12, 0.86], [0.2, 0.9], [0.26, 0.86], [0.22, 0.83], [0.27, 0.8], [0.2, 0.78], [0.23, 0.74], [0.14, 0.75], [0.08, 0.7], [0.03, 0.66], [0, 0.6]], rc);   // spread wing
+      poly('torso', [[0, 0.77], [0.04, 0.78], [0.08, 0.76], [0.045, 0.72], [0, 0.66]], hex(o.shirt));                                                         // cut-out in the middle
+      line('torso', [[0, 0.8], [0.05, 0.84], [0.12, 0.86], [0.2, 0.9], [0.26, 0.86]], 1.2, rd);
+      for (const n of ['upper', 'fore']) { line(n, [[0.72, 0], [0.72, 1]], 3, rc); line(n, [[0.78, 0], [0.78, 1]], 1.2, rc); }
+      for (const n of ['thigh', 'calf']) line(n, [[0.75, 0], [0.75, 1]], 2.5, rc);
+      line('torso', [[0, 0.995], [0.45, 0.99]], 2.5, rd);   // collar
+    }
     if (o.id === 'tycoon') poly('torso', [[0, 0.98], [0.024, 0.98], [0.032, 0.45], [0, 0.4]], '#1a1a1a');
   },
   // ---- build a full character (player, lobby) with every accessory from the built-in rig mounted on bones

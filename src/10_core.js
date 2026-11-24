@@ -228,7 +228,10 @@ const COS = {
     { id: 'siren', build: 'slim', hair: 0x2be3ff, name: 'Circuit Siren', r: 2, shirt: 0x1b1b3a, pants: 0x2be3ff, skin: 0xc9a0ff, sleeve: 0xff2fd0, hat: 'antenna', hatC: 0x2be3ff, unlock: 'tier:10' },
     { id: 'toast', build: 'average', name: 'Sir Toastworth', r: 3, shirt: 0xc98a3c, pants: 0x6b4a2b, skin: 0xf2d29b, sleeve: 0xc98a3c, hat: 'toast', hatC: 0xb06a2a, head: [1.7, 1.55, 0.5], unlock: 'tier:14' },
     // chest find only: a 1 in 1,000 roll on any chest you open, once per player (never sold, no code, not on the Pass)
-    { id: 'nightwarden', build: 'slim', hair: 0x111114, name: 'Play Carti', r: 5, shirt: 0x24242c, pants: 0x1a1a20, skin: 0x2c2c36, sleeve: 0x24242c, hat: 'horns', hatC: 0x17171b, visor: 0xff2840, unlock: 'chest' },
+    // rockstar in black and red: black dreads with red-dyed tips, red-tinted shades, black long-sleeve with a red winged
+    // emblem and red sleeve stripes, black jeans with a red side stripe, silver chain with a red star, PLAY on the back
+    { id: 'nightwarden', build: 'slim', name: 'Play Carti', r: 5, shirt: 0x131317, pants: 0x141418, skin: 0x6a4330, sleeve: 0x131317, hair: 0x0c0b0d,
+      hat: 'dreads', hatC: 0x0c0b0d, tip: 0xd0142c, tipCut: [17, 18], hairSeed: 9090, shades: 0x5a0a14, rockstar: 0xd0142c, chain: 'star', back: 'PLAY', backFill: '#d0142c', backEdge: '#0c0b0d', personal: true, unlock: 'chest' },
     { id: 'tycoon', build: 'heavy', hair: 0x1a1a1a, name: 'Gilt Tycoon', r: 4, shirt: 0xd4a72c, pants: 0xd4a72c, skin: 0xe8c06a, sleeve: 0x1a1a1a, hat: 'tophat', hatC: 0x1a1a1a, unlock: 'tier:25' },
     { id: 'stormborn', build: 'average', hair: 0x0e0e10, name: 'Pluma Peso', r: 4, shirt: 0x141416, pants: 0x17181d, skin: 0xf1cdb0, sleeve: 0x141416, hat: 'none', hoodie: true, jeans: true, shiesty: 0x0e0e10, sneakers: 0xf6f6f4, unlock: 'tier:30' },
     { id: 'nova', build: 'average', name: 'Juice Earth', r: 4, shirt: 0xf3f2ee, pants: 0xe8731e, skin: 0x70482f, sleeve: 0xf3f2ee,

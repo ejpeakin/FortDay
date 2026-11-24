@@ -287,7 +287,7 @@ function dreadsModel(o, head, noCap) {
       dir.y -= k === 0 ? d0 : d1; dir.addScaledVector(out, fl); dir.x += (rnd() - 0.5) * 0.08; dir.z += (rnd() - 0.5) * 0.08; dir.normalize();
       pos = o2.free ? pos.clone().addScaledVector(dir, st) : outside(pos.clone().addScaledVector(dir, st)); pts.push(pos.clone());
     }
-    const full = new THREE.CatmullRomCurve3(pts), S = full.getPoints(20), cut1 = o2.cut1 ?? 13, cut2 = o2.cut2 ?? 15, r1 = r * (o2.taper ?? 0.72);
+    const full = new THREE.CatmullRomCurve3(pts), S = full.getPoints(20), cut1 = o2.cut1 ?? (o.tipCut ? o.tipCut[0] : 13), cut2 = o2.cut2 ?? (o.tipCut ? o.tipCut[1] : 15), r1 = r * (o2.taper ?? 0.72);
     const rAt = i => r + (r1 - r) * i / 20;
     tube(S.slice(0, cut1 + 1), rAt(0), rAt(cut1), root);
     tube(S.slice(cut1, cut2 + 1), rAt(cut1), rAt(cut2), mid);
@@ -702,6 +702,10 @@ function buildCharacter(eq, skinned) {
     if (o.chain === 'gold') {   // crescent moon pendant
       const moon = new THREE.Shape(); moon.absarc(0, 0, 0.032, Math.PI * 0.35, Math.PI * 1.65, false); moon.absarc(0.016, 0, 0.026, Math.PI * 1.55, Math.PI * 0.45, true);
       const mg = new THREE.ExtrudeGeometry(moon, { depth: 0.008, bevelEnabled: false }); const pm = M(mg, new THREE.MeshPhongMaterial({ color: 0xf0c64a, shininess: 80, specular: 0x8a6a20 }), 0, py - 0.005, pz - 0.004, torso); pm.rotation.z = -0.3;
+    } else if (o.chain === 'star') {   // red five-point star in a silver setting
+      const star = (R, r) => { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * q, Math.sin(a) * q); } s.closePath(); return s; };
+      M(new THREE.ExtrudeGeometry(star(0.04, 0.017), { depth: 0.006, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: 0xe6eaf0, shininess: 90, specular: 0x9aa0aa }), 0, py - 0.008, pz - 0.006, torso);
+      M(new THREE.ExtrudeGeometry(star(0.031, 0.013), { depth: 0.004, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: o.rockstar || 0xd0142c, emissive: 0x3a0006, shininess: 60 }), 0, py - 0.008, pz + 0.002, torso);
     } else {
       M(B(0.122, 0.058, 0.008), 0xd9dee5, 0, py, pz - 0.002, torso);                  // silver rim
       M(B(0.108, 0.045, 0.006), 0x1e2127, 0, py, pz + 0.002, torso);                  // dark face
@@ -728,10 +732,10 @@ function buildCharacter(eq, skinned) {
   if (boxHead) { M(B(0.5 * hs[0] * 0.6, 0.5 * hs[1] * 0.6, 0.5 * hs[2] * 0.6), o.skin, 0, 0, 0, head); faceZ = 0.25 * hs[2] * 0.6; }
   else if (!SKN) M(G.head, o.skin, 0, 0, 0, head);
   if (o.hat !== 'helmet') {
-    const iris = o.visor && o.id === 'nightwarden' ? basic(o.visor) : lam(0x2e2016);
+    const iris = lam(0x2e2016);
     for (const sx of [-1, 1]) {
       const wz = boxHead ? faceZ + 0.004 : 0.122;
-      const w = M(new THREE.SphereGeometry(0.021, 10, 8), o.id === 'nightwarden' ? 0x101014 : 0xf4f1ea, sx * 0.046, 0.018, wz, head); w.scale.set(1, 0.75, 0.55);
+      const w = M(new THREE.SphereGeometry(0.021, 10, 8), 0xf4f1ea, sx * 0.046, 0.018, wz, head); w.scale.set(1, 0.75, 0.55);
       M(new THREE.SphereGeometry(0.0115, 8, 6), iris, sx * 0.046, 0.018, wz + 0.009, head);
       if (o.shiesty) { if (!boxHead) { const ear = M(new THREE.SphereGeometry(1, 8, 6), o.shiesty, sx * 0.124, 0, -0.005, head); ear.scale.set(0.02, 0.037, 0.028); } continue; }
       const br = M(B(0.046, FEM ? 0.0055 : 0.011, 0.012), o.hair != null ? o.hair : 0x2a1a10, sx * 0.047, FEM ? 0.056 : 0.052, boxHead ? faceZ + 0.006 : 0.124, head); br.rotation.z = sx * (FEM ? 0.2 : 0.12);

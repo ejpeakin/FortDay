@@ -528,7 +528,15 @@ const CharModel = {
       line('torso', [[0.06, 0.95], [0.06, 0.66]], 2, '#f4f4f4');
       rect('torso', 0, 0.06, 0.2, 0.32, 'rgba(0,0,0,0.18)'); line('torso', [[0, 0.32], [0.2, 0.32]], 1.5, 'rgba(0,0,0,0.35)');
     }
-    if (o.visor) rect('torso', 0, 0.6, 0.12, 0.68, hex(o.visor));
+    if (o.rockstar) {   // red winged emblem across the chest, red stripes down the sleeves and red side stripes on the jeans
+      const rc = hex(o.rockstar), rd = hex(o.rockstar, 0.6);
+      poly('torso', [[0, 0.8], [0.05, 0.84], [0.12, 0.86], [0.2, 0.9], [0.26, 0.86], [0.22, 0.83], [0.27, 0.8], [0.2, 0.78], [0.23, 0.74], [0.14, 0.75], [0.08, 0.7], [0.03, 0.66], [0, 0.6]], rc);   // spread wing
+      poly('torso', [[0, 0.77], [0.04, 0.78], [0.08, 0.76], [0.045, 0.72], [0, 0.66]], hex(o.shirt));                                                         // cut-out in the middle
+      line('torso', [[0, 0.8], [0.05, 0.84], [0.12, 0.86], [0.2, 0.9], [0.26, 0.86]], 1.2, rd);
+      for (const n of ['upper', 'fore']) { line(n, [[0.72, 0], [0.72, 1]], 3, rc); line(n, [[0.78, 0], [0.78, 1]], 1.2, rc); }
+      for (const n of ['thigh', 'calf']) line(n, [[0.75, 0], [0.75, 1]], 2.5, rc);
+      line('torso', [[0, 0.995], [0.45, 0.99]], 2.5, rd);   // collar
+    }
     if (o.id === 'tycoon') poly('torso', [[0, 0.98], [0.024, 0.98], [0.032, 0.45], [0, 0.4]], '#1a1a1a');
   },
   // ---- build a full character (player, lobby) with every accessory from the built-in rig mounted on bones
