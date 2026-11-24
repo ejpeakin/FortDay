@@ -1,7 +1,8 @@
 // =====================================================================
 //  Physics: ground, collision, movement, mantling, water
 // =====================================================================
-const GRAV = 28, JUMP = 9.4, STEP = 0.6, SPRINT_BOOST = 1.3;   // sprinting is 20% faster than it used to be (about 10 m/s)
+const GRAV = 28, JUMP = 9.4, STEP = 0.6, SPRINT_BOOST = 1.3;
+const JUMP_REST = 0.45, LONG_JUMP_COST = 30, LONG_JUMP_K = 1.4;   // time on the ground between jumps; a sprint-jump costs 30 stamina and goes 40% faster   // sprinting is 20% faster than it used to be (about 10 m/s)
 const _cands = [], _cands2 = [], _cands3 = [];
 
 function rampY(c, x, z) {
@@ -75,7 +76,7 @@ function physicsActor(a, dt) {
   if (a.stamina == null) a.stamina = 100;
   let mx = sy * inp.f - cy * inp.r, mz = cy * inp.f + sy * inp.r;
   const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
-  let speed, accel;
+  let speed, accel, sprint = false;
   if (a.state === 'sky') {
     const dive = inp.f > 0.3; a.dive = lerp(a.dive || 0, dive ? 1 : 0, Math.min(1, dt * 4));   // hold forward to tip nose-down and fall faster
     speed = dive ? 24 : 20; accel = 2.5; a.vel.y = lerp(a.vel.y, dive ? -62 : -40, Math.min(1, dt * 1.5));
@@ -84,7 +85,7 @@ function physicsActor(a, dt) {
   else {
     // stamina: sprinting drains it, it refills shortly after you stop; run dry and you can't sprint until a quarter is back
     a.crouch = !!inp.crouch && !a.crawl && !a.inWater && !a.vehicle && !a.emote;
-    const sprint = inp.sprint && inp.f > 0.3 && !inp.ads && !a.crouch && !a.exhausted && !a.inWater && !a.crawl && Math.hypot(a.vel.x, a.vel.z) > 1;
+    sprint = inp.sprint && inp.f > 0.3 && !inp.ads && !a.crouch && !a.exhausted && !a.inWater && !a.crawl && Math.hypot(a.vel.x, a.vel.z) > 1;
     if (sprint && a.onGround) { a.stamina = Math.max(0, a.stamina - 22 * dt); a.stamRest = 0.9; if (a.stamina <= 0) a.exhausted = true; }
     else { a.stamRest = (a.stamRest || 0) - dt; if (a.stamRest <= 0) a.stamina = Math.min(100, a.stamina + 20 * dt); }
     if (a.exhausted && a.stamina >= 25) a.exhausted = false;
@@ -100,14 +101,26 @@ function physicsActor(a, dt) {
     a.vel.y -= GRAV * dt;
   }
   a.crouchK = clamp((a.crouchK || 0) + ((a.crouch && a.state === 'ground' ? 1 : 0) - (a.crouchK || 0)) * Math.min(1, dt * 12), 0, 1);   // eases in and out
-  const k = Math.min(1, accel * dt);
+  const k = Math.min(1, (a.longJ && !a.onGround ? 0.9 : accel) * dt);   // a sprint-jump keeps its speed through the air
   a.vel.x += (mx * speed - a.vel.x) * k; a.vel.z += (mz * speed - a.vel.z) * k;
-  if (inp.jump && !a.crawl && a.state === 'ground' && (a.onGround || a.inWater) && a.jumpCD <= 0) {
-    a.vel.y = a.inWater ? 6 : JUMP; a.onGround = false; a.jumpCD = 0.3; a.emote = null;
+  a.groundT = a.onGround ? (a.groundT || 0) + dt : 0;
+  a.jumpQ = press ? 0.2 : (a.jumpQ || 0) - dt;   // a press just before you're allowed to jump again still counts
+  // one jump per press, and you have to land for a moment before the next one (no bunny-hopping)
+  if (a.jumpQ > 0 && !a.crawl && a.state === 'ground' && (a.inWater || (a.onGround && a.groundT >= JUMP_REST)) && a.jumpCD <= 0) {
+    a.jumpQ = 0;
+    const hs0 = Math.hypot(a.vel.x, a.vel.z);
+    if (!a.inWater && sprint && hs0 > 7 && a.stamina >= LONG_JUMP_COST) {
+      // sprint-jump: launch forward, much further than a standing jump, for a big chunk of stamina
+      const dl = Math.hypot(mx, mz) || 1, v = Math.max(hs0, speed) * LONG_JUMP_K;
+      a.vel.x = mx / dl * v; a.vel.z = mz / dl * v; a.vel.y = JUMP * 0.95; a.longJ = true;
+      a.stamina -= LONG_JUMP_COST; a.stamRest = 1.2;
+      if (a === player) Sfx.noise(0.3, 1100, 0.7, 0.13);
+    } else a.vel.y = a.inWater ? 6 : JUMP;
+    a.onGround = false; a.jumpCD = 0.3; a.emote = null;
   } else if (press && a.state === 'ground' && !a.onGround && !a.inWater && a.jumpCD <= 0.15 && (a.wallJumps || 0) < 2) {
     if (wallJump(a)) return;
   }
-  if (a.onGround) a.wallJumps = 0;
+  if (a.onGround) { a.wallJumps = 0; a.longJ = false; }
   const wasGround = a.onGround, prevY = a.pos.y;
   const hs = Math.hypot(a.vel.x, a.vel.z);
   const n = Math.min(5, Math.max(1, Math.ceil(hs * dt / 0.3)));

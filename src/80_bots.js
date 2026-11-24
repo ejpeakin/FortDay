@@ -76,12 +76,47 @@ function findLoot(a) {
   }
   return best;
 }
+// the house a bot is standing in (checked a few times a second), or null
+function botHouse(a) {
+  const ai = a.ai; if ((ai.hT = (ai.hT || 0) - 1) > 0) return ai.house && !ai.house.dead ? ai.house : null;
+  ai.hT = 8; ai.house = null;
+  for (const h of W.houses) if (!h.dead && h.doorIn && a.pos.x > h.x0 && a.pos.x < h.x1 && a.pos.z > h.z0 && a.pos.z < h.z1 && a.pos.y > h.y0 - 1 && a.pos.y < h.y1) { ai.house = h; break; }
+  return ai.house;
+}
+// inside a house and heading somewhere outside it: down the stairs, then out through the door (not straight into a wall)
+function houseExit(a, h, p) {
+  const ai = a.ai, inside = p.x > h.x0 && p.x < h.x1 && p.z > h.z0 && p.z < h.z1;
+  const upstairs = h.upY && a.pos.y > h.upY - 1.2, wantUp = h.upY && p.y != null && p.y > h.upY - 1.2;
+  if (inside && upstairs === !!wantUp) { ai.exitH = null; return null; }
+  if (inside && !upstairs) { ai.exitH = null; return null; }   // the loot paths already know the way up
+  const key = h.i + (inside ? 'i' : 'o') + upstairs;
+  if (ai.exitH !== key) { ai.exitH = key; ai.exitI = 0; ai.exitW = upstairs && h.rampT ? (inside ? [h.rampT, h.rampB] : [h.rampT, h.rampB, h.doorIn, h.doorOut]) : [h.doorIn, h.doorOut]; }
+  while (ai.exitI < ai.exitW.length) {
+    const q = ai.exitW[ai.exitI];
+    if (Math.hypot(q.x - a.pos.x, q.z - a.pos.z) < 1.3 && Math.abs(q.y - a.pos.y) < 2.2) ai.exitI++; else return q;
+  }
+  return null;
+}
+// stuck: look around for the most open way, leaning toward where we want to go
+const _probeDirs = Array.from({ length: 8 }, (_, i) => i / 8 * TAU);
+function openWay(a, want) {
+  let best = want + Math.PI, bs = -1e9;
+  for (const o of _probeDirs) {
+    const ang = want + o + rnd(-0.15, 0.15), dx = Math.sin(ang), dz = Math.cos(ang);
+    const h = raycast(a.pos.x, a.pos.y + 0.7, a.pos.z, dx, 0, dz, 9, a, false), free = h.type ? h.t : 9;
+    const s = free * 1.0 + Math.cos(o) * 2.2 + (Math.abs(angDiff(ang, a.ai.lastDetour ?? 99)) < 0.4 ? -3 : 0);   // open space first, then the right direction; avoid the way that just failed
+    if (s > bs) { bs = s; best = ang; }
+  }
+  a.ai.lastDetour = best; return best;
+}
 function moveTo(a, p, dt, sprint) {
   const ai = a.ai, inp = a.input;
   let tx = p.x, tz = p.z;
+  const hb = a.state === 'ground' ? botHouse(a) : null, ex = hb ? houseExit(a, hb, p) : (ai.exitH = null);
+  if (ex) { tx = ex.x; tz = ex.z; }
   if (ai.detourT > 0) { ai.detourT -= dt; tx = ai.detour.x; tz = ai.detour.z; }
   const dx = tx - a.pos.x, dz = tz - a.pos.z, d = Math.hypot(dx, dz);
-  if (d < 0.7 && ai.detourT <= 0) { inp.f = 0; inp.r = 0; return 'arrived'; }
+  if (d < 0.7 && ai.detourT <= 0 && !ex) { inp.f = 0; inp.r = 0; return 'arrived'; }
   const w = Math.atan2(dx, dz); ai.wantYaw = w; ai.wantPitch = 0;
   const diff = w - a.yaw; inp.f = Math.cos(diff); inp.r = -Math.sin(diff); inp.sprint = sprint && d > 8;
   ai.stuckT += dt;
@@ -89,7 +124,8 @@ function moveTo(a, p, dt, sprint) {
     const moved = Math.hypot(a.pos.x - ai.last.x, a.pos.z - ai.last.z); ai.last.copy(a.pos); ai.stuckT = 0;
     if (moved < 1.0 && !a.inWater) {
       ai.stuckN++; inp.jump = true;
-      if (ai.stuckN >= 2) { const side = Math.random() < 0.5 ? 1 : -1, ang = w + side * (Math.PI / 2 + rnd(-0.5, 0.5)); ai.detour.set(a.pos.x + Math.sin(ang) * 7, 0, a.pos.z + Math.cos(ang) * 7); ai.detourT = 1.1; }
+      if (ai.stuckN >= 2) { const ang = openWay(a, w); ai.detour.set(a.pos.x + Math.sin(ang) * 6, 0, a.pos.z + Math.cos(ang) * 6); ai.detourT = 1.2; }
+      if (ai.stuckN >= 3) ai.hT = 0;   // check again which house we're in
       if (ai.stuckN > 5) { ai.stuckN = 0; return 'stuck'; }
     } else ai.stuckN = 0;
   }
@@ -119,10 +155,10 @@ function updateBot(a, dt) {
     case 'rescue': Reboot.botStep(a, dt); break;
     case 'heal': botHeal(a); break;
     case 'investigate': if (!ai.investigate || moveTo(a, ai.investigate, dt, true)) { ai.investigate = null; ai.mode = 'roam'; } break;
-    case 'follow': { const l = a.leader; const d = Math.hypot(l.pos.x - a.pos.x, l.pos.z - a.pos.z); if (d > 9) moveTo(a, l.pos, dt, d > 16); else lookAround(a, dt); break; }
+    case 'follow': { const l = a.leader; const d = Math.hypot(l.pos.x - a.pos.x, l.pos.z - a.pos.z); if (d > 9) { if (moveTo(a, l.pos, dt, d > 16) === 'stuck') ai.detourT = 0; } else lookAround(a, dt); break; }
     case 'guard': { if (Math.hypot(ai.home.x - a.pos.x, ai.home.z - a.pos.z) > 5) moveTo(a, ai.home, dt, false); else lookAround(a, dt); break; }
     case 'flee': { const t = ai.target; if (t) { const ang = Math.atan2(a.pos.x - t.pos.x, a.pos.z - t.pos.z); moveTo(a, { x: a.pos.x + Math.sin(ang) * 10, z: a.pos.z + Math.cos(ang) * 10 }, dt, true); } break; }
-    default: { if (!ai.roam || moveTo(a, ai.roam, dt, false) === 'arrived' || Math.random() < dt * 0.05) ai.roam = zonePoint(0.75); }
+    default: { const r = ai.roam ? moveTo(a, ai.roam, dt, false) : null; if (!ai.roam || r === 'arrived' || r === 'stuck' || Math.random() < dt * 0.05) ai.roam = zonePoint(0.75); }
   }
   const turn = (ai.mode === 'fight' ? 2.5 + ai.skill * 5 : 6) * dt;
   a.yaw += clamp(angDiff(a.yaw, ai.wantYaw), -turn, turn);
@@ -225,7 +261,7 @@ function botFight(a, dt) {
   const ax = t.pos.x + t.vel.x * lead, ay = t.pos.y + ai.aimH * t.scale, az = t.pos.z + t.vel.z * lead;
   ai.wantYaw = Math.atan2(ax - ex, az - ez); ai.wantPitch = Math.atan2(ay - ey, Math.hypot(ax - ex, az - ez));
   if (!visible) {
-    if (moveTo(a, ai.seen, dt, true) === 'arrived') ai.target = null;
+    { const r = moveTo(a, ai.seen, dt, true); if (r === 'arrived' || r === 'stuck') ai.target = null; }
     ai.wantYaw = Math.atan2(ax - ex, az - ez);
     if (now - a.lastDmgT > 2 && (a.shield < 50 || a.hp < 50) && hasHeal(a, 'any') > 0) { ai.mode = 'heal'; ai.target = null; }
     return;

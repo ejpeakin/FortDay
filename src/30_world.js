@@ -395,6 +395,7 @@ function buildHouse(b, eb, p, cx, cz, R) {
     rampB = { x: rx0 + 1.2, y: fy, z: front ? cz - 5.2 : cz + 5.2 };
     rampT = { x: rx0 + 1.2, y: fy + H, z: front ? cz + 1.2 : cz - 1.2 };
     up = { x0: x0 + th + 3.2, x1: x1 - th - 1.2, z0: Math.min(sz0, sz1) + 1.2, z1: Math.max(sz0, sz1) - 1.2, y: fy + H };
+    CUR_BLD.rampB = rampB; CUR_BLD.rampT = rampT; CUR_BLD.upY = fy + H;
   }
   const ry = fy + floors * H;
   let rx0 = x0 - 0.4, rx1 = x1 + 0.4, rz0 = z0 - 0.4, rz1 = z1 + 0.4;
@@ -482,7 +483,7 @@ function buildHouse(b, eb, p, cx, cz, R) {
     return { x: cx - DN[0] * (w / 2 - 1.5), z: cz - DN[1] * (d / 2 - 1.5) };
   };
   const upSpot = () => { for (let i = 0; i < 12; i++) { const x = lerp(up.x0, up.x1, R()), z = lerp(up.z0, up.z1, R()); if (!blocked.some(o => x > o[0] && x < o[2] && z > o[1] && z < o[3])) return { x, z }; } return { x: up.x0, z: up.z0 }; };
-  const pathIn = [doorOut, doorIn];
+  const pathIn = [doorOut, doorIn]; CUR_BLD.doorIn = doorIn; CUR_BLD.doorOut = doorOut;
   if (R() < 0.62) {
     if (up && R() < 0.6) { const q = upSpot(); addChest('chest', q.x, up.y, q.z, Math.atan2(DN[0], DN[1]), [doorOut, doorIn, rampB, rampT]); }
     else { const q = inner(true); addChest('chest', q.x, fy, q.z, Math.atan2(DN[0], DN[1]), pathIn); }
