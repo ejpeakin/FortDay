@@ -361,8 +361,13 @@ function spikesModel(o, head) {
   }
   head.add(mergedColored(L));
 }
+// two horns straight out of the top of the head (a hat of their own, or on top of hair with horns: true)
+function hornsModel(o, head, hs, c, k = 1) {   // k: longer horns so they stand clear of thick hair
+  const top = 0.25 * hs[1], mat = new THREE.MeshPhongMaterial({ color: c, shininess: 40, specular: 0x3a3a44 });
+  for (const sx of [-1, 1]) { const g = new THREE.ConeGeometry(0.075, 0.396 * k, 10).translate(0, 0.188 * k, 0); const m = new THREE.Mesh(g, mat); m.position.set(sx * 0.12, top - 0.07, 0.02); m.rotation.z = -sx * 0.55; m.rotation.x = -0.12; m.castShadow = true; head.add(m); }
+}
 function hatModel(o, head, hs, skn) {
-  if (o.hat === 'dreads') { dreadsModel(o, head, skn); return; }
+  if (o.hat === 'dreads') { dreadsModel(o, head, skn); if (o.horns) hornsModel(o, head, hs, o.horns, 1.2); return; }
   if (o.hat === 'afro') { afroModel(o, head); return; }
   if (o.hat === 'spikes') { spikesModel(o, head); return; }
   const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; head.add(m); return m; };
@@ -373,7 +378,7 @@ function hatModel(o, head, hs, skn) {
     case 'leaves': add(new THREE.IcosahedronGeometry(0.34, 0), lam(c), 0, top + 0.14, 0); break;
     case 'helmet': add(new THREE.BoxGeometry(0.62, 0.62, 0.62), lam(c), 0, 0.03, 0); add(new THREE.BoxGeometry(0.48, 0.24, 0.05), basic(0x5ab8ff), 0, 0.04, 0.32); break;
     case 'antenna': for (const sx of [-0.13, 0.13]) { add(new THREE.BoxGeometry(0.04, 0.38, 0.04), lam(0x333344), sx, top + 0.19, 0); add(new THREE.SphereGeometry(0.07, 8, 6), basic(c), sx, top + 0.4, 0); } break;
-    case 'horns': for (const sx of [-1, 1]) { const g = new THREE.ConeGeometry(0.075, 0.396, 10).translate(0, 0.188, 0); const m = add(g, lam(c), sx * 0.12, top - 0.07, 0.02); m.rotation.z = -sx * 0.55; m.rotation.x = -0.12; } break;   // two horns straight out of the head
+    case 'horns': hornsModel(o, head, hs, c); break;   // two horns straight out of the head
     case 'headphones': {
       const band = new THREE.TorusGeometry(0.29, 0.035, 8, 24, Math.PI); add(band, lam(0x18181c), 0, top - 0.08, 0);
       for (const sx of [-1, 1]) { const cup = add(new THREE.CylinderGeometry(0.11, 0.11, 0.09, 18), lam(0x18181c), sx * 0.29, top - 0.2, 0); cup.rotation.z = Math.PI / 2; const pad = add(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 18), basic(c), sx * 0.345, top - 0.2, 0); pad.rotation.z = Math.PI / 2; }
