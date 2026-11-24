@@ -312,6 +312,7 @@ const Lobby = {
     }
     const tier = Profile.tier();
     Profile.syncSeason();
+    { const dl = Profile.daily(); if (dl) { setTimeout(() => Social.note('Daily bonus: +' + DAILY_XP + ' XP for hopping on FortDay today!' + (dl.l1 > dl.l0 ? ' Level ' + dl.l1 + '!' : '')), 600); Sfx.init(); } }
     $('tierLbl').textContent = 'Level ' + tier; $('tierFill').style.width = ((d.seasonXp % XP_PER_LEVEL) / XP_PER_LEVEL * 100) + '%';
     [...$('modeGrid').children].forEach(b => b.classList.toggle('on', b.dataset.mode === d.mode));
     [...$('buildSeg').children].forEach(b => b.classList.toggle('on', (b.dataset.build === '1') === d.build));

@@ -16,7 +16,7 @@ const CloudSave = {
     if (Social.user !== u) return;   // signed out (or into another account) while loading
     if (error) { console.warn('FortDay cloud save is not set up yet (run supabase/schema.sql again):', error.message); return; }
     const d = Profile.d, cloud = data && typeof data === 'object' ? data : null;
-    const mine = d.acct === u.id, other = d.acct && d.acct !== u.id;   // this browser's save belongs to this account / to someone else's account
+    const mine = d.acct === u.id, other = d.acct && d.acct !== u.id, daily0 = d.lastDaily || 0;   // this browser's save belongs to this account / to someone else's account
     let msg = '';
     if (cloud && (other || this.score(cloud) > this.score(d))) {
       // the account's save is the real one: take its progress, keep this device's settings
@@ -36,13 +36,16 @@ const CloudSave = {
       if (cloud) d.owned = Object.assign({}, cloud.owned || {}, d.owned);   // this browser is ahead: keep it, plus anything the account owned
       if (!mine) msg = 'Your progress is now saved to your account. Sign in on any device to keep playing where you left off.';
     }
-    d.acct = u.id; this.on = true;
+    if (!other) d.lastDaily = Math.max(d.lastDaily || 0, daily0);   // today's daily bonus counts once, whichever save wins
+    d.acct = u.id; this.on = true; this.logPlay('visit');
     try { localStorage.setItem('stormbreak.v1', JSON.stringify(d)); } catch (e) { /* ignore */ }
     if (typeof Profile.syncSeason === 'function') Profile.syncSeason();
     Lobby.refresh(); HUD.dirty = true;
     await this.upload();
     if (msg) Social.note(msg);
   },
+  // for the owner's player list (Supabase: owner.player_activity): a visit when you sign in, a match each time you drop in
+  logPlay(kind) { if (!this.on || !Social.sb) return; Social.sb.rpc('log_play', { kind }).then(({ error }) => { if (error) console.warn('FortDay play log:', error.message); }, () => {}); },
   signedOut() { this.on = false; this.uid = null; clearTimeout(this.timer); },
   // every Profile.save() while signed in: upload a few seconds later (many saves in a row become one upload)
   dirty() { if (!this.on) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.upload(), 4000); },

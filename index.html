@@ -1166,7 +1166,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1124-1559';
+const BUILD_ID = '1124-1604';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -1487,16 +1487,17 @@ async function redeemCode(raw) {
 }
 function itemPrice(c) { return c.price || RARITY_PRICE[c.r] || 0; }
 const COIN = 'FortBux';
-const PASS_TIERS = 30, XP_PER_TIER = 5000, XP_PER_LEVEL = 5000, LEVEL_COINS = 50, MATCH_COINS_MAX = 100, PASS_PRICE = 5000, PASS_USD = '$1',
+const PASS_TIERS = 30, XP_PER_TIER = 5000, XP_PER_LEVEL = 50000, DAILY_XP = 500, LEVEL_COINS = 50, MATCH_COINS_MAX = 100, PASS_PRICE = 5000, PASS_USD = '$1',
   // the $1 checkout page (e.g. a Stripe Payment Link). After paying it should send the buyer back to
   // https://ejpeakin.github.io/FortDay/?bp=<this season's checkout code>, which unlocks the pass automatically.
   PASS_PAY_URL = '', PASS_RANK = 4 /* Diamond */, TICKET_CHANCE = 1 / 10000, CHEST_SKIN = 'nightwarden', CHEST_SKIN_CHANCE = 1 / 1000;
 // ---------------------------------------------------------------- seasons: 30 days each, the first is Music Festival 2026
-const SEASON_EPOCH = Date.UTC(2026, 10, 16), SEASON_DAYS = 30, SEASON_NAMES = ['Music Festival 2026'];
+// a new season starts on the 1st of every month (the player's own clock); Season 1 is November 2026 (it began on the 16th)
+const SEASON_START = { y: 2026, m: 10 }, SEASON_NAMES = ['Music Festival 2026'];
 const Season = {
-  id() { return Math.max(0, Math.floor((Date.now() - SEASON_EPOCH) / (SEASON_DAYS * 864e5))); },
+  id(now = new Date()) { return Math.max(0, (now.getFullYear() - SEASON_START.y) * 12 + now.getMonth() - SEASON_START.m); },
   name(id = this.id()) { return SEASON_NAMES[id] || 'Season ' + (id + 1); },
-  endsAt(id = this.id()) { return SEASON_EPOCH + (id + 1) * SEASON_DAYS * 864e5; },
+  endsAt(id = this.id()) { return new Date(SEASON_START.y, SEASON_START.m + id + 1, 1).getTime(); },   // midnight on the 1st of the next month
   daysLeft() { return Math.max(0, Math.ceil((this.endsAt() - Date.now()) / 864e5)); },
 };
 // FortBux for a good Battle Royale: better finishes and eliminations pay more, and the higher your rank the
@@ -1563,6 +1564,9 @@ const Profile = {
     this.save();
   },
   ticket() { return this.d.ticketSeason === Season.id(); },
+  // the first time you open FortDay each day: +DAILY_XP (returns what addXp gave, or null if already collected today)
+  today() { const t = new Date(); return t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate(); },
+  daily() { const d = this.d, k = this.today(); if (!(k > (d.lastDaily || 0))) return null; d.lastDaily = k; const lv = this.addXp(DAILY_XP); this.save(); return lv; },
   tier() { return 1 + Math.floor(this.d.seasonXp / XP_PER_LEVEL); },
   // add XP; every level gained pays FortBux and makes that level's pass item yours for good
   addXp(n) {
@@ -7861,7 +7865,7 @@ const Match = {
   state: 'lobby', mode: 'solo', build: true, ranked: false, theme: 'greenvale', time: 0, aliveCount: 0, teamsAlive: 0,
   score: [0, 0], ending: false, endT: 0, spectate: null, paused: false, result: null, deathShown: false, hasWinner: false,
   start(o) {
-    Object.assign(this, o); if (this.mode !== 'tutorial') { MapRotation.began(); Track.matches++; }   // the 30-day island timer starts with a player's first match
+    Object.assign(this, o); if (this.mode !== 'tutorial') { MapRotation.began(); Track.matches++; CloudSave.logPlay('match'); }   // the 30-day island timer starts with a player's first match
     this.state = 'loading'; $('loading').hidden = false; $('lobby').hidden = true; $('ldFill').style.width = '15%';
     $('ldMsg').textContent = 'Raising ' + THEMES[this.theme].name + '…';
     Sfx.init();
@@ -9211,7 +9215,7 @@ const CloudSave = {
     if (Social.user !== u) return;   // signed out (or into another account) while loading
     if (error) { console.warn('FortDay cloud save is not set up yet (run supabase/schema.sql again):', error.message); return; }
     const d = Profile.d, cloud = data && typeof data === 'object' ? data : null;
-    const mine = d.acct === u.id, other = d.acct && d.acct !== u.id;   // this browser's save belongs to this account / to someone else's account
+    const mine = d.acct === u.id, other = d.acct && d.acct !== u.id, daily0 = d.lastDaily || 0;   // this browser's save belongs to this account / to someone else's account
     let msg = '';
     if (cloud && (other || this.score(cloud) > this.score(d))) {
       // the account's save is the real one: take its progress, keep this device's settings
@@ -9231,13 +9235,16 @@ const CloudSave = {
       if (cloud) d.owned = Object.assign({}, cloud.owned || {}, d.owned);   // this browser is ahead: keep it, plus anything the account owned
       if (!mine) msg = 'Your progress is now saved to your account. Sign in on any device to keep playing where you left off.';
     }
-    d.acct = u.id; this.on = true;
+    if (!other) d.lastDaily = Math.max(d.lastDaily || 0, daily0);   // today's daily bonus counts once, whichever save wins
+    d.acct = u.id; this.on = true; this.logPlay('visit');
     try { localStorage.setItem('stormbreak.v1', JSON.stringify(d)); } catch (e) { /* ignore */ }
     if (typeof Profile.syncSeason === 'function') Profile.syncSeason();
     Lobby.refresh(); HUD.dirty = true;
     await this.upload();
     if (msg) Social.note(msg);
   },
+  // for the owner's player list (Supabase: owner.player_activity): a visit when you sign in, a match each time you drop in
+  logPlay(kind) { if (!this.on || !Social.sb) return; Social.sb.rpc('log_play', { kind }).then(({ error }) => { if (error) console.warn('FortDay play log:', error.message); }, () => {}); },
   signedOut() { this.on = false; this.uid = null; clearTimeout(this.timer); },
   // every Profile.save() while signed in: upload a few seconds later (many saves in a row become one upload)
   dirty() { if (!this.on) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.upload(), 4000); },
@@ -10635,6 +10642,7 @@ const Lobby = {
     }
     const tier = Profile.tier();
     Profile.syncSeason();
+    { const dl = Profile.daily(); if (dl) { setTimeout(() => Social.note('Daily bonus: +' + DAILY_XP + ' XP for hopping on FortDay today!' + (dl.l1 > dl.l0 ? ' Level ' + dl.l1 + '!' : '')), 600); Sfx.init(); } }
     $('tierLbl').textContent = 'Level ' + tier; $('tierFill').style.width = ((d.seasonXp % XP_PER_LEVEL) / XP_PER_LEVEL * 100) + '%';
     [...$('modeGrid').children].forEach(b => b.classList.toggle('on', b.dataset.mode === d.mode));
     [...$('buildSeg').children].forEach(b => b.classList.toggle('on', (b.dataset.build === '1') === d.build));

@@ -214,6 +214,44 @@ begin
   on conflict (id) do update set data = excluded.data, updated_at = now();
 end $$;
 
+-- ---------------------------------------------------------------- who has played (for the owner only)
+-- Every signed-in player: visits (each time they sign in or open the game signed in), matches and days played.
+-- Players can't read this table. The owner sees it with emails in the Supabase dashboard:
+--   SQL Editor → select * from owner.player_activity;   (or Table Editor → schema "owner")
+create table if not exists public.plays (
+  id uuid primary key references public.profiles (id) on delete cascade,
+  visits integer not null default 0,
+  matches integer not null default 0,
+  days integer not null default 0,
+  first_played timestamptz not null default now(),
+  last_played timestamptz not null default now(),
+  last_day date
+);
+alter table public.plays enable row level security;   -- no policies: nobody reads it through the game
+
+create or replace function public.log_play(kind text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or not exists (select 1 from profiles where id = auth.uid()) then return; end if;
+  insert into plays (id, visits, matches, days, last_day)
+  values (auth.uid(), case when kind = 'visit' then 1 else 0 end, case when kind = 'match' then 1 else 0 end, 1, current_date)
+  on conflict (id) do update set
+    visits = plays.visits + case when kind = 'visit' then 1 else 0 end,
+    matches = plays.matches + case when kind = 'match' then 1 else 0 end,
+    days = plays.days + case when plays.last_day is distinct from current_date then 1 else 0 end,
+    last_day = current_date, last_played = now();
+end $$;
+
+-- the owner's list, with emails: lives in its own schema, which the game's API can't reach
+create schema if not exists owner;
+revoke all on schema owner from public, anon, authenticated;
+create or replace view owner.player_activity as
+  select u.email, p.username, coalesce(pl.matches, 0) as matches, coalesce(pl.visits, 0) as visits, coalesce(pl.days, 0) as days_played,
+         pl.first_played, pl.last_played, u.created_at as signed_up
+  from auth.users u join public.profiles p on p.id = u.id left join public.plays pl on pl.id = u.id
+  order by pl.last_played desc nulls last;
+revoke all on owner.player_activity from public, anon, authenticated;
+
 -- ---------------------------------------------------------------- who may call what
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
 revoke execute on function public.are_friends(uuid, uuid) from public, anon, authenticated;
@@ -223,7 +261,7 @@ do $$
 declare f text;
 begin
   foreach f in array array['social_state()', 'search_players(text)', 'send_friend_request(uuid)', 'respond_friend_request(bigint, boolean)',
-    'cancel_friend_request(bigint)', 'remove_friend(uuid)', 'set_email_notify(boolean)', 'send_party_invite(uuid, text)', 'dismiss_party_invite(bigint)', 'load_progress()', 'save_progress(jsonb)'] loop
+    'cancel_friend_request(bigint)', 'remove_friend(uuid)', 'set_email_notify(boolean)', 'send_party_invite(uuid, text)', 'dismiss_party_invite(bigint)', 'load_progress()', 'save_progress(jsonb)', 'log_play(text)'] loop
     execute 'revoke execute on function public.' || f || ' from public, anon';
     execute 'grant execute on function public.' || f || ' to authenticated';
   end loop;

@@ -318,16 +318,17 @@ async function redeemCode(raw) {
 }
 function itemPrice(c) { return c.price || RARITY_PRICE[c.r] || 0; }
 const COIN = 'FortBux';
-const PASS_TIERS = 30, XP_PER_TIER = 5000, XP_PER_LEVEL = 5000, LEVEL_COINS = 50, MATCH_COINS_MAX = 100, PASS_PRICE = 5000, PASS_USD = '$1',
+const PASS_TIERS = 30, XP_PER_TIER = 5000, XP_PER_LEVEL = 50000, DAILY_XP = 500, LEVEL_COINS = 50, MATCH_COINS_MAX = 100, PASS_PRICE = 5000, PASS_USD = '$1',
   // the $1 checkout page (e.g. a Stripe Payment Link). After paying it should send the buyer back to
   // https://ejpeakin.github.io/FortDay/?bp=<this season's checkout code>, which unlocks the pass automatically.
   PASS_PAY_URL = '', PASS_RANK = 4 /* Diamond */, TICKET_CHANCE = 1 / 10000, CHEST_SKIN = 'nightwarden', CHEST_SKIN_CHANCE = 1 / 1000;
 // ---------------------------------------------------------------- seasons: 30 days each, the first is Music Festival 2026
-const SEASON_EPOCH = Date.UTC(2026, 10, 16), SEASON_DAYS = 30, SEASON_NAMES = ['Music Festival 2026'];
+// a new season starts on the 1st of every month (the player's own clock); Season 1 is November 2026 (it began on the 16th)
+const SEASON_START = { y: 2026, m: 10 }, SEASON_NAMES = ['Music Festival 2026'];
 const Season = {
-  id() { return Math.max(0, Math.floor((Date.now() - SEASON_EPOCH) / (SEASON_DAYS * 864e5))); },
+  id(now = new Date()) { return Math.max(0, (now.getFullYear() - SEASON_START.y) * 12 + now.getMonth() - SEASON_START.m); },
   name(id = this.id()) { return SEASON_NAMES[id] || 'Season ' + (id + 1); },
-  endsAt(id = this.id()) { return SEASON_EPOCH + (id + 1) * SEASON_DAYS * 864e5; },
+  endsAt(id = this.id()) { return new Date(SEASON_START.y, SEASON_START.m + id + 1, 1).getTime(); },   // midnight on the 1st of the next month
   daysLeft() { return Math.max(0, Math.ceil((this.endsAt() - Date.now()) / 864e5)); },
 };
 // FortBux for a good Battle Royale: better finishes and eliminations pay more, and the higher your rank the
@@ -394,6 +395,9 @@ const Profile = {
     this.save();
   },
   ticket() { return this.d.ticketSeason === Season.id(); },
+  // the first time you open FortDay each day: +DAILY_XP (returns what addXp gave, or null if already collected today)
+  today() { const t = new Date(); return t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate(); },
+  daily() { const d = this.d, k = this.today(); if (!(k > (d.lastDaily || 0))) return null; d.lastDaily = k; const lv = this.addXp(DAILY_XP); this.save(); return lv; },
   tier() { return 1 + Math.floor(this.d.seasonXp / XP_PER_LEVEL); },
   // add XP; every level gained pays FortBux and makes that level's pass item yours for good
   addXp(n) {
