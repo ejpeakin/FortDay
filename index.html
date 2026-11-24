@@ -1166,7 +1166,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1124-1546';
+const BUILD_ID = '1124-1559';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -1398,9 +1398,9 @@ const COS = {
     { id: 'toast', build: 'average', name: 'Sir Toastworth', r: 3, shirt: 0xc98a3c, pants: 0x6b4a2b, skin: 0xf2d29b, sleeve: 0xc98a3c, hat: 'toast', hatC: 0xb06a2a, head: [1.7, 1.55, 0.5], unlock: 'tier:14' },
     // chest find only: a 1 in 1,000 roll on any chest you open, once per player (never sold, no code, not on the Pass)
     // rockstar in black and red: his black horns over black dreads with red-dyed tips, black long-sleeve with a red winged
-    // emblem and red sleeve stripes, black jeans with a red side stripe, silver chain with a red star, PLAY on the back
+    // emblem and red sleeve stripes, black jeans with a red side stripe, silver chain with a red star, I AM MUSIC in white on the back
     { id: 'nightwarden', build: 'slim', name: 'Play Carti', r: 5, shirt: 0x131317, pants: 0x141418, skin: 0x6a4330, sleeve: 0x131317, hair: 0x0c0b0d,
-      hat: 'dreads', hatC: 0x0c0b0d, tip: 0xd0142c, tipCut: [17, 18], hairSeed: 9090, horns: 0x17171b, rockstar: 0xd0142c, chain: 'star', back: 'PLAY', backFill: '#d0142c', backEdge: '#0c0b0d', personal: true, unlock: 'chest' },
+      hat: 'dreads', hatC: 0x0c0b0d, tip: 0xd0142c, tipCut: [17, 18], hairSeed: 9090, horns: 0x17171b, rockstar: 0xd0142c, chain: 'star', back: 'I AM MUSIC', backFill: '#ffffff', backEdge: '#0c0b0d', personal: true, unlock: 'chest' },
     { id: 'tycoon', build: 'heavy', hair: 0x1a1a1a, name: 'Gilt Tycoon', r: 4, shirt: 0xd4a72c, pants: 0xd4a72c, skin: 0xe8c06a, sleeve: 0x1a1a1a, hat: 'tophat', hatC: 0x1a1a1a, unlock: 'tier:25' },
     { id: 'stormborn', build: 'average', hair: 0x0e0e10, name: 'Pluma Peso', r: 4, shirt: 0x141416, pants: 0x17181d, skin: 0xf1cdb0, sleeve: 0x141416, hat: 'none', hoodie: true, jeans: true, shiesty: 0x0e0e10, sneakers: 0xf6f6f4, unlock: 'tier:30' },
     { id: 'nova', build: 'average', name: 'Juice Earth', r: 4, shirt: 0xf3f2ee, pants: 0xe8731e, skin: 0x70482f, sleeve: 0xf3f2ee,
@@ -3661,16 +3661,22 @@ function tieDyeMat() {
   const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2, 1);
   return (_tieDyeMat = new THREE.MeshLambertMaterial({ map: tex }));
 }
+// chain path round the neck (torso space): back/low = height at the back of the neck and at the bottom of the front dip,
+// rx/rz/cz = the loop round the neck, p = how quickly it drops toward the front, pinch = narrows the front into a U
+const CHAIN = { back: 0.7, low: 0.54, rx: 0.118, rz: 0.104, cz: 0.005, p: 2.2, pinch: 0.35 };
 let CHAIN_Z = 0.012, BACK_Z = -0.205, COLLAR = [0.082, 0.112, 0.085, 0.682, 0.005];   // collar: top radius, bottom radius, height, y, z
 // big block print for the back of a shirt (e.g. 999), dark letters with an outline
 function backPrint(txt, w, h, fill = '#111114', edge = '#e8731e') {
+  const tex = new THREE.CanvasTexture(backPrintCanvas(txt, fill, edge));
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+}
+function backPrintCanvas(txt, fill = '#111114', edge = '#e8731e') {
   const c = document.createElement('canvas'); c.width = 512; c.height = 256;
   const x = c.getContext('2d'); let fs = 190; const font = () => { x.font = '900 ' + fs + 'px "Arial Black", Impact, "Helvetica Neue", sans-serif'; }; font();
   while (x.measureText(txt).width > 450 && fs > 70) { fs -= 10; font(); }   // longer words shrink to fit
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.lineJoin = 'round'; x.lineWidth = 22; x.strokeStyle = edge; x.strokeText(txt, 256, 138); x.fillStyle = fill; x.fillText(txt, 256, 138);
-  const tex = new THREE.CanvasTexture(c);
-  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+  return c;
 }
 function textDecal(txt, w, h, color = '#e8e8ee', font) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 128;
@@ -3783,12 +3789,12 @@ function spikesModel(o, head) {
   head.add(mergedColored(L));
 }
 // two horns straight out of the top of the head (a hat of their own, or on top of hair with horns: true)
-function hornsModel(o, head, hs, c, k = 1) {   // k: longer horns so they stand clear of thick hair
+function hornsModel(o, head, hs, c, k = 1, w = 1) {   // k: longer horns so they stand clear of thick hair, w: thicker
   const top = 0.25 * hs[1], mat = new THREE.MeshPhongMaterial({ color: c, shininess: 40, specular: 0x3a3a44 });
-  for (const sx of [-1, 1]) { const g = new THREE.ConeGeometry(0.075, 0.396 * k, 10).translate(0, 0.188 * k, 0); const m = new THREE.Mesh(g, mat); m.position.set(sx * 0.12, top - 0.07, 0.02); m.rotation.z = -sx * 0.55; m.rotation.x = -0.12; m.castShadow = true; head.add(m); }
+  for (const sx of [-1, 1]) { const g = new THREE.ConeGeometry(0.075 * w, 0.396 * k, 10).translate(0, 0.188 * k, 0); const m = new THREE.Mesh(g, mat); m.position.set(sx * 0.12, top - 0.07, 0.02); m.rotation.z = -sx * 0.55; m.rotation.x = -0.12; m.castShadow = true; head.add(m); }
 }
 function hatModel(o, head, hs, skn) {
-  if (o.hat === 'dreads') { dreadsModel(o, head, skn); if (o.horns) hornsModel(o, head, hs, o.horns, 1.2); return; }
+  if (o.hat === 'dreads') { dreadsModel(o, head, skn); if (o.horns) hornsModel(o, head, hs, o.horns, 1.44, 1.2); return; }
   if (o.hat === 'afro') { afroModel(o, head); return; }
   if (o.hat === 'spikes') { spikesModel(o, head); return; }
   const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; head.add(m); return m; };
@@ -4024,6 +4030,23 @@ function heldModel(hid) {
 
 // skinned = true builds only what sits on top of the uploaded body model (face, hair, hats, chain, hood, pack, tools);
 // clothes and boots are painted onto the model by CharModel instead.
+// the pendant hanging from a chain: crescent moon (gold), red star (star) or a 999 plate (silver); centred at (0, py, pz), facing +z
+function chainPendant(o, parent, py, pz) {
+  const B = (w, h, d) => new THREE.BoxGeometry(w, h, d), M = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, typeof mat === 'number' ? lam(mat) : mat); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; };
+  if (o.chain === 'gold') {   // crescent moon pendant
+    const moon = new THREE.Shape(); moon.absarc(0, 0, 0.032, Math.PI * 0.35, Math.PI * 1.65, false); moon.absarc(0.016, 0, 0.026, Math.PI * 1.55, Math.PI * 0.45, true);
+    const mg = new THREE.ExtrudeGeometry(moon, { depth: 0.008, bevelEnabled: false }); const pm = M(mg, new THREE.MeshPhongMaterial({ color: 0xf0c64a, shininess: 80, specular: 0x8a6a20 }), 0, py - 0.005, pz - 0.004); pm.rotation.z = -0.3;
+  } else if (o.chain === 'star') {   // red five-point star in a silver setting
+    const star = (R, r) => { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * q, Math.sin(a) * q); } s.closePath(); return s; };
+    M(new THREE.ExtrudeGeometry(star(0.04, 0.017), { depth: 0.006, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: 0xe6eaf0, shininess: 90, specular: 0x9aa0aa }), 0, py - 0.008, pz - 0.006);
+    M(new THREE.ExtrudeGeometry(star(0.031, 0.013), { depth: 0.004, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: o.rockstar || 0xd0142c, emissive: 0x3a0006, shininess: 60 }), 0, py - 0.008, pz + 0.002);
+  } else {
+    M(B(0.122, 0.058, 0.008), 0xd9dee5, 0, py, pz - 0.002);                  // silver rim
+    M(B(0.108, 0.045, 0.006), 0x1e2127, 0, py, pz + 0.002);                  // dark face
+    const pend = textDecal('999', 0.1, 0.05, '#f4f6f8', '900 100px "Arial Black", Impact, sans-serif'); pend.position.set(0, py, pz + 0.0065); parent.add(pend);
+    for (const sx of [-1, 1]) M(new THREE.CylinderGeometry(0.006, 0.006, 0.01, 8).rotateX(Math.PI / 2), 0xeef1f5, sx * 0.052, py + 0.022, pz + 0.004);   // bails the chain hangs from
+  }
+}
 function buildCharacter(eq, skinned) {
   let o = cosById('outfit', eq.outfit); const G = rigGeo(), SKN = !!skinned;
   if (eq.body === 'man' && o.hat === 'bun' && !o.personal) o = Object.assign({}, o, { hat: 'none' });   // the man version keeps short hair
@@ -4111,33 +4134,29 @@ function buildCharacter(eq, skinned) {
     const logo = textDecal('999', 0.085, 0.042); logo.position.set(tx, ty, tz + 0.008); logo.rotation.y = Math.atan2(tx / (JX * JX), tz / (JZ * JZ)); torso.add(logo);
   }
   // big print across the back of the shirt
-  if (o.back) { const bp = backPrint(o.back, SKN ? 0.3 / 0.7 : 0.3, 0.15, o.backFill || '#111114', o.backEdge || '#e8731e'); bp.position.set(0, 0.4, SKN ? BACK_Z : -torsoR(0.36) * 0.66 - 0.006); bp.rotation.y = Math.PI; torso.add(bp); }
-  // chunky silver chain hanging in a U, with a 999 pendant
-  if (o.chain) {
-    const links = [], N = 19, W = 0.07, TOP = 0.61, DROP = 0.11;
-    for (let i = 0; i < N; i++) {
-      const a = lerp(-Math.PI / 2, Math.PI / 2, i / (N - 1)), x = W * Math.sin(a), y = TOP - DROP * Math.cos(a);
-      const z = front(y) * Math.sqrt(Math.max(0, 1 - (x / (1.12 * Math.max(0.05, torsoR(y)))) ** 2)) + 0.016 + (SKN ? CHAIN_Z : 0);   // sits on the shirt of the uploaded body
+  if (o.back && !SKN) { const bp = backPrint(o.back, SKN ? 0.3 / 0.7 : 0.3, 0.15, o.backFill || '#111114', o.backEdge || '#e8731e'); bp.position.set(0, 0.4, SKN ? BACK_Z : -torsoR(0.36) * 0.66 - 0.006); bp.rotation.y = Math.PI; torso.add(bp); }
+  // chunky chain that goes all the way round the neck: high around the back and sides of the neck, draping down onto the chest
+  if (o.chain && !SKN) {   // (the skinned character drapes its chain on the shirt: CharModel.chainOn)
+    const C = CHAIN, links = [], pts = [], N = 64;
+    const chest = (x, y) => front(y) * Math.sqrt(Math.max(0, 1 - (x / (1.12 * Math.max(0.05, torsoR(y)))) ** 2)) + 0.016 + (SKN ? CHAIN_Z : 0);   // the shirt's surface
+    for (let i = 0; i <= N; i++) {
+      const th = i / N * TAU, f = Math.pow((1 + Math.cos(th)) / 2, C.p);   // th 0 = front; f is 1 at the front, 0 at the back
+      const x = C.rx * Math.sin(th) * (1 - f * C.pinch), y = C.back - (C.back - C.low) * f;
+      let z = C.cz + C.rz * Math.cos(th); if (Math.cos(th) > 0) z = Math.max(z, chest(x, y));
+      pts.push(new THREE.Vector3(x, y, z));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts, true), M_ = Math.round(curve.getLength() / 0.021), up = new THREE.Vector3(), t = new THREE.Vector3(), n = new THREE.Vector3(), bn = new THREE.Vector3(), mtx = new THREE.Matrix4();
+    for (let i = 0; i < M_; i++) {
+      const u = i / M_, p = curve.getPointAt(u); curve.getTangentAt(u, t);
+      n.set(p.x, 0, p.z - C.cz).normalize(); bn.crossVectors(t, n).normalize(); n.crossVectors(bn, t).normalize();   // n: out from the neck / chest
       const g = new THREE.TorusGeometry(0.0105, 0.0045, 5, 8); g.scale(1.35, 1, 1);
-      if (i % 2) g.rotateX(Math.PI / 2);
-      g.rotateZ(Math.atan2(DROP * Math.sin(a), W * Math.cos(a))); g.translate(x, y, z);
+      if (i % 2) mtx.makeBasis(t, n, up.crossVectors(t, n)); else mtx.makeBasis(t, bn, n);   // links alternate flat and edge-on
+      g.applyMatrix4(mtx); g.translate(p.x, p.y, p.z);
       links.push([g, o.chain === 'gold' ? (i % 2 ? 0xc9962a : 0xf2d27a) : (i % 2 ? 0xc4cad2 : 0xeef1f5)]);
     }
     torso.add(mergedColored(links));
-    const py = TOP - DROP - 0.035, pz = front(py) + 0.02 + (SKN ? CHAIN_Z : 0);
-    if (o.chain === 'gold') {   // crescent moon pendant
-      const moon = new THREE.Shape(); moon.absarc(0, 0, 0.032, Math.PI * 0.35, Math.PI * 1.65, false); moon.absarc(0.016, 0, 0.026, Math.PI * 1.55, Math.PI * 0.45, true);
-      const mg = new THREE.ExtrudeGeometry(moon, { depth: 0.008, bevelEnabled: false }); const pm = M(mg, new THREE.MeshPhongMaterial({ color: 0xf0c64a, shininess: 80, specular: 0x8a6a20 }), 0, py - 0.005, pz - 0.004, torso); pm.rotation.z = -0.3;
-    } else if (o.chain === 'star') {   // red five-point star in a silver setting
-      const star = (R, r) => { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * q, Math.sin(a) * q); } s.closePath(); return s; };
-      M(new THREE.ExtrudeGeometry(star(0.04, 0.017), { depth: 0.006, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: 0xe6eaf0, shininess: 90, specular: 0x9aa0aa }), 0, py - 0.008, pz - 0.006, torso);
-      M(new THREE.ExtrudeGeometry(star(0.031, 0.013), { depth: 0.004, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: o.rockstar || 0xd0142c, emissive: 0x3a0006, shininess: 60 }), 0, py - 0.008, pz + 0.002, torso);
-    } else {
-      M(B(0.122, 0.058, 0.008), 0xd9dee5, 0, py, pz - 0.002, torso);                  // silver rim
-      M(B(0.108, 0.045, 0.006), 0x1e2127, 0, py, pz + 0.002, torso);                  // dark face
-      const pend = textDecal('999', 0.1, 0.05, '#f4f6f8', '900 100px "Arial Black", Impact, sans-serif'); pend.position.set(0, py, pz + 0.0065); torso.add(pend);
-      for (const sx of [-1, 1]) M(new THREE.CylinderGeometry(0.006, 0.006, 0.01, 8).rotateX(Math.PI / 2), 0xeef1f5, sx * 0.052, py + 0.022, pz + 0.004, torso);   // bails the chain hangs from
-    }
+    const py = C.low - 0.035, pz = chest(0, py) + 0.006;
+    chainPendant(o, torso, py, pz);
   }
   if (o.chestLogo) {   // small print on the left of the chest
     const y = 0.5, lx = 0.085, lz = front(y) * Math.sqrt(Math.max(0, 1 - (lx / (1.12 * Math.max(0.05, torsoR(y)))) ** 2)) + 0.012 + (SKN ? CHAIN_Z : 0);
@@ -6287,6 +6306,12 @@ const Creatures = {
 //  Accessories (hair, hats, face, chains, backpacks, pickaxes, guns) ride on its bones.
 //  Falls back to the procedural rig (buildCharacter) if the model cannot load.
 // =====================================================================
+// chains on the skinned character: collar = how far down from the top of the collar it sits at the back, low = height
+// (model units) of the bottom of the front dip, p = how quickly it drops toward the front, drop = pendant below the dip,
+// lift = gap off the shirt, pitch = link spacing, size = link scale
+const CHAIN_SKN = { collar: 0.15, low: 1.41, p: 3, drop: 0.9, lift: 0.007, pitch: 0.017, size: 0.7 };
+// the big back print on the skinned character (model units): width, height, centre height, only the back (z < zc), gap off the shirt
+const BACK_PRINT_SKN = { w: 0.3, h: 0.15, y: 1.3, zc: -0.03, lift: 0.002 };
 const CharModel = {
   ready: false, gltf: null, clips: {}, K: 1, mats: new Map(), frames: {},
   // Regions of the body and where each one lives in the 256px skin atlas: [x, y, w, h]
@@ -6675,6 +6700,7 @@ const CharModel = {
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(sIdx, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sWt, 4));
     g.setIndex(index); g.computeVertexNormals(); g.computeBoundingSphere();
+    g.userData.torso = { RN, TC, ys: ringsY };   // the first RN x (TC + 1) vertices are the torso rings (chains and back prints sit on them)
     return g;
   },
   // ---- skin atlas painting
@@ -6834,10 +6860,93 @@ const CharModel = {
     A.pick.position.set(0, -0.005, 0.02); A.pick.rotation.x = 1.3; R.mHandR.add(A.pick); R.pick = A.pick;
     A.held.position.set(0, -0.015, 0.07); R.mHandL.add(A.held); R.held = A.held;
     R.body.add(A.gun); R.gun = A.gun; R.body.add(A.glider); R.glider = A.glider;
+    if (o.chain) this.chainOn(R, o);
+    if (o.back) this.backDecal(R, o);
     // box-headed skins (Sir Toastworth): tuck the real head away inside the box
     if (cosById('outfit', eq.outfit).head) { const k = 0.3; R.B.head.scale.setScalar(k); R.mHead.position.multiplyScalar(1 / k); R.mHead.scale.multiplyScalar(1 / k); }
     R.root.traverse(m => { if (m.isMesh) m.castShadow = true; });
     return R;
+  },
+  // ---- things that sit on the shirt, measured from the shirt itself at rest
+  // the torso rings of the shirt in world space: P[row][col], rows up the body (the last two are the collar), cols around it
+  shirtGrid(R) {
+    const T = R.shirt.geometry.userData.torso; if (!T) return null;
+    R.root.updateMatrixWorld(true); R.shirt.skeleton.update();
+    const P = [];
+    for (let i = 0; i < T.RN; i++) { const row = []; for (let j = 0; j <= T.TC; j++) { const v = new THREE.Vector3(); R.shirt.boneTransform(i * (T.TC + 1) + j, v); row.push(v.applyMatrix4(R.shirt.matrixWorld)); } P.push(row); }
+    const cen = P.map(row => row.slice(0, T.TC).reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / T.TC));   // each ring's middle
+    return { P, cen, RN: T.RN, TC: T.TC, ys: T.ys };
+  },
+  // a point on the shirt at (row r, col c), both fractional, and the way out from the body there
+  shirtAt(G, r, c, out, nrm) {
+    const TC = G.TC; c = ((c % TC) + TC) % TC; r = Math.max(0, Math.min(G.RN - 1.0001, r));
+    const i = Math.floor(r), j = Math.floor(c), fr = r - i, fc = c - j, P = G.P;
+    const a = P[i][j], b = P[i][j + 1], d = P[i + 1][j], e = P[i + 1][j + 1];
+    out.set(0, 0, 0).addScaledVector(a, (1 - fr) * (1 - fc)).addScaledVector(b, (1 - fr) * fc).addScaledVector(d, fr * (1 - fc)).addScaledVector(e, fr * fc);
+    if (nrm) {
+      const du = new THREE.Vector3().subVectors(b, a).add(new THREE.Vector3().subVectors(e, d)), dv = new THREE.Vector3().subVectors(d, a).add(new THREE.Vector3().subVectors(e, b));
+      nrm.crossVectors(du, dv).normalize();
+      const cc = new THREE.Vector3().lerpVectors(G.cen[i], G.cen[i + 1], fr); if (nrm.dot(out.clone().sub(cc)) < 0) nrm.negate();
+    }
+    return out;
+  },
+  // a chain that goes round the neck on the collar, over the tops of the shoulders and down onto the chest
+  chainOn(R, o) {
+    const G = this.shirtGrid(R); if (!G) return;
+    const C = CHAIN_SKN, s = this.K * C.size, N = 120, pts = [], nrms = [];
+    const rBack = G.RN - 1 - C.collar, rowAt = y => { let i = 0; while (i < G.ys.length - 2 && G.ys[i + 1] < y) i++; return i + (y - G.ys[i]) / (G.ys[i + 1] - G.ys[i]); }, rFront = rowAt(C.low);
+    for (let k = 0; k < N; k++) {
+      const th = k / N * TAU, f = Math.pow((1 + Math.cos(th)) / 2, C.p);   // th 0 = front, f: 1 at the front, 0 at the back
+      const p = new THREE.Vector3(), n = new THREE.Vector3();
+      this.shirtAt(G, rBack - (rBack - rFront) * f, (th / TAU + 0.5) * G.TC, p, n);
+      pts.push(p.addScaledVector(n, C.lift * s)); nrms.push(n);
+    }
+    const curve = new THREE.CatmullRomCurve3(pts, true), M_ = Math.round(curve.getLength() / (C.pitch * s)), links = [];
+    const t = new THREE.Vector3(), n = new THREE.Vector3(), bn = new THREE.Vector3(), w = new THREE.Vector3(), mtx = new THREE.Matrix4();
+    for (let i = 0; i < M_; i++) {
+      const u = i / M_, p = curve.getPointAt(u); curve.getTangentAt(u, t);
+      n.copy(nrms[Math.round(u * N) % N]); bn.crossVectors(t, n).normalize(); n.crossVectors(bn, t).normalize();
+      const g = new THREE.TorusGeometry(0.0105 * s, 0.0045 * s, 5, 8); g.scale(1.35, 1, 1);
+      if (i % 2) mtx.makeBasis(t, n, w.crossVectors(t, n)); else mtx.makeBasis(t, bn, n);   // links alternate flat and edge-on
+      g.applyMatrix4(mtx); g.translate(p.x, p.y, p.z);
+      links.push([g, o.chain === 'gold' ? (i % 2 ? 0xc9962a : 0xf2d27a) : (i % 2 ? 0xc4cad2 : 0xeef1f5)]);
+    }
+    const grp = new THREE.Group(); grp.add(mergedColored(links));
+    // the pendant hangs from the bottom of the loop, lying on the chest
+    const p0 = new THREE.Vector3(), n0 = new THREE.Vector3(); this.shirtAt(G, rFront - C.drop, G.TC / 2, p0, n0);
+    const pg = new THREE.Group(); chainPendant(o, pg, 0, 0); pg.scale.setScalar(s); pg.position.copy(p0).addScaledVector(n0, C.lift * s * 0.6);
+    pg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n0); grp.add(pg);
+    grp.traverse(m => { if (m.isMesh) m.castShadow = true; });
+    // built in world space at rest: hang it on the torso mount so it moves with the chest
+    R.mTorso.updateMatrixWorld(true); grp.matrixAutoUpdate = false; grp.matrix.copy(R.mTorso.matrixWorld).invert(); R.mTorso.add(grp); R.chain = grp;
+  },
+  // the big print across the back, printed onto the shirt: a patch cut from the shirt itself, so it bends with it
+  backDecal(R, o) {
+    const g = R.shirt.geometry, T = g.userData.torso; if (!T) return;
+    const P = g.attributes.position, Nm = g.attributes.normal, SI = g.attributes.skinIndex, SW = g.attributes.skinWeight, BP = BACK_PRINT_SKN;
+    const pos = [], uv = [], nrm = [], si = [], sw = [], index = [], seen = new Map();
+    const inside = k => P.getZ(k) < BP.zc && Math.abs(P.getX(k)) < BP.w * 0.62 && Math.abs(P.getY(k) - BP.y) < BP.h * 0.62;
+    const vid = k => {
+      if (seen.has(k)) return seen.get(k);
+      const x = P.getX(k), y = P.getY(k), z = P.getZ(k), nx = Nm.getX(k), ny = Nm.getY(k), nz = Nm.getZ(k), sg = nz < 0 ? 1 : -1;   // push out the back
+      pos.push(x + nx * sg * BP.lift, y + ny * sg * BP.lift, z + nz * sg * BP.lift); nrm.push(nx * sg, ny * sg, nz * sg);
+      uv.push(0.5 - x / BP.w, (y - BP.y) / BP.h + 0.5);
+      si.push(SI.getX(k), SI.getY(k), SI.getZ(k), SI.getW(k)); sw.push(SW.getX(k), SW.getY(k), SW.getZ(k), SW.getW(k));
+      seen.set(k, pos.length / 3 - 1); return pos.length / 3 - 1;
+    };
+    const W1 = T.TC + 1;
+    for (let i = 0; i < T.RN - 1; i++) for (let j = 0; j < T.TC; j++) {
+      const a = i * W1 + j, b = a + 1, c = a + W1, d = c + 1;
+      if (![a, b, c, d].every(inside)) continue;
+      const A = vid(a), B = vid(b), C = vid(c), D = vid(d); index.push(A, C, B, B, C, D);
+    }
+    if (!index.length) return;
+    const dg = new THREE.BufferGeometry();
+    dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); dg.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3)); dg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    dg.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); dg.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4)); dg.setIndex(index);
+    const tex = new THREE.CanvasTexture(backPrintCanvas(o.back, o.backFill || '#111114', o.backEdge || '#e8731e')); tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    const mat = new THREE.MeshLambertMaterial({ map: tex, skinning: true, transparent: true, alphaTest: 0.04, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
+    const m = new THREE.SkinnedMesh(dg, mat); m.bind(R.mesh.skeleton, R.mesh.bindMatrix); m.frustumCulled = false; R.mesh.parent.add(m); R.backPrint = m;
   },
   // ---- light character for nearby bots: body, face, hair, backpack, plain gun, glider
   makeLite() {

@@ -3,6 +3,12 @@
 //  Accessories (hair, hats, face, chains, backpacks, pickaxes, guns) ride on its bones.
 //  Falls back to the procedural rig (buildCharacter) if the model cannot load.
 // =====================================================================
+// chains on the skinned character: collar = how far down from the top of the collar it sits at the back, low = height
+// (model units) of the bottom of the front dip, p = how quickly it drops toward the front, drop = pendant below the dip,
+// lift = gap off the shirt, pitch = link spacing, size = link scale
+const CHAIN_SKN = { collar: 0.15, low: 1.41, p: 3, drop: 0.9, lift: 0.007, pitch: 0.017, size: 0.7 };
+// the big back print on the skinned character (model units): width, height, centre height, only the back (z < zc), gap off the shirt
+const BACK_PRINT_SKN = { w: 0.3, h: 0.15, y: 1.3, zc: -0.03, lift: 0.002 };
 const CharModel = {
   ready: false, gltf: null, clips: {}, K: 1, mats: new Map(), frames: {},
   // Regions of the body and where each one lives in the 256px skin atlas: [x, y, w, h]
@@ -391,6 +397,7 @@ const CharModel = {
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(sIdx, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sWt, 4));
     g.setIndex(index); g.computeVertexNormals(); g.computeBoundingSphere();
+    g.userData.torso = { RN, TC, ys: ringsY };   // the first RN x (TC + 1) vertices are the torso rings (chains and back prints sit on them)
     return g;
   },
   // ---- skin atlas painting
@@ -550,10 +557,93 @@ const CharModel = {
     A.pick.position.set(0, -0.005, 0.02); A.pick.rotation.x = 1.3; R.mHandR.add(A.pick); R.pick = A.pick;
     A.held.position.set(0, -0.015, 0.07); R.mHandL.add(A.held); R.held = A.held;
     R.body.add(A.gun); R.gun = A.gun; R.body.add(A.glider); R.glider = A.glider;
+    if (o.chain) this.chainOn(R, o);
+    if (o.back) this.backDecal(R, o);
     // box-headed skins (Sir Toastworth): tuck the real head away inside the box
     if (cosById('outfit', eq.outfit).head) { const k = 0.3; R.B.head.scale.setScalar(k); R.mHead.position.multiplyScalar(1 / k); R.mHead.scale.multiplyScalar(1 / k); }
     R.root.traverse(m => { if (m.isMesh) m.castShadow = true; });
     return R;
+  },
+  // ---- things that sit on the shirt, measured from the shirt itself at rest
+  // the torso rings of the shirt in world space: P[row][col], rows up the body (the last two are the collar), cols around it
+  shirtGrid(R) {
+    const T = R.shirt.geometry.userData.torso; if (!T) return null;
+    R.root.updateMatrixWorld(true); R.shirt.skeleton.update();
+    const P = [];
+    for (let i = 0; i < T.RN; i++) { const row = []; for (let j = 0; j <= T.TC; j++) { const v = new THREE.Vector3(); R.shirt.boneTransform(i * (T.TC + 1) + j, v); row.push(v.applyMatrix4(R.shirt.matrixWorld)); } P.push(row); }
+    const cen = P.map(row => row.slice(0, T.TC).reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / T.TC));   // each ring's middle
+    return { P, cen, RN: T.RN, TC: T.TC, ys: T.ys };
+  },
+  // a point on the shirt at (row r, col c), both fractional, and the way out from the body there
+  shirtAt(G, r, c, out, nrm) {
+    const TC = G.TC; c = ((c % TC) + TC) % TC; r = Math.max(0, Math.min(G.RN - 1.0001, r));
+    const i = Math.floor(r), j = Math.floor(c), fr = r - i, fc = c - j, P = G.P;
+    const a = P[i][j], b = P[i][j + 1], d = P[i + 1][j], e = P[i + 1][j + 1];
+    out.set(0, 0, 0).addScaledVector(a, (1 - fr) * (1 - fc)).addScaledVector(b, (1 - fr) * fc).addScaledVector(d, fr * (1 - fc)).addScaledVector(e, fr * fc);
+    if (nrm) {
+      const du = new THREE.Vector3().subVectors(b, a).add(new THREE.Vector3().subVectors(e, d)), dv = new THREE.Vector3().subVectors(d, a).add(new THREE.Vector3().subVectors(e, b));
+      nrm.crossVectors(du, dv).normalize();
+      const cc = new THREE.Vector3().lerpVectors(G.cen[i], G.cen[i + 1], fr); if (nrm.dot(out.clone().sub(cc)) < 0) nrm.negate();
+    }
+    return out;
+  },
+  // a chain that goes round the neck on the collar, over the tops of the shoulders and down onto the chest
+  chainOn(R, o) {
+    const G = this.shirtGrid(R); if (!G) return;
+    const C = CHAIN_SKN, s = this.K * C.size, N = 120, pts = [], nrms = [];
+    const rBack = G.RN - 1 - C.collar, rowAt = y => { let i = 0; while (i < G.ys.length - 2 && G.ys[i + 1] < y) i++; return i + (y - G.ys[i]) / (G.ys[i + 1] - G.ys[i]); }, rFront = rowAt(C.low);
+    for (let k = 0; k < N; k++) {
+      const th = k / N * TAU, f = Math.pow((1 + Math.cos(th)) / 2, C.p);   // th 0 = front, f: 1 at the front, 0 at the back
+      const p = new THREE.Vector3(), n = new THREE.Vector3();
+      this.shirtAt(G, rBack - (rBack - rFront) * f, (th / TAU + 0.5) * G.TC, p, n);
+      pts.push(p.addScaledVector(n, C.lift * s)); nrms.push(n);
+    }
+    const curve = new THREE.CatmullRomCurve3(pts, true), M_ = Math.round(curve.getLength() / (C.pitch * s)), links = [];
+    const t = new THREE.Vector3(), n = new THREE.Vector3(), bn = new THREE.Vector3(), w = new THREE.Vector3(), mtx = new THREE.Matrix4();
+    for (let i = 0; i < M_; i++) {
+      const u = i / M_, p = curve.getPointAt(u); curve.getTangentAt(u, t);
+      n.copy(nrms[Math.round(u * N) % N]); bn.crossVectors(t, n).normalize(); n.crossVectors(bn, t).normalize();
+      const g = new THREE.TorusGeometry(0.0105 * s, 0.0045 * s, 5, 8); g.scale(1.35, 1, 1);
+      if (i % 2) mtx.makeBasis(t, n, w.crossVectors(t, n)); else mtx.makeBasis(t, bn, n);   // links alternate flat and edge-on
+      g.applyMatrix4(mtx); g.translate(p.x, p.y, p.z);
+      links.push([g, o.chain === 'gold' ? (i % 2 ? 0xc9962a : 0xf2d27a) : (i % 2 ? 0xc4cad2 : 0xeef1f5)]);
+    }
+    const grp = new THREE.Group(); grp.add(mergedColored(links));
+    // the pendant hangs from the bottom of the loop, lying on the chest
+    const p0 = new THREE.Vector3(), n0 = new THREE.Vector3(); this.shirtAt(G, rFront - C.drop, G.TC / 2, p0, n0);
+    const pg = new THREE.Group(); chainPendant(o, pg, 0, 0); pg.scale.setScalar(s); pg.position.copy(p0).addScaledVector(n0, C.lift * s * 0.6);
+    pg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n0); grp.add(pg);
+    grp.traverse(m => { if (m.isMesh) m.castShadow = true; });
+    // built in world space at rest: hang it on the torso mount so it moves with the chest
+    R.mTorso.updateMatrixWorld(true); grp.matrixAutoUpdate = false; grp.matrix.copy(R.mTorso.matrixWorld).invert(); R.mTorso.add(grp); R.chain = grp;
+  },
+  // the big print across the back, printed onto the shirt: a patch cut from the shirt itself, so it bends with it
+  backDecal(R, o) {
+    const g = R.shirt.geometry, T = g.userData.torso; if (!T) return;
+    const P = g.attributes.position, Nm = g.attributes.normal, SI = g.attributes.skinIndex, SW = g.attributes.skinWeight, BP = BACK_PRINT_SKN;
+    const pos = [], uv = [], nrm = [], si = [], sw = [], index = [], seen = new Map();
+    const inside = k => P.getZ(k) < BP.zc && Math.abs(P.getX(k)) < BP.w * 0.62 && Math.abs(P.getY(k) - BP.y) < BP.h * 0.62;
+    const vid = k => {
+      if (seen.has(k)) return seen.get(k);
+      const x = P.getX(k), y = P.getY(k), z = P.getZ(k), nx = Nm.getX(k), ny = Nm.getY(k), nz = Nm.getZ(k), sg = nz < 0 ? 1 : -1;   // push out the back
+      pos.push(x + nx * sg * BP.lift, y + ny * sg * BP.lift, z + nz * sg * BP.lift); nrm.push(nx * sg, ny * sg, nz * sg);
+      uv.push(0.5 - x / BP.w, (y - BP.y) / BP.h + 0.5);
+      si.push(SI.getX(k), SI.getY(k), SI.getZ(k), SI.getW(k)); sw.push(SW.getX(k), SW.getY(k), SW.getZ(k), SW.getW(k));
+      seen.set(k, pos.length / 3 - 1); return pos.length / 3 - 1;
+    };
+    const W1 = T.TC + 1;
+    for (let i = 0; i < T.RN - 1; i++) for (let j = 0; j < T.TC; j++) {
+      const a = i * W1 + j, b = a + 1, c = a + W1, d = c + 1;
+      if (![a, b, c, d].every(inside)) continue;
+      const A = vid(a), B = vid(b), C = vid(c), D = vid(d); index.push(A, C, B, B, C, D);
+    }
+    if (!index.length) return;
+    const dg = new THREE.BufferGeometry();
+    dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); dg.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3)); dg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    dg.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); dg.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4)); dg.setIndex(index);
+    const tex = new THREE.CanvasTexture(backPrintCanvas(o.back, o.backFill || '#111114', o.backEdge || '#e8731e')); tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    const mat = new THREE.MeshLambertMaterial({ map: tex, skinning: true, transparent: true, alphaTest: 0.04, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
+    const m = new THREE.SkinnedMesh(dg, mat); m.bind(R.mesh.skeleton, R.mesh.bindMatrix); m.frustumCulled = false; R.mesh.parent.add(m); R.backPrint = m;
   },
   // ---- light character for nearby bots: body, face, hair, backpack, plain gun, glider
   makeLite() {

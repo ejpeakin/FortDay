@@ -240,16 +240,22 @@ function tieDyeMat() {
   const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2, 1);
   return (_tieDyeMat = new THREE.MeshLambertMaterial({ map: tex }));
 }
+// chain path round the neck (torso space): back/low = height at the back of the neck and at the bottom of the front dip,
+// rx/rz/cz = the loop round the neck, p = how quickly it drops toward the front, pinch = narrows the front into a U
+const CHAIN = { back: 0.7, low: 0.54, rx: 0.118, rz: 0.104, cz: 0.005, p: 2.2, pinch: 0.35 };
 let CHAIN_Z = 0.012, BACK_Z = -0.205, COLLAR = [0.082, 0.112, 0.085, 0.682, 0.005];   // collar: top radius, bottom radius, height, y, z
 // big block print for the back of a shirt (e.g. 999), dark letters with an outline
 function backPrint(txt, w, h, fill = '#111114', edge = '#e8731e') {
+  const tex = new THREE.CanvasTexture(backPrintCanvas(txt, fill, edge));
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+}
+function backPrintCanvas(txt, fill = '#111114', edge = '#e8731e') {
   const c = document.createElement('canvas'); c.width = 512; c.height = 256;
   const x = c.getContext('2d'); let fs = 190; const font = () => { x.font = '900 ' + fs + 'px "Arial Black", Impact, "Helvetica Neue", sans-serif'; }; font();
   while (x.measureText(txt).width > 450 && fs > 70) { fs -= 10; font(); }   // longer words shrink to fit
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.lineJoin = 'round'; x.lineWidth = 22; x.strokeStyle = edge; x.strokeText(txt, 256, 138); x.fillStyle = fill; x.fillText(txt, 256, 138);
-  const tex = new THREE.CanvasTexture(c);
-  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+  return c;
 }
 function textDecal(txt, w, h, color = '#e8e8ee', font) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 128;
@@ -362,12 +368,12 @@ function spikesModel(o, head) {
   head.add(mergedColored(L));
 }
 // two horns straight out of the top of the head (a hat of their own, or on top of hair with horns: true)
-function hornsModel(o, head, hs, c, k = 1) {   // k: longer horns so they stand clear of thick hair
+function hornsModel(o, head, hs, c, k = 1, w = 1) {   // k: longer horns so they stand clear of thick hair, w: thicker
   const top = 0.25 * hs[1], mat = new THREE.MeshPhongMaterial({ color: c, shininess: 40, specular: 0x3a3a44 });
-  for (const sx of [-1, 1]) { const g = new THREE.ConeGeometry(0.075, 0.396 * k, 10).translate(0, 0.188 * k, 0); const m = new THREE.Mesh(g, mat); m.position.set(sx * 0.12, top - 0.07, 0.02); m.rotation.z = -sx * 0.55; m.rotation.x = -0.12; m.castShadow = true; head.add(m); }
+  for (const sx of [-1, 1]) { const g = new THREE.ConeGeometry(0.075 * w, 0.396 * k, 10).translate(0, 0.188 * k, 0); const m = new THREE.Mesh(g, mat); m.position.set(sx * 0.12, top - 0.07, 0.02); m.rotation.z = -sx * 0.55; m.rotation.x = -0.12; m.castShadow = true; head.add(m); }
 }
 function hatModel(o, head, hs, skn) {
-  if (o.hat === 'dreads') { dreadsModel(o, head, skn); if (o.horns) hornsModel(o, head, hs, o.horns, 1.2); return; }
+  if (o.hat === 'dreads') { dreadsModel(o, head, skn); if (o.horns) hornsModel(o, head, hs, o.horns, 1.44, 1.2); return; }
   if (o.hat === 'afro') { afroModel(o, head); return; }
   if (o.hat === 'spikes') { spikesModel(o, head); return; }
   const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; head.add(m); return m; };
@@ -603,6 +609,23 @@ function heldModel(hid) {
 
 // skinned = true builds only what sits on top of the uploaded body model (face, hair, hats, chain, hood, pack, tools);
 // clothes and boots are painted onto the model by CharModel instead.
+// the pendant hanging from a chain: crescent moon (gold), red star (star) or a 999 plate (silver); centred at (0, py, pz), facing +z
+function chainPendant(o, parent, py, pz) {
+  const B = (w, h, d) => new THREE.BoxGeometry(w, h, d), M = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, typeof mat === 'number' ? lam(mat) : mat); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; };
+  if (o.chain === 'gold') {   // crescent moon pendant
+    const moon = new THREE.Shape(); moon.absarc(0, 0, 0.032, Math.PI * 0.35, Math.PI * 1.65, false); moon.absarc(0.016, 0, 0.026, Math.PI * 1.55, Math.PI * 0.45, true);
+    const mg = new THREE.ExtrudeGeometry(moon, { depth: 0.008, bevelEnabled: false }); const pm = M(mg, new THREE.MeshPhongMaterial({ color: 0xf0c64a, shininess: 80, specular: 0x8a6a20 }), 0, py - 0.005, pz - 0.004); pm.rotation.z = -0.3;
+  } else if (o.chain === 'star') {   // red five-point star in a silver setting
+    const star = (R, r) => { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * q, Math.sin(a) * q); } s.closePath(); return s; };
+    M(new THREE.ExtrudeGeometry(star(0.04, 0.017), { depth: 0.006, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: 0xe6eaf0, shininess: 90, specular: 0x9aa0aa }), 0, py - 0.008, pz - 0.006);
+    M(new THREE.ExtrudeGeometry(star(0.031, 0.013), { depth: 0.004, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: o.rockstar || 0xd0142c, emissive: 0x3a0006, shininess: 60 }), 0, py - 0.008, pz + 0.002);
+  } else {
+    M(B(0.122, 0.058, 0.008), 0xd9dee5, 0, py, pz - 0.002);                  // silver rim
+    M(B(0.108, 0.045, 0.006), 0x1e2127, 0, py, pz + 0.002);                  // dark face
+    const pend = textDecal('999', 0.1, 0.05, '#f4f6f8', '900 100px "Arial Black", Impact, sans-serif'); pend.position.set(0, py, pz + 0.0065); parent.add(pend);
+    for (const sx of [-1, 1]) M(new THREE.CylinderGeometry(0.006, 0.006, 0.01, 8).rotateX(Math.PI / 2), 0xeef1f5, sx * 0.052, py + 0.022, pz + 0.004);   // bails the chain hangs from
+  }
+}
 function buildCharacter(eq, skinned) {
   let o = cosById('outfit', eq.outfit); const G = rigGeo(), SKN = !!skinned;
   if (eq.body === 'man' && o.hat === 'bun' && !o.personal) o = Object.assign({}, o, { hat: 'none' });   // the man version keeps short hair
@@ -690,33 +713,29 @@ function buildCharacter(eq, skinned) {
     const logo = textDecal('999', 0.085, 0.042); logo.position.set(tx, ty, tz + 0.008); logo.rotation.y = Math.atan2(tx / (JX * JX), tz / (JZ * JZ)); torso.add(logo);
   }
   // big print across the back of the shirt
-  if (o.back) { const bp = backPrint(o.back, SKN ? 0.3 / 0.7 : 0.3, 0.15, o.backFill || '#111114', o.backEdge || '#e8731e'); bp.position.set(0, 0.4, SKN ? BACK_Z : -torsoR(0.36) * 0.66 - 0.006); bp.rotation.y = Math.PI; torso.add(bp); }
-  // chunky silver chain hanging in a U, with a 999 pendant
-  if (o.chain) {
-    const links = [], N = 19, W = 0.07, TOP = 0.61, DROP = 0.11;
-    for (let i = 0; i < N; i++) {
-      const a = lerp(-Math.PI / 2, Math.PI / 2, i / (N - 1)), x = W * Math.sin(a), y = TOP - DROP * Math.cos(a);
-      const z = front(y) * Math.sqrt(Math.max(0, 1 - (x / (1.12 * Math.max(0.05, torsoR(y)))) ** 2)) + 0.016 + (SKN ? CHAIN_Z : 0);   // sits on the shirt of the uploaded body
+  if (o.back && !SKN) { const bp = backPrint(o.back, SKN ? 0.3 / 0.7 : 0.3, 0.15, o.backFill || '#111114', o.backEdge || '#e8731e'); bp.position.set(0, 0.4, SKN ? BACK_Z : -torsoR(0.36) * 0.66 - 0.006); bp.rotation.y = Math.PI; torso.add(bp); }
+  // chunky chain that goes all the way round the neck: high around the back and sides of the neck, draping down onto the chest
+  if (o.chain && !SKN) {   // (the skinned character drapes its chain on the shirt: CharModel.chainOn)
+    const C = CHAIN, links = [], pts = [], N = 64;
+    const chest = (x, y) => front(y) * Math.sqrt(Math.max(0, 1 - (x / (1.12 * Math.max(0.05, torsoR(y)))) ** 2)) + 0.016 + (SKN ? CHAIN_Z : 0);   // the shirt's surface
+    for (let i = 0; i <= N; i++) {
+      const th = i / N * TAU, f = Math.pow((1 + Math.cos(th)) / 2, C.p);   // th 0 = front; f is 1 at the front, 0 at the back
+      const x = C.rx * Math.sin(th) * (1 - f * C.pinch), y = C.back - (C.back - C.low) * f;
+      let z = C.cz + C.rz * Math.cos(th); if (Math.cos(th) > 0) z = Math.max(z, chest(x, y));
+      pts.push(new THREE.Vector3(x, y, z));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts, true), M_ = Math.round(curve.getLength() / 0.021), up = new THREE.Vector3(), t = new THREE.Vector3(), n = new THREE.Vector3(), bn = new THREE.Vector3(), mtx = new THREE.Matrix4();
+    for (let i = 0; i < M_; i++) {
+      const u = i / M_, p = curve.getPointAt(u); curve.getTangentAt(u, t);
+      n.set(p.x, 0, p.z - C.cz).normalize(); bn.crossVectors(t, n).normalize(); n.crossVectors(bn, t).normalize();   // n: out from the neck / chest
       const g = new THREE.TorusGeometry(0.0105, 0.0045, 5, 8); g.scale(1.35, 1, 1);
-      if (i % 2) g.rotateX(Math.PI / 2);
-      g.rotateZ(Math.atan2(DROP * Math.sin(a), W * Math.cos(a))); g.translate(x, y, z);
+      if (i % 2) mtx.makeBasis(t, n, up.crossVectors(t, n)); else mtx.makeBasis(t, bn, n);   // links alternate flat and edge-on
+      g.applyMatrix4(mtx); g.translate(p.x, p.y, p.z);
       links.push([g, o.chain === 'gold' ? (i % 2 ? 0xc9962a : 0xf2d27a) : (i % 2 ? 0xc4cad2 : 0xeef1f5)]);
     }
     torso.add(mergedColored(links));
-    const py = TOP - DROP - 0.035, pz = front(py) + 0.02 + (SKN ? CHAIN_Z : 0);
-    if (o.chain === 'gold') {   // crescent moon pendant
-      const moon = new THREE.Shape(); moon.absarc(0, 0, 0.032, Math.PI * 0.35, Math.PI * 1.65, false); moon.absarc(0.016, 0, 0.026, Math.PI * 1.55, Math.PI * 0.45, true);
-      const mg = new THREE.ExtrudeGeometry(moon, { depth: 0.008, bevelEnabled: false }); const pm = M(mg, new THREE.MeshPhongMaterial({ color: 0xf0c64a, shininess: 80, specular: 0x8a6a20 }), 0, py - 0.005, pz - 0.004, torso); pm.rotation.z = -0.3;
-    } else if (o.chain === 'star') {   // red five-point star in a silver setting
-      const star = (R, r) => { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * q, Math.sin(a) * q); } s.closePath(); return s; };
-      M(new THREE.ExtrudeGeometry(star(0.04, 0.017), { depth: 0.006, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: 0xe6eaf0, shininess: 90, specular: 0x9aa0aa }), 0, py - 0.008, pz - 0.006, torso);
-      M(new THREE.ExtrudeGeometry(star(0.031, 0.013), { depth: 0.004, bevelEnabled: false }), new THREE.MeshPhongMaterial({ color: o.rockstar || 0xd0142c, emissive: 0x3a0006, shininess: 60 }), 0, py - 0.008, pz + 0.002, torso);
-    } else {
-      M(B(0.122, 0.058, 0.008), 0xd9dee5, 0, py, pz - 0.002, torso);                  // silver rim
-      M(B(0.108, 0.045, 0.006), 0x1e2127, 0, py, pz + 0.002, torso);                  // dark face
-      const pend = textDecal('999', 0.1, 0.05, '#f4f6f8', '900 100px "Arial Black", Impact, sans-serif'); pend.position.set(0, py, pz + 0.0065); torso.add(pend);
-      for (const sx of [-1, 1]) M(new THREE.CylinderGeometry(0.006, 0.006, 0.01, 8).rotateX(Math.PI / 2), 0xeef1f5, sx * 0.052, py + 0.022, pz + 0.004, torso);   // bails the chain hangs from
-    }
+    const py = C.low - 0.035, pz = chest(0, py) + 0.006;
+    chainPendant(o, torso, py, pz);
   }
   if (o.chestLogo) {   // small print on the left of the chest
     const y = 0.5, lx = 0.085, lz = front(y) * Math.sqrt(Math.max(0, 1 - (lx / (1.12 * Math.max(0.05, torsoR(y)))) ** 2)) + 0.012 + (SKN ? CHAIN_Z : 0);
