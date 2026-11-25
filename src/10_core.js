@@ -299,6 +299,7 @@ const COS = {
     { id: 'flex', name: 'Big Flex', r: 3, unlock: 'shop', price: 800 },
     { id: 'slowmo', name: 'Slow Motion', r: 3, unlock: 'shop', price: 800 },
     { id: 'tornado', name: 'Tornado', r: 4, unlock: 'shop', price: 1200 },
+    { id: 'spitbars', name: 'Spit Bars', r: 3, unlock: 'shop', price: 800, music: true },
   ],
 };
 const COS_CATS = [['outfit', 'Skins'], ['backpack', 'Back Bling'], ['pickaxe', 'Harvest Tool'], ['glider', 'Glider'], ['wrap', 'Weapon Wrap'], ['emote', 'Emote'], ['car', 'Car']];

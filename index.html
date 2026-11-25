@@ -89,22 +89,22 @@ button:focus-visible{outline:2px solid var(--sun-2);outline-offset:2px}
 .check input{width:18px;height:18px;accent-color:var(--sun)}
 .lb-foot{grid-column:2;grid-row:3;display:flex;flex-direction:column;gap:8px;position:relative}
 #buildTag{position:fixed;left:10px;bottom:6px;font:600 11px var(--f-body);color:rgba(200,215,255,.35);pointer-events:none}
-#readyBtn{flex:1;font-family:var(--f-display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:30px;padding:14px 18px;border:0;border-radius:14px;color:#ffffff;text-shadow:0 2px 0 rgba(90,0,10,.45);
-  background:linear-gradient(180deg,#ff5a5f 0%,#e8202f 58%,#b5101e 100%);box-shadow:0 5px 0 #6e0a12,0 10px 26px rgba(255,40,60,.4);animation:playGlow 2.4s ease-in-out infinite}
-#readyBtn .rb-sub{color:#ffd9dc}
-#readyBtn:active{transform:translateY(3px);box-shadow:0 2px 0 #6e0a12}
-@keyframes playGlow{0%,100%{box-shadow:0 5px 0 #6e0a12,0 10px 26px rgba(255,40,60,.38)}50%{box-shadow:0 5px 0 #6e0a12,0 10px 38px rgba(255,40,60,.7)}}
+#readyBtn{flex:1;font-family:var(--f-display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:30px;padding:14px 18px;border:0;border-radius:14px;color:#ffffff;
+  background:linear-gradient(180deg,var(--sun-2),var(--sun));box-shadow:0 5px 0 #144bb0,0 10px 24px rgba(47,134,255,.35)}
+#readyBtn .rb-sub{color:#e6f1ff}
+#readyBtn:active{transform:translateY(3px);box-shadow:0 2px 0 #144bb0}
+@keyframes playGlow{0%,100%{box-shadow:0 5px 0 #144bb0,0 10px 24px rgba(47,134,255,.35)}50%{box-shadow:0 5px 0 #144bb0,0 10px 34px rgba(47,134,255,.6)}}
 /* the season card on the Play tab: what's on now, your level, today's bonus and a featured item */
 .season-card{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;overflow:hidden;
-  background:linear-gradient(135deg,rgba(10,18,46,.95),rgba(30,12,30,.95));border:1px solid rgba(74,155,255,.35);border-left:3px solid #ff3b4a;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+  background:linear-gradient(135deg,rgba(10,30,70,.92),rgba(26,70,150,.9));border:1px solid rgba(150,195,255,.3);border-left:3px solid #4fb0ff;box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .sc-top{display:flex;justify-content:space-between;align-items:center;font:800 11px var(--f-body);letter-spacing:.12em;text-transform:uppercase}
-.sc-k{color:#ff5a66}.sc-left{color:#ffffff}
+.sc-k{color:#7fe8ff}.sc-left{color:#ffd84a}
 .sc-name{font-family:var(--f-display);font-weight:900;font-style:italic;font-size:26px;line-height:1;text-transform:uppercase;letter-spacing:.01em}
 .sc-lvl{display:flex;justify-content:space-between;font:700 12.5px var(--f-body);color:#e8f1ff}.sc-lvl .num{color:var(--mute)}
-.sc-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.sc-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#4a9bff,#ff3b4a);transition:width .6s}
+.sc-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.sc-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#4fb0ff,#7fe8ff);transition:width .6s}
 .sc-daily{font:600 12px var(--f-body);color:#cfe9ff}.sc-daily b{color:#7dffb0}
-.sc-feat{display:flex;align-items:center;gap:8px;margin-top:2px;padding:7px 10px;border-radius:10px;border:1px solid rgba(255,59,74,.4);background:rgba(10,8,30,.45);color:#fff;font:700 12.5px var(--f-body);text-align:left;cursor:pointer}
-.sc-feat:hover{background:rgba(255,216,74,.14)}.sc-feat em{font-style:normal;color:#ffd84a;margin-left:auto;white-space:nowrap}.sc-feat i{font-style:normal;font:800 10px var(--f-body);letter-spacing:.1em;color:#ff5a66}
+.sc-feat{display:flex;align-items:center;gap:8px;margin-top:2px;padding:7px 10px;border-radius:10px;border:1px solid rgba(255,216,74,.35);background:rgba(10,8,30,.45);color:#fff;font:700 12.5px var(--f-body);text-align:left;cursor:pointer}
+.sc-feat:hover{background:rgba(255,216,74,.14)}.sc-feat em{font-style:normal;color:#ffd84a;margin-left:auto;white-space:nowrap}.sc-feat i{font-style:normal;font:800 10px var(--f-body);letter-spacing:.1em;color:#7fe8ff}
 #readyBtn{position:relative;overflow:hidden;transition:transform .15s,filter .15s}
 #readyBtn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.07)}
 #readyBtn::after{content:"";position:absolute;top:0;bottom:0;left:-40%;width:30%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-18deg);animation:playShine 3.4s ease-in-out infinite;pointer-events:none}
@@ -1215,7 +1215,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1125-0137';
+const BUILD_ID = '1125-0157';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -1517,6 +1517,7 @@ const COS = {
     { id: 'flex', name: 'Big Flex', r: 3, unlock: 'shop', price: 800 },
     { id: 'slowmo', name: 'Slow Motion', r: 3, unlock: 'shop', price: 800 },
     { id: 'tornado', name: 'Tornado', r: 4, unlock: 'shop', price: 1200 },
+    { id: 'spitbars', name: 'Spit Bars', r: 3, unlock: 'shop', price: 800, music: true },
   ],
 };
 const COS_CATS = [['outfit', 'Skins'], ['backpack', 'Back Bling'], ['pickaxe', 'Harvest Tool'], ['glider', 'Glider'], ['wrap', 'Weapon Wrap'], ['emote', 'Emote'], ['car', 'Car']];
@@ -7249,16 +7250,22 @@ const CharModel = {
   TWIST: ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'upperarm_l', 'lowerarm_l', 'hand_l', 'upperarm_r', 'lowerarm_r', 'hand_r', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r'],   // re-set every frame (procedural turns and the two-hand grip)
   reset(R) { if (R.pure) this.TWIST.forEach((n, i) => R.B[n].quaternion.copy(R.pure[i])); R.mixer.stopAllAction(); R.L.cur = R.U.cur = null; R.L.act = R.U.act = null; R.st.fresh = true; R.st.legYaw = 0; R.st.rev = false; R.st.vy = null; },
   emoteClip: { groove: 'Dance_Body_Roll', robot: 'Dance_Charleston', jacks: 'Jumping_Jacks', wave: 'Greeting', airguitar: 'Dance_Simple', micdrop: 'Victory',
-    spin: 'Dance_Simple', bounce: 'Dance_Simple', headbang: 'Dance_Charleston', flex: 'Victory', slowmo: 'Dance_Body_Roll', tornado: 'Dance_Charleston' },
-  emoteSpeed: { bounce: 1.6, headbang: 1.35, flex: 0.55, slowmo: 0.32, tornado: 1.5, spin: 1.1 },
+    spin: 'Dance_Simple', bounce: 'Dance_Simple', headbang: 'Dance_Charleston', flex: 'Victory', slowmo: 'Dance_Body_Roll', tornado: 'Dance_Charleston', spitbars: 'Idle_A' },
+  emoteSpeed: { bounce: 1.6, headbang: 1.35, flex: 0.55, slowmo: 0.32, tornado: 1.5, spin: 1.1, spitbars: 0.6 },
   // the move layered on top of an emote's clip: turn (yaw), lift (height) and bends at the spine, neck and arms
   emoteMove(id, t) {
-    const m = { yaw: 0, lift: 0, spine: 0, neck: 0, armL: 0, armR: 0 };
+    const m = { yaw: 0, lift: 0, spine: 0, neck: 0, armL: 0, armR: 0, foreL: 0, foreR: 0 };
     if (id === 'spin') { const k = (t % 2.4) / 2.4; m.yaw = k < 0.5 ? (1 - Math.cos(k * 2 * Math.PI)) * Math.PI : TAU; m.lift = k < 0.5 ? Math.sin(k * 2 * Math.PI) * 0.12 : 0; }
     else if (id === 'bounce') { const b = Math.abs(Math.sin(t * Math.PI * 2.1)); m.lift = b * 0.16; m.spine = -0.12 + b * 0.18; m.armL = -0.5 * b; m.armR = -0.5 * b; }
     else if (id === 'headbang') { const b = Math.sin(t * Math.PI * 4); m.neck = 0.25 + b * 0.38; m.spine = 0.2 + b * 0.15; }
     else if (id === 'flex') { const k = Math.min(1, t * 2); m.armL = -1.4 * k; m.armR = -1.4 * k; m.spine = -0.12 * k; m.yaw = Math.sin(t * 1.2) * 0.35; }
     else if (id === 'slowmo') { m.yaw = Math.sin(t * 0.7) * 0.5; m.lift = Math.sin(t * 0.9) * 0.05 + 0.04; }
+    else if (id === 'spitbars') {   // rapping: mic hand up at the mouth, the other hand pointing and pumping on the beat, head nodding, a little bounce and sway
+      const bt = t * Math.PI * 3, beat = Math.pow(Math.abs(Math.sin(bt)), 2), bar = Math.floor(t / 2.7) % 2;
+      m.armR = -1.25; m.foreR = -1.9;
+      m.armL = -0.9 - beat * 0.55 - (bar ? 0.3 : 0); m.foreL = -0.3 - beat * 0.55;
+      m.neck = 0.1 + beat * 0.28; m.spine = 0.06 + beat * 0.05; m.lift = beat * 0.04; m.yaw = Math.sin(t * 1.15) * 0.32;
+    }
     else if (id === 'tornado') { m.yaw = t * 5.5; m.lift = Math.abs(Math.sin(t * 5.5)) * 0.1; m.armL = -1.2; m.armR = -1.2; }
     return m;
   },
@@ -7289,7 +7296,7 @@ const CharModel = {
     else if (a.crawl && !a.inWater) { full = 'Crawl'; ts = sp > 0.3 ? clamp(sp / 1.2, 0.6, 1.5) : 0.08; showHeld = !!held && held === 'medkit'; }
     else if (a.inWater) { full = sp > 1 ? 'Swim_Fwd' : 'Swim_Idle'; ts = sp > 1 ? clamp(sp / 2.5, 0.7, 1.6) : 1; oy = sp > 1 ? -0.1 : -0.55; }
     else {
-      if (!a.onGround) base = 'Jump_air';
+      if (!a.onGround) { if (a.longJ) { base = 'Idle_A'; ts = 0.2; } else base = 'Jump_air'; }   // a sprint-jump poses from a neutral stance (the jump clip throws the arms out sideways)
       else if (sp > 0.6) {
         // legs lean toward the run direction (at most ~40 degrees); running backwards switches with hysteresis so it never flip-flops
         let ph = Math.atan2(lx, lz);
@@ -7306,7 +7313,7 @@ const CharModel = {
     // ---- lower body
     const once = full === 'ClimbUp_1m_RM' || full === 'Death_A'; if (full === 'Death_A') ts = 1.5;
     if (full) { this.play(R, L, full, { ts, once, fade: 0.15 }); }
-    else this.play(R, L, base, { ts, fade: base === 'Jump_air' ? 0.12 : 0.2 });
+    else this.play(R, L, base, { ts, fade: base === 'Jump_air' || a.longJ ? 0.1 : 0.2 });
     if (L.act && !full) L.act.timeScale = ts;
     // ---- upper body
     if (full) { const ua = this.play(R, U, full, { ts, once, fade: 0.15 }); if (ua && L.act) ua.time = L.act.time; }
@@ -7320,7 +7327,7 @@ const CharModel = {
     } else if (showHeld && a.useT > 0) this.play(R, U, 'Consume', { fade: 0.2 });
     st.lastPick = a.pickAnim; st.pickT -= dt;
     if (!full && !gun && st.pickT <= 0 && !(showHeld && a.useT > 0)) {
-      const ua = this.play(R, U, base, { ts, fade: 0.2 }); if (ua && L.act) { ua.time = L.act.time; ua.timeScale = L.act.timeScale; }
+      const ua = this.play(R, U, base, { ts, fade: a.longJ ? 0.1 : 0.2 }); if (ua && L.act) { ua.time = L.act.time; ua.timeScale = L.act.timeScale; }
     }
     // The mixer only rewrites a bone when its animated value changes, so a held pose (gun stances) would keep last
     // frame's extra twist and bend and pile them up every frame. Put back the pure animation pose first, then animate.
@@ -7357,7 +7364,7 @@ const CharModel = {
       const mv = this.emoteMove(a.emote, a.emoteT || 0); R.root.updateMatrixWorld(true);
       const right = _cmV2.copy(X_AXIS).applyQuaternion(R.root.getWorldQuaternion(_cmQ3));
       const bend = (bone, ang) => { if (!bone || Math.abs(ang) < 1e-4) return; bone.parent.getWorldQuaternion(_cmQ3).invert(); _cmV.copy(right).applyQuaternion(_cmQ3); _cmQ2.setFromAxisAngle(_cmV, ang); bone.quaternion.premultiply(_cmQ2); bone.updateMatrixWorld(true); };
-      bend(B.spine_02, mv.spine); bend(B.neck_01, mv.neck); bend(B.upperarm_l, mv.armL); bend(B.upperarm_r, mv.armR);
+      bend(B.spine_02, mv.spine); bend(B.neck_01, mv.neck); bend(B.upperarm_l, mv.armL); bend(B.upperarm_r, mv.armR); bend(B.lowerarm_l, mv.foreL); bend(B.lowerarm_r, mv.foreR);
       R.root.rotation.y += mv.yaw; oy += mv.lift;
     }
     // ---- sprint-jump: a leap that moves through the flight instead of one frozen pose.
@@ -10844,17 +10851,17 @@ const Players = {
 // =====================================================================
 // the move each skin shows off with when you equip it (or try it on) in the lobby
 const SKIN_SHOW = { rae: 'wave', ranger: 'jacks', moss: 'groove', comet: 'robot', siren: 'robot', toast: 'wave', nightwarden: 'micdrop', tycoon: 'groove',
-  stormborn: 'groove', nova: 'airguitar', tripy: 'micdrop', uzi: 'jacks', headliner: 'airguitar', week: 'groove', bruno: 'wave' };
+  stormborn: 'groove', nova: 'airguitar', tripy: 'spitbars', uzi: 'spitbars', headliner: 'airguitar', week: 'groove', bruno: 'wave' };
 // the lobby stage's colours (sky top to horizon, the two neon arches, light beams, sparkles, screen text)
-const LOBBY_PAL = { sky: ['#02040d', '#071030', '#0d1a48', '#2a0f2a', '#6e0f18'], arcA: 0xff2a3a, arcB: 0x3a8bff, beams: [0xff2a3a, 0x4a9bff], spark: [0xff3b4a, 0xffffff, 0x4a9bff, 0x8fc4ff], accent: '#ff3b4a', glow: '#2f7bff', ring: 0xff2a3a, side: 0x3a8bff };
+const LOBBY_PAL = { sky: ['#071634', '#0b1f4a', '#0b1f4a', '#0e2656', '#123064'], arcA: 0x4fb0ff, arcB: 0x2f6fd8, beams: [0x4fb0ff, 0xffffff], spark: [0xffffff, 0x8fc4ff, 0x4fb0ff], accent: '#7fe8ff', glow: '#2f7bff', ring: 0x4fb0ff, side: 0x2f6fd8 };
 const Lobby = {
   scene: null, cam: null, rig: null, fake: null, t: 0, tab: 'play', cat: 'outfit', bus: null,
   init() {
-    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0a1230, 24, 80);
+    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0b1f4a, 24, 80);
     s.add(new THREE.HemisphereLight(0xb8d4ff, 0x10284f, 0.85));
     const key = new THREE.DirectionalLight(0xffd9b0, 1.05); key.position.set(3, 6, 6); s.add(key);
     const rim = new THREE.DirectionalLight(0x5a9bff, 0.9); rim.position.set(-4, 4, -6); s.add(rim);
-    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x161c34)); plat.position.y = -0.2; s.add(plat);
+    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x163a7a)); plat.position.y = -0.2; s.add(plat);
     const ring = this.ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
     this.festival(s);
     const isl = new THREE.Group(); const rock = new THREE.Mesh(new THREE.ConeGeometry(7, 9, 7), lam(0x4a5a7a)); rock.rotation.x = Math.PI; rock.position.y = -4.5; isl.add(rock);
@@ -10868,7 +10875,7 @@ const Lobby = {
     // two party spots beside you: an empty platform with a + to invite, or a friend from your room standing on it
     this.slots = [-1, 1].map(side => {
       const x = side * 2.55, z = -1.15, g = new THREE.Group(); g.position.set(x, 0, z);
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x131a30)); p.position.y = -0.15; g.add(p);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x12306a)); p.position.y = -0.15; g.add(p);
       const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(LOBBY_PAL.side)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
       s.add(g);
       const add = document.createElement('button'); add.type = 'button'; add.className = 'slot-add'; add.title = 'Invite a friend'; add.innerHTML = '<i aria-hidden="true">+</i><span>Invite</span>';
@@ -10890,7 +10897,7 @@ const Lobby = {
   },
   screenTex() {
     const c = this._scr || (this._scr = document.createElement('canvas')); c.width = 1024; c.height = 320; const g = c.getContext('2d');
-    const gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, '#050307'); gr.addColorStop(1, '#14050a'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
+    const gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, '#06122c'); gr.addColorStop(1, '#0b1f4a'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
     g.fillStyle = 'rgba(255,255,255,0.04)'; for (let y = 0; y < 320; y += 6) g.fillRect(0, y, 1024, 2);   // LED rows
     g.textAlign = 'center'; g.textBaseline = 'middle'; const sid = Season.id();
     g.font = '900 italic 62px "Barlow Condensed", Impact, sans-serif'; g.fillStyle = LOBBY_PAL.accent; g.fillText('SEASON ' + (sid + 1) + ' · LIVE NOW', 512, 82);
@@ -10923,7 +10930,7 @@ const Lobby = {
     const scr = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 2.56), new THREE.MeshBasicMaterial({ map: this.scrTex })); scr.position.set(0, 4.62, Z - 0.1); s.add(scr); F.scr = scr;
     const frame = new THREE.Mesh(new THREE.BoxGeometry(8.5, 2.86, 0.12), lam(0x141522)); frame.position.set(0, 4.62, Z - 0.2); s.add(frame); F.frame = frame;
     // stage floor behind you, and speaker stacks either side
-    const deck = new THREE.Mesh(new THREE.CylinderGeometry(11, 11.4, 0.6, 48, 1, false, Math.PI * 0.08, Math.PI * 0.84), lam(0x121a2c)); deck.rotation.y = Math.PI; deck.position.set(0, -0.62, Z + 1); s.add(deck);
+    const deck = new THREE.Mesh(new THREE.CylinderGeometry(11, 11.4, 0.6, 48, 1, false, Math.PI * 0.08, Math.PI * 0.84), lam(0x12306a)); deck.rotation.y = Math.PI; deck.position.set(0, -0.62, Z + 1); s.add(deck);
     { const S = []; for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) { S.push([new THREE.BoxGeometry(1.1, 1.25, 0.9).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.4), 0x16161e]); S.push([new THREE.CircleGeometry(0.36, 18).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.86), 0x2c2c3a]); } s.add(mergedColored(S)); }   // speaker stacks
     // sparkles drifting up through the light
     const N = 220, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), C = new THREE.Color(), pal = LOBBY_PAL.spark;

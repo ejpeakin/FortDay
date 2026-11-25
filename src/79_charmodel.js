@@ -810,16 +810,22 @@ const CharModel = {
   TWIST: ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'upperarm_l', 'lowerarm_l', 'hand_l', 'upperarm_r', 'lowerarm_r', 'hand_r', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r'],   // re-set every frame (procedural turns and the two-hand grip)
   reset(R) { if (R.pure) this.TWIST.forEach((n, i) => R.B[n].quaternion.copy(R.pure[i])); R.mixer.stopAllAction(); R.L.cur = R.U.cur = null; R.L.act = R.U.act = null; R.st.fresh = true; R.st.legYaw = 0; R.st.rev = false; R.st.vy = null; },
   emoteClip: { groove: 'Dance_Body_Roll', robot: 'Dance_Charleston', jacks: 'Jumping_Jacks', wave: 'Greeting', airguitar: 'Dance_Simple', micdrop: 'Victory',
-    spin: 'Dance_Simple', bounce: 'Dance_Simple', headbang: 'Dance_Charleston', flex: 'Victory', slowmo: 'Dance_Body_Roll', tornado: 'Dance_Charleston' },
-  emoteSpeed: { bounce: 1.6, headbang: 1.35, flex: 0.55, slowmo: 0.32, tornado: 1.5, spin: 1.1 },
+    spin: 'Dance_Simple', bounce: 'Dance_Simple', headbang: 'Dance_Charleston', flex: 'Victory', slowmo: 'Dance_Body_Roll', tornado: 'Dance_Charleston', spitbars: 'Idle_A' },
+  emoteSpeed: { bounce: 1.6, headbang: 1.35, flex: 0.55, slowmo: 0.32, tornado: 1.5, spin: 1.1, spitbars: 0.6 },
   // the move layered on top of an emote's clip: turn (yaw), lift (height) and bends at the spine, neck and arms
   emoteMove(id, t) {
-    const m = { yaw: 0, lift: 0, spine: 0, neck: 0, armL: 0, armR: 0 };
+    const m = { yaw: 0, lift: 0, spine: 0, neck: 0, armL: 0, armR: 0, foreL: 0, foreR: 0 };
     if (id === 'spin') { const k = (t % 2.4) / 2.4; m.yaw = k < 0.5 ? (1 - Math.cos(k * 2 * Math.PI)) * Math.PI : TAU; m.lift = k < 0.5 ? Math.sin(k * 2 * Math.PI) * 0.12 : 0; }
     else if (id === 'bounce') { const b = Math.abs(Math.sin(t * Math.PI * 2.1)); m.lift = b * 0.16; m.spine = -0.12 + b * 0.18; m.armL = -0.5 * b; m.armR = -0.5 * b; }
     else if (id === 'headbang') { const b = Math.sin(t * Math.PI * 4); m.neck = 0.25 + b * 0.38; m.spine = 0.2 + b * 0.15; }
     else if (id === 'flex') { const k = Math.min(1, t * 2); m.armL = -1.4 * k; m.armR = -1.4 * k; m.spine = -0.12 * k; m.yaw = Math.sin(t * 1.2) * 0.35; }
     else if (id === 'slowmo') { m.yaw = Math.sin(t * 0.7) * 0.5; m.lift = Math.sin(t * 0.9) * 0.05 + 0.04; }
+    else if (id === 'spitbars') {   // rapping: mic hand up at the mouth, the other hand pointing and pumping on the beat, head nodding, a little bounce and sway
+      const bt = t * Math.PI * 3, beat = Math.pow(Math.abs(Math.sin(bt)), 2), bar = Math.floor(t / 2.7) % 2;
+      m.armR = -1.25; m.foreR = -1.9;
+      m.armL = -0.9 - beat * 0.55 - (bar ? 0.3 : 0); m.foreL = -0.3 - beat * 0.55;
+      m.neck = 0.1 + beat * 0.28; m.spine = 0.06 + beat * 0.05; m.lift = beat * 0.04; m.yaw = Math.sin(t * 1.15) * 0.32;
+    }
     else if (id === 'tornado') { m.yaw = t * 5.5; m.lift = Math.abs(Math.sin(t * 5.5)) * 0.1; m.armL = -1.2; m.armR = -1.2; }
     return m;
   },
@@ -850,7 +856,7 @@ const CharModel = {
     else if (a.crawl && !a.inWater) { full = 'Crawl'; ts = sp > 0.3 ? clamp(sp / 1.2, 0.6, 1.5) : 0.08; showHeld = !!held && held === 'medkit'; }
     else if (a.inWater) { full = sp > 1 ? 'Swim_Fwd' : 'Swim_Idle'; ts = sp > 1 ? clamp(sp / 2.5, 0.7, 1.6) : 1; oy = sp > 1 ? -0.1 : -0.55; }
     else {
-      if (!a.onGround) base = 'Jump_air';
+      if (!a.onGround) { if (a.longJ) { base = 'Idle_A'; ts = 0.2; } else base = 'Jump_air'; }   // a sprint-jump poses from a neutral stance (the jump clip throws the arms out sideways)
       else if (sp > 0.6) {
         // legs lean toward the run direction (at most ~40 degrees); running backwards switches with hysteresis so it never flip-flops
         let ph = Math.atan2(lx, lz);
@@ -867,7 +873,7 @@ const CharModel = {
     // ---- lower body
     const once = full === 'ClimbUp_1m_RM' || full === 'Death_A'; if (full === 'Death_A') ts = 1.5;
     if (full) { this.play(R, L, full, { ts, once, fade: 0.15 }); }
-    else this.play(R, L, base, { ts, fade: base === 'Jump_air' ? 0.12 : 0.2 });
+    else this.play(R, L, base, { ts, fade: base === 'Jump_air' || a.longJ ? 0.1 : 0.2 });
     if (L.act && !full) L.act.timeScale = ts;
     // ---- upper body
     if (full) { const ua = this.play(R, U, full, { ts, once, fade: 0.15 }); if (ua && L.act) ua.time = L.act.time; }
@@ -881,7 +887,7 @@ const CharModel = {
     } else if (showHeld && a.useT > 0) this.play(R, U, 'Consume', { fade: 0.2 });
     st.lastPick = a.pickAnim; st.pickT -= dt;
     if (!full && !gun && st.pickT <= 0 && !(showHeld && a.useT > 0)) {
-      const ua = this.play(R, U, base, { ts, fade: 0.2 }); if (ua && L.act) { ua.time = L.act.time; ua.timeScale = L.act.timeScale; }
+      const ua = this.play(R, U, base, { ts, fade: a.longJ ? 0.1 : 0.2 }); if (ua && L.act) { ua.time = L.act.time; ua.timeScale = L.act.timeScale; }
     }
     // The mixer only rewrites a bone when its animated value changes, so a held pose (gun stances) would keep last
     // frame's extra twist and bend and pile them up every frame. Put back the pure animation pose first, then animate.
@@ -918,7 +924,7 @@ const CharModel = {
       const mv = this.emoteMove(a.emote, a.emoteT || 0); R.root.updateMatrixWorld(true);
       const right = _cmV2.copy(X_AXIS).applyQuaternion(R.root.getWorldQuaternion(_cmQ3));
       const bend = (bone, ang) => { if (!bone || Math.abs(ang) < 1e-4) return; bone.parent.getWorldQuaternion(_cmQ3).invert(); _cmV.copy(right).applyQuaternion(_cmQ3); _cmQ2.setFromAxisAngle(_cmV, ang); bone.quaternion.premultiply(_cmQ2); bone.updateMatrixWorld(true); };
-      bend(B.spine_02, mv.spine); bend(B.neck_01, mv.neck); bend(B.upperarm_l, mv.armL); bend(B.upperarm_r, mv.armR);
+      bend(B.spine_02, mv.spine); bend(B.neck_01, mv.neck); bend(B.upperarm_l, mv.armL); bend(B.upperarm_r, mv.armR); bend(B.lowerarm_l, mv.foreL); bend(B.lowerarm_r, mv.foreR);
       R.root.rotation.y += mv.yaw; oy += mv.lift;
     }
     // ---- sprint-jump: a leap that moves through the flight instead of one frozen pose.

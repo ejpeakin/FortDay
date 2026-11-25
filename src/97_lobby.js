@@ -3,17 +3,17 @@
 // =====================================================================
 // the move each skin shows off with when you equip it (or try it on) in the lobby
 const SKIN_SHOW = { rae: 'wave', ranger: 'jacks', moss: 'groove', comet: 'robot', siren: 'robot', toast: 'wave', nightwarden: 'micdrop', tycoon: 'groove',
-  stormborn: 'groove', nova: 'airguitar', tripy: 'micdrop', uzi: 'jacks', headliner: 'airguitar', week: 'groove', bruno: 'wave' };
+  stormborn: 'groove', nova: 'airguitar', tripy: 'spitbars', uzi: 'spitbars', headliner: 'airguitar', week: 'groove', bruno: 'wave' };
 // the lobby stage's colours (sky top to horizon, the two neon arches, light beams, sparkles, screen text)
-const LOBBY_PAL = { sky: ['#02040d', '#071030', '#0d1a48', '#2a0f2a', '#6e0f18'], arcA: 0xff2a3a, arcB: 0x3a8bff, beams: [0xff2a3a, 0x4a9bff], spark: [0xff3b4a, 0xffffff, 0x4a9bff, 0x8fc4ff], accent: '#ff3b4a', glow: '#2f7bff', ring: 0xff2a3a, side: 0x3a8bff };
+const LOBBY_PAL = { sky: ['#071634', '#0b1f4a', '#0b1f4a', '#0e2656', '#123064'], arcA: 0x4fb0ff, arcB: 0x2f6fd8, beams: [0x4fb0ff, 0xffffff], spark: [0xffffff, 0x8fc4ff, 0x4fb0ff], accent: '#7fe8ff', glow: '#2f7bff', ring: 0x4fb0ff, side: 0x2f6fd8 };
 const Lobby = {
   scene: null, cam: null, rig: null, fake: null, t: 0, tab: 'play', cat: 'outfit', bus: null,
   init() {
-    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0a1230, 24, 80);
+    const s = this.scene = new THREE.Scene(); s.background = this.skyTex(); s.fog = new THREE.Fog(0x0b1f4a, 24, 80);
     s.add(new THREE.HemisphereLight(0xb8d4ff, 0x10284f, 0.85));
     const key = new THREE.DirectionalLight(0xffd9b0, 1.05); key.position.set(3, 6, 6); s.add(key);
     const rim = new THREE.DirectionalLight(0x5a9bff, 0.9); rim.position.set(-4, 4, -6); s.add(rim);
-    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x161c34)); plat.position.y = -0.2; s.add(plat);
+    const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.4, 0.4, 40), lam(0x163a7a)); plat.position.y = -0.2; s.add(plat);
     const ring = this.ring = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.05, 8, 64), basic(0x4fb0ff)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; s.add(ring);
     this.festival(s);
     const isl = new THREE.Group(); const rock = new THREE.Mesh(new THREE.ConeGeometry(7, 9, 7), lam(0x4a5a7a)); rock.rotation.x = Math.PI; rock.position.y = -4.5; isl.add(rock);
@@ -27,7 +27,7 @@ const Lobby = {
     // two party spots beside you: an empty platform with a + to invite, or a friend from your room standing on it
     this.slots = [-1, 1].map(side => {
       const x = side * 2.55, z = -1.15, g = new THREE.Group(); g.position.set(x, 0, z);
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x131a30)); p.position.y = -0.15; g.add(p);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.22, 0.3, 32), lam(0x12306a)); p.position.y = -0.15; g.add(p);
       const r = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 8, 48), basic(LOBBY_PAL.side)); r.rotation.x = Math.PI / 2; r.position.y = 0.01; g.add(r);
       s.add(g);
       const add = document.createElement('button'); add.type = 'button'; add.className = 'slot-add'; add.title = 'Invite a friend'; add.innerHTML = '<i aria-hidden="true">+</i><span>Invite</span>';
@@ -49,7 +49,7 @@ const Lobby = {
   },
   screenTex() {
     const c = this._scr || (this._scr = document.createElement('canvas')); c.width = 1024; c.height = 320; const g = c.getContext('2d');
-    const gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, '#050307'); gr.addColorStop(1, '#14050a'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
+    const gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, '#06122c'); gr.addColorStop(1, '#0b1f4a'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
     g.fillStyle = 'rgba(255,255,255,0.04)'; for (let y = 0; y < 320; y += 6) g.fillRect(0, y, 1024, 2);   // LED rows
     g.textAlign = 'center'; g.textBaseline = 'middle'; const sid = Season.id();
     g.font = '900 italic 62px "Barlow Condensed", Impact, sans-serif'; g.fillStyle = LOBBY_PAL.accent; g.fillText('SEASON ' + (sid + 1) + ' · LIVE NOW', 512, 82);
@@ -82,7 +82,7 @@ const Lobby = {
     const scr = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 2.56), new THREE.MeshBasicMaterial({ map: this.scrTex })); scr.position.set(0, 4.62, Z - 0.1); s.add(scr); F.scr = scr;
     const frame = new THREE.Mesh(new THREE.BoxGeometry(8.5, 2.86, 0.12), lam(0x141522)); frame.position.set(0, 4.62, Z - 0.2); s.add(frame); F.frame = frame;
     // stage floor behind you, and speaker stacks either side
-    const deck = new THREE.Mesh(new THREE.CylinderGeometry(11, 11.4, 0.6, 48, 1, false, Math.PI * 0.08, Math.PI * 0.84), lam(0x121a2c)); deck.rotation.y = Math.PI; deck.position.set(0, -0.62, Z + 1); s.add(deck);
+    const deck = new THREE.Mesh(new THREE.CylinderGeometry(11, 11.4, 0.6, 48, 1, false, Math.PI * 0.08, Math.PI * 0.84), lam(0x12306a)); deck.rotation.y = Math.PI; deck.position.set(0, -0.62, Z + 1); s.add(deck);
     { const S = []; for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) { S.push([new THREE.BoxGeometry(1.1, 1.25, 0.9).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.4), 0x16161e]); S.push([new THREE.CircleGeometry(0.36, 18).translate(sx * 7.3, 0.3 + i * 1.27, Z + 0.86), 0x2c2c3a]); } s.add(mergedColored(S)); }   // speaker stacks
     // sparkles drifting up through the light
     const N = 220, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), C = new THREE.Color(), pal = LOBBY_PAL.spark;
