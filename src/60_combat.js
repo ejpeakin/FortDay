@@ -435,8 +435,32 @@ function staticHits(c) {
 }
 // a mined-out wall, roof, floor, prop or stair breaks off: its triangles collapse, its hitbox goes, debris flies
 const _dirtyAttrs = new Map();
+function zeroRange(bb, s, e) {
+  const m = bb && bb._mesh; if (!m || e <= s) return;
+  const pos = m.geometry.attributes.position; pos.array.fill(0, s * 3, e * 3);
+  const d = _dirtyAttrs.get(pos); if (d) { d[0] = Math.min(d[0], s * 3); d[1] = Math.max(d[1], e * 3); } else _dirtyAttrs.set(pos, [s * 3, e * 3]);
+}
+// a house wall breaks off as one panel with everything on it (siding, trim, window, paint): no floating slats left behind
+function breakWall(w, c) {
+  if (w.broken) return; w.broken = true;
+  zeroRange(w.b, w.v0, w.v1); zeroRange(w.eb, w.e0, w.e1);
+  for (const s of w.segs) if (!s.dead) { Grid.remove(s); s.dead = true; }
+  const mat = MATS[w.mat] ? w.mat : 'brick', ym = (w.y0 + w.y1) / 2, len = w.a1 - w.a0;
+  if (camera.position.distanceToSquared(_v4.set(w.axis === 'x' ? (w.a0 + w.a1) / 2 : w.fixed, ym, w.axis === 'x' ? w.fixed : (w.a0 + w.a1) / 2)) < 140 * 140) {
+    for (let i = 0; i < 5; i++) {
+      const a = w.a0 + len * (i + 0.5) / 5, x = w.axis === 'x' ? a : w.fixed, z = w.axis === 'x' ? w.fixed : a;
+      FX.burst(x, ym + (Math.random() - 0.3) * (w.y1 - w.y0) * 0.5, z, MATS[mat].color, 10, 5, 0.8, 0.2, 9);
+      FX.burst(x, w.y0 + 0.3, z, 0xcfc8bc, 4, 2.2, 1.2, 0.4, -0.5);
+    }
+    const v = Sfx.vol(x0of(w), ym, z0of(w)); if (v > 0.1) { Sfx.harvest(mat); Sfx.noise(0.35, mat === 'wood' ? 240 : 170, 1.4, 0.4 * v, 'lowpass'); }
+  }
+  if (Net.inMatch && !Net.applying && c) { const r2 = v => Math.round(v * 100) / 100; Net.emit({ k: 'sb', x: r2((c.minX + c.maxX) / 2), y: r2((c.minY + c.maxY) / 2), z: r2((c.minZ + c.maxZ) / 2) }); }
+}
+function x0of(w) { return w.axis === 'x' ? (w.a0 + w.a1) / 2 : w.fixed; }
+function z0of(w) { return w.axis === 'x' ? w.fixed : (w.a0 + w.a1) / 2; }
 function breakStatic(c) {
   if (c.dead) return;
+  if (c.wall) { breakWall(c.wall, c); return; }
   const m = c.vb && c.vb._mesh;
   if (m) { const pos = m.geometry.attributes.position; pos.array.fill(0, c.v0 * 3, c.v1 * 3); const d = _dirtyAttrs.get(pos); if (d) { d[0] = Math.min(d[0], c.v0 * 3); d[1] = Math.max(d[1], c.v1 * 3); } else _dirtyAttrs.set(pos, [c.v0 * 3, c.v1 * 3]); }
   Grid.remove(c);

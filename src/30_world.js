@@ -195,16 +195,17 @@ function solid(b, x0, y0, z0, x1, y1, z1, hex, mat) {
   return ownCol(Grid.add({ minX: x0, minY: y0, minZ: z0, maxX: x1, maxY: y1, maxZ: z1, kind: 'static', mat: mat || 'brick', vb: b, v0, v1: b.p.length / 3, tough: !!b.tough }));
 }
 function wallSeg(b, axis, a0, a1, fixed, y0, y1, th, open, hex, mat) {
-  const box = (s0, s1, yy0, yy1) => {
+  const segs = [], box = (s0, s1, yy0, yy1) => {
     if (s1 - s0 < 0.05 || yy1 - yy0 < 0.05) return;
-    if (axis === 'x') solid(b, s0, yy0, fixed - th / 2, s1, yy1, fixed + th / 2, hex, mat);
-    else solid(b, fixed - th / 2, yy0, s0, fixed + th / 2, yy1, s1, hex, mat);
+    if (axis === 'x') segs.push(solid(b, s0, yy0, fixed - th / 2, s1, yy1, fixed + th / 2, hex, mat));
+    else segs.push(solid(b, fixed - th / 2, yy0, s0, fixed + th / 2, yy1, s1, hex, mat));
   };
-  if (!open) { box(a0, a1, y0, y1); return; }
+  if (!open) { box(a0, a1, y0, y1); return segs; }
   const o0 = open.c - open.w / 2, o1 = open.c + open.w / 2;
   box(a0, o0, y0, y1); box(o1, a1, y0, y1);
   if (open.b > 0) box(o0, o1, y0, y0 + open.b);
   if (open.t < y1 - y0) box(o0, o1, y0 + open.t, y1);
+  return segs;
 }
 function rampGeo(b, x0, z0, x1, z1, y0, rise, dir, hex, thick = 0.22, lift = 0) {
   const alongX = dir < 2; const L = alongX ? x1 - x0 : z1 - z0; const wid = alongX ? z1 - z0 : x1 - x0;
@@ -365,8 +366,12 @@ function buildHouse(b, eb, p, cx, cz, R) {
       const mid = (a0 + a1) / 2, len = a1 - a0; let open = null;
       if (f === 0 && side === door) open = { c: mid, w: 2.2, b: 0, t: 3.0 };
       else if (len >= 7 && R() < 0.8) open = { c: mid + (R() - 0.5) * (len - 5) * 0.6, w: 2.2, b: 1.25, t: 2.8 };
-      wallSeg(b, axis, a0, a1, fixed, y0, y1, th, open, wc, mat);
+      // a wall panel and everything on it (siding, trim, window frame, paint) break off together, like a rock
+      const wv0 = b.p.length / 3, we0 = eb.p.length / 3;
+      const segs = wallSeg(b, axis, a0, a1, fixed, y0, y1, th, open, wc, mat);
       dressWall(b, eb, { axis, a0, a1, fixed, th, y0, y1, open, n, style, wc, trim, inner: paint, D, ground: f === 0, door: f === 0 && side === door, roof: rc });
+      const wall = { b, eb, v0: wv0, v1: b.p.length / 3, e0: we0, e1: eb.p.length / 3, segs, mat, axis, a0, a1, fixed, y0, y1 };
+      for (const c of segs) c.wall = wall;
     }
     // floor finish with plank lines and a rug
     const fl = FLOOR[style] ?? 0xa8794a, fz0 = f === 0 ? z0 + th : (door === '-z' ? cz : z0 + th), fz1 = f === 0 ? z1 - th : (door === '-z' ? z1 - th : cz);
