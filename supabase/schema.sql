@@ -353,3 +353,6 @@ begin
     alter publication supabase_realtime add table public.party_invites;
   end if;
 end $$;
+
+-- ---------------------------------------------------------------- let the API see the new functions right away
+notify pgrst, 'reload schema';
