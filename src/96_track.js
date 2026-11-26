@@ -30,7 +30,7 @@ const Track = {
 const Players = {
   rows: null, err: '', loading: false, at: 0, owner: false, db: null,
   link() { return Profile.d.ownerCsv || ''; },
-  available() { return this.owner || !!this.link(); },
+  available() { return this.owner || !!this.link() || !!Profile.d.ownerMode; },
   // ?owner in the address opens the box where the maker pastes the Sheet's published CSV link
   init() {
     $('ownBtn').addEventListener('click', () => this.saveLink());
@@ -40,7 +40,7 @@ const Players = {
     $('plRefresh').addEventListener('click', () => this.load(true));
     $('plLink').addEventListener('click', () => this.openSetup());
     let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
-    if (q.has('owner')) { q.delete('owner'); try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) { /* sandboxed */ } this.openSetup(); }
+    if (q.has('owner')) { q.delete('owner'); try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) { /* sandboxed */ } Profile.d.ownerMode = true; Profile.save(); Lobby.tab = 'players'; setTimeout(() => Lobby.refresh(), 0); }   // the owner's browser: the Players tab, with a setup checklist until it works
   },
   openSetup() { $('ownIn').value = this.link(); $('ownMsg').textContent = ''; $('ownOff').hidden = !this.link(); $('owner').hidden = false; },
   saveLink() {
@@ -50,6 +50,7 @@ const Players = {
   },
   async load(force) {
     if (this.owner) return this.loadDb(force);
+    if (Profile.d.ownerMode && !this.link()) return this.check();
     if (!this.link() || this.loading || (!force && this.rows && Date.now() - this.at < 60000)) return;
     this.loading = true; this.err = ''; this.render();
     try {
@@ -88,6 +89,31 @@ const Players = {
     return [...by.values()].sort((a, b) => b.when - a.when);
   },
   fmtMin(m) { return m < 60 ? Math.round(m) + ' min' : (m / 60).toFixed(m < 600 ? 1 : 0) + ' h'; },
+  // ---- until the owner's list works: a checklist that finds which step is missing
+  setup: null,
+  async check() {
+    if (this.checking) return; this.checking = true; const s = { accounts: !!Social.configured, ready: !!Social.sb, signedIn: !!Social.user, name: Social.me && Social.me.username, db: null, owner: false };
+    if (Social.sb) {
+      const { data, error } = await Social.sb.rpc('am_owner');
+      if (error) s.db = /could not find|does not exist|PGRST202/i.test((error.message || '') + (error.code || '')) ? false : 'error:' + (error.message || error.code);
+      else { s.db = true; s.owner = data === true; }
+      if (s.owner) { this.owner = true; this.db = null; this.checking = false; Lobby.refresh(); return; }
+    }
+    this.setup = s; this.checking = false; this.render();
+  },
+  renderSetup(box) {
+    const s = this.setup, row = (ok, title, how) => `<div class="pl-step ${ok ? 'ok' : ''}"><b>${ok ? '✔' : '✖'}</b><div><strong>${title}</strong>${ok ? '' : '<div class="hint">' + how + '</div>'}</div></div>`;
+    if (!s) { box.innerHTML = '<div class="hint">Checking your setup…</div>'; return; }
+    const nm = s.name || 'YourPlayerName', sql = "insert into public.owners (id) select id from public.profiles where lower(username) = lower('" + nm.replace(/'/g, '') + "') on conflict do nothing;";
+    box.innerHTML = '<p class="hint">To see who played, how often and for how long, these steps need to be done once. This list checks them for you.</p>'
+      + row(s.ready, 'Accounts are switched on', 'The accounts service has not loaded. Check your internet connection and reload.')
+      + row(s.db === true, 'The database is set up', s.db === false ? 'In Supabase open the <b>SQL Editor</b>, paste <b>all</b> of <code>supabase/schema.sql</code> from the FortDay repo, and press <b>Run</b>.' : s.db ? 'Supabase answered: ' + esc(String(s.db).slice(6, 160)) : 'Waiting for the accounts service…')
+      + row(s.signedIn, 'You are signed in', 'Sign in on the Play tab (Friends card) with your own account.')
+      + row(s.owner, 'Your account is the owner', 'In Supabase’s <b>SQL Editor</b> run this once:<pre class="pl-sql">' + esc(sql) + '</pre>' + (s.name ? '' : 'Put your own player name in place of YourPlayerName.'))
+      + '<div class="pl-acts"><button class="buy equip" id="plCheck" type="button">Check again</button></div>'
+      + '<p class="hint">Players who play without an account are counted too (by the name they typed), from the moment the database is set up.</p>';
+    $('plCheck').onclick = () => { this.setup = null; this.render(); this.check(); };
+  },
   // ---- the owner's account: everyone who has played while signed in, straight from the accounts database
   async loadDb(force) {
     if (this.loading || (!force && this.db && Date.now() - this.at < 60000) || !Social.sb) return;
@@ -98,9 +124,9 @@ const Players = {
   },
   renderDb(box) {
     if (this.loading && !this.db) { box.innerHTML = '<div class="hint">Loading players…</div>'; return; }
-    const D = this.db || { players: [], days: [] }, P = (D.players || []).filter(p => p.matches || p.visits), day = 864e5;
+    const D = this.db || { players: [], days: [] }, day = 864e5, P = (D.players || []).filter(p => p.matches || p.visits || p.minutes).concat((D.guests || []).map(g => Object.assign({ guest: true }, g))).sort((a, b) => new Date(b.last || 0) - new Date(a.last || 0));
     const err = this.err ? '<div class="hint pl-err">' + esc(this.err) + '</div>' : '';
-    if (!P.length) { box.innerHTML = err + '<div class="hint">Nobody has played signed in yet. Players show up here once they sign in to FortDay and play.</div>'; return; }
+    if (!P.length) { box.innerHTML = err + '<div class="hint">Nobody has played since the database was set up. Players show up here once they open FortDay.</div>'; return; }
     const now = Date.now(), t0 = new Date(); t0.setHours(0, 0, 0, 0);
     const today = P.filter(p => p.last && new Date(p.last) >= t0).length, week = P.filter(p => p.last && now - new Date(p.last) < 7 * day).length, matches = P.reduce((a, p) => a + p.matches, 0);
     // players per day, last 14 days (the server's dates)
@@ -124,14 +150,14 @@ const Players = {
       <div class="pl-tiles">
         <div class="stat"><b>${P.length}</b><span>Players</span></div>
         <div class="stat"><b>${today}</b><span>Played today</span></div>
-        <div class="stat"><b>${matches.toLocaleString()}</b><span>Matches</span></div>
+        <div class="stat"><b>${this.fmtMin(P.reduce((a, p) => a + (p.minutes || 0), 0))}</b><span>Time played</span></div>
         <div class="stat"><b>${week}</b><span>Active this week</span></div>
       </div>
       <h3>Players per day</h3>
       <div class="pl-wrap">${svg}<div class="pl-tip" id="plTip" hidden></div></div>
       <h3>Everyone who played</h3>
-      <table class="pl-table"><thead><tr><th>Player</th><th>Matches</th><th>Days</th><th>Last played</th><th>First played</th></tr></thead><tbody>${P.map(p => `<tr><td>${esc(p.name)}${p.name.toLowerCase() === me ? ' (you)' : ''}</td><td>${p.matches}</td><td>${p.days}</td><td>${esc(when(p.last))}</td><td>${esc(when(p.first))}</td></tr>`).join('')}</tbody></table>
-      <p class="hint">Only signed-in players are counted. Emails are in Supabase: SQL Editor → <code>select * from owner.player_activity;</code></p>`;
+      <table class="pl-table"><thead><tr><th>Player</th><th>Time</th><th>Matches</th><th>Days</th><th>Last played</th><th>First played</th></tr></thead><tbody>${P.map(p => `<tr><td>${esc(p.name)}${p.guest ? ' <span class="hint">(no account)</span>' : ''}${!p.guest && p.name.toLowerCase() === me ? ' (you)' : ''}</td><td>${this.fmtMin(p.minutes || 0)}</td><td>${p.matches}</td><td>${p.days}</td><td>${esc(when(p.last))}</td><td>${esc(when(p.first))}</td></tr>`).join('')}</tbody></table>
+      <p class="hint">Players without an account are listed by the name they typed. Emails of signed-in players are in Supabase: SQL Editor → <code>select * from owner.player_activity;</code></p>`;
     const tip = $('plTip'), wrap = box.querySelector('.pl-wrap');
     wrap.addEventListener('mousemove', e => {
       const t = e.target.closest('.pl-hit'); if (!t) { tip.hidden = true; return; }
@@ -143,8 +169,10 @@ const Players = {
   },
   render() {
     const box = $('plBody'); if (!box) return;
-    $('plLink').hidden = this.owner; const hh = document.querySelector('#tab-players .pl-head .hint'); if (hh) hh.textContent = this.owner ? 'Only you can see this' : 'Only on this computer';
+    const dbMode = this.owner || (Profile.d.ownerMode && !this.link());
+    $('plLink').hidden = dbMode; const hh = document.querySelector('#tab-players .pl-head .hint'); if (hh) hh.textContent = dbMode ? 'Only you can see this' : 'Only on this computer';
     if (this.owner) return this.renderDb(box);
+    if (Profile.d.ownerMode && !this.link()) return this.renderSetup(box);
     if (this.loading && !this.rows) { box.innerHTML = '<div class="hint">Loading your Sheet…</div>'; return; }
     if (this.err) { box.innerHTML = '<div class="hint pl-err">' + esc(this.err) + '</div>'; if (!this.rows) return; }
     const R = this.rows || [];

@@ -4,7 +4,7 @@
 //  different link doesn't lose it. Signed out, progress stays in this browser only, as before.
 //  Device settings (controls, graphics, music, last mode picked) stay per device.
 // =====================================================================
-const CLOUD_LOCAL = ['sens', 'shadows', 'gfx', 'gfxV', 'perf', 'perfChosen', 'fov', 'keys', 'musVol', 'musOn', 'mode', 'build', 'theme', 'ranked', 'dev', 'ownerCsv', 'tutAsked', 'name', 'acct'];
+const CLOUD_LOCAL = ['sens', 'shadows', 'gfx', 'gfxV', 'perf', 'perfChosen', 'fov', 'keys', 'musVol', 'musOn', 'mode', 'build', 'theme', 'ranked', 'dev', 'ownerCsv', 'ownerMode', 'tutAsked', 'name', 'acct'];
 const CloudSave = {
   uid: null, on: false, busy: false, dirtyT: 0, lastUp: 0, timer: 0,
   // how much has been played on a save: the bigger one wins when two saves meet
@@ -46,8 +46,23 @@ const CloudSave = {
     if (msg) Social.note(msg);
   },
   // for the owner's player list (Supabase: owner.player_activity): a visit when you sign in, a match each time you drop in
-  logPlay(kind) { if (!this.on || !Social.sb) return; Social.sb.rpc('log_play', { kind }).then(({ error }) => { if (error) console.warn('FortDay play log:', error.message); }, () => {}); },
-  signedOut() { this.on = false; this.uid = null; clearTimeout(this.timer); if (Players.owner) { Players.owner = false; Players.db = null; Lobby.refresh(); } },
+  logPlay(kind) {
+    if (!Social.sb) return;
+    const done = ({ error }) => { if (error) console.warn('FortDay play log:', error.message); };
+    if (this.on) Social.sb.rpc('log_play', { kind }).then(done, () => {});
+    else if (!Social.user) Social.sb.rpc('log_guest', { device: Track.device(), name: Profile.d.name || 'Player', kind, mins: 0 }).then(done, () => {});   // not signed in: counted by this browser
+  },
+  // time played: a minute is counted for every minute the game is on screen, and sent five at a time
+  mins: 0, minT: 0,
+  tick() { if (!document.hidden && Social.sb) { this.mins++; if (this.mins >= 5) this.sendTime(); } },
+  sendTime() {
+    const m = Math.min(10, this.mins); if (m < 1 || !Social.sb) return; this.mins = 0;
+    const done = ({ error }) => { if (error) console.warn('FortDay play time:', error.message); };
+    if (this.on) Social.sb.rpc('log_time', { mins: m }).then(done, () => {});
+    else if (!Social.user) Social.sb.rpc('log_guest', { device: Track.device(), name: Profile.d.name || 'Player', kind: 'time', mins: m }).then(done, () => {});
+  },
+  signedOut() { if (!this._guestVisit) { this._guestVisit = true; setTimeout(() => { if (!Social.user) this.logPlay('visit'); }, 4000); }
+    this.on = false; this.uid = null; clearTimeout(this.timer); if (Players.owner) { Players.owner = false; Players.db = null; Lobby.refresh(); } },
   // every Profile.save() while signed in: upload a few seconds later (many saves in a row become one upload)
   dirty() { if (!this.on) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.upload(), 4000); },
   async upload() {
@@ -63,4 +78,5 @@ const CloudSave = {
 };
 Profile.onSave = () => CloudSave.dirty();
 // leaving the page: send what's left right away
-addEventListener('visibilitychange', () => { if (document.hidden && CloudSave.on && CloudSave.timer) CloudSave.upload(); });
+addEventListener('visibilitychange', () => { if (document.hidden && CloudSave.on && CloudSave.timer) CloudSave.upload(); if (document.hidden) CloudSave.sendTime(); });
+setInterval(() => CloudSave.tick(), 60000);

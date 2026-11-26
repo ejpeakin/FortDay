@@ -641,6 +641,9 @@ details.ctl .hint{margin-top:8px}
 .hint.credit{font-size:11px;opacity:.7}
 .name-row{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--mute)}
 .name-row input,#ownIn{flex:1;min-width:0;background:rgba(5,14,36,.6);border:1px solid rgba(150,195,255,.3);border-radius:8px;color:var(--ink);font:700 14px var(--f-body);padding:8px 10px}
+.scard.more{border-style:dashed;opacity:.85}.scard.more .scard-art{font:900 34px var(--f-display);color:var(--mute);display:grid;place-items:center}.scard.more:hover{opacity:1}
+.pl-step{display:flex;gap:10px;padding:9px 10px;margin:6px 0;border-radius:10px;background:rgba(255,80,90,.08);border:1px solid rgba(255,80,90,.25)}.pl-step>b{color:#ff8a92;font-size:16px}.pl-step.ok{background:rgba(80,220,140,.08);border-color:rgba(80,220,140,.3)}.pl-step.ok>b{color:#7dffb0}
+.pl-sql{white-space:pre-wrap;word-break:break-all;user-select:all;background:rgba(0,0,0,.35);padding:8px;border-radius:8px;font:12px ui-monospace,monospace;margin:6px 0}
 .pl-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .pl-acts{display:flex;gap:8px;flex-wrap:wrap}
 .pl-acts .buy{padding:7px 14px;font-size:13px}
@@ -1215,7 +1218,7 @@ details.soc summary .w-k{display:flex;align-items:center;gap:6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const BUILD_ID = '1125-0157';
+const BUILD_ID = '1126-0158';
 'use strict';
 // =====================================================================
 //  FORTDAY — core utilities, data tables, profile, audio
@@ -9536,7 +9539,7 @@ const Social = {
 //  different link doesn't lose it. Signed out, progress stays in this browser only, as before.
 //  Device settings (controls, graphics, music, last mode picked) stay per device.
 // =====================================================================
-const CLOUD_LOCAL = ['sens', 'shadows', 'gfx', 'gfxV', 'perf', 'perfChosen', 'fov', 'keys', 'musVol', 'musOn', 'mode', 'build', 'theme', 'ranked', 'dev', 'ownerCsv', 'tutAsked', 'name', 'acct'];
+const CLOUD_LOCAL = ['sens', 'shadows', 'gfx', 'gfxV', 'perf', 'perfChosen', 'fov', 'keys', 'musVol', 'musOn', 'mode', 'build', 'theme', 'ranked', 'dev', 'ownerCsv', 'ownerMode', 'tutAsked', 'name', 'acct'];
 const CloudSave = {
   uid: null, on: false, busy: false, dirtyT: 0, lastUp: 0, timer: 0,
   // how much has been played on a save: the bigger one wins when two saves meet
@@ -9578,8 +9581,23 @@ const CloudSave = {
     if (msg) Social.note(msg);
   },
   // for the owner's player list (Supabase: owner.player_activity): a visit when you sign in, a match each time you drop in
-  logPlay(kind) { if (!this.on || !Social.sb) return; Social.sb.rpc('log_play', { kind }).then(({ error }) => { if (error) console.warn('FortDay play log:', error.message); }, () => {}); },
-  signedOut() { this.on = false; this.uid = null; clearTimeout(this.timer); if (Players.owner) { Players.owner = false; Players.db = null; Lobby.refresh(); } },
+  logPlay(kind) {
+    if (!Social.sb) return;
+    const done = ({ error }) => { if (error) console.warn('FortDay play log:', error.message); };
+    if (this.on) Social.sb.rpc('log_play', { kind }).then(done, () => {});
+    else if (!Social.user) Social.sb.rpc('log_guest', { device: Track.device(), name: Profile.d.name || 'Player', kind, mins: 0 }).then(done, () => {});   // not signed in: counted by this browser
+  },
+  // time played: a minute is counted for every minute the game is on screen, and sent five at a time
+  mins: 0, minT: 0,
+  tick() { if (!document.hidden && Social.sb) { this.mins++; if (this.mins >= 5) this.sendTime(); } },
+  sendTime() {
+    const m = Math.min(10, this.mins); if (m < 1 || !Social.sb) return; this.mins = 0;
+    const done = ({ error }) => { if (error) console.warn('FortDay play time:', error.message); };
+    if (this.on) Social.sb.rpc('log_time', { mins: m }).then(done, () => {});
+    else if (!Social.user) Social.sb.rpc('log_guest', { device: Track.device(), name: Profile.d.name || 'Player', kind: 'time', mins: m }).then(done, () => {});
+  },
+  signedOut() { if (!this._guestVisit) { this._guestVisit = true; setTimeout(() => { if (!Social.user) this.logPlay('visit'); }, 4000); }
+    this.on = false; this.uid = null; clearTimeout(this.timer); if (Players.owner) { Players.owner = false; Players.db = null; Lobby.refresh(); } },
   // every Profile.save() while signed in: upload a few seconds later (many saves in a row become one upload)
   dirty() { if (!this.on) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.upload(), 4000); },
   async upload() {
@@ -9595,7 +9613,8 @@ const CloudSave = {
 };
 Profile.onSave = () => CloudSave.dirty();
 // leaving the page: send what's left right away
-addEventListener('visibilitychange', () => { if (document.hidden && CloudSave.on && CloudSave.timer) CloudSave.upload(); });
+addEventListener('visibilitychange', () => { if (document.hidden && CloudSave.on && CloudSave.timer) CloudSave.upload(); if (document.hidden) CloudSave.sendTime(); });
+setInterval(() => CloudSave.tick(), 60000);
 
 // =====================================================================
 //  Input (keyboard, mouse, touch), camera, player control
@@ -10680,7 +10699,7 @@ const Track = {
 const Players = {
   rows: null, err: '', loading: false, at: 0, owner: false, db: null,
   link() { return Profile.d.ownerCsv || ''; },
-  available() { return this.owner || !!this.link(); },
+  available() { return this.owner || !!this.link() || !!Profile.d.ownerMode; },
   // ?owner in the address opens the box where the maker pastes the Sheet's published CSV link
   init() {
     $('ownBtn').addEventListener('click', () => this.saveLink());
@@ -10690,7 +10709,7 @@ const Players = {
     $('plRefresh').addEventListener('click', () => this.load(true));
     $('plLink').addEventListener('click', () => this.openSetup());
     let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
-    if (q.has('owner')) { q.delete('owner'); try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) { /* sandboxed */ } this.openSetup(); }
+    if (q.has('owner')) { q.delete('owner'); try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) { /* sandboxed */ } Profile.d.ownerMode = true; Profile.save(); Lobby.tab = 'players'; setTimeout(() => Lobby.refresh(), 0); }   // the owner's browser: the Players tab, with a setup checklist until it works
   },
   openSetup() { $('ownIn').value = this.link(); $('ownMsg').textContent = ''; $('ownOff').hidden = !this.link(); $('owner').hidden = false; },
   saveLink() {
@@ -10700,6 +10719,7 @@ const Players = {
   },
   async load(force) {
     if (this.owner) return this.loadDb(force);
+    if (Profile.d.ownerMode && !this.link()) return this.check();
     if (!this.link() || this.loading || (!force && this.rows && Date.now() - this.at < 60000)) return;
     this.loading = true; this.err = ''; this.render();
     try {
@@ -10738,6 +10758,31 @@ const Players = {
     return [...by.values()].sort((a, b) => b.when - a.when);
   },
   fmtMin(m) { return m < 60 ? Math.round(m) + ' min' : (m / 60).toFixed(m < 600 ? 1 : 0) + ' h'; },
+  // ---- until the owner's list works: a checklist that finds which step is missing
+  setup: null,
+  async check() {
+    if (this.checking) return; this.checking = true; const s = { accounts: !!Social.configured, ready: !!Social.sb, signedIn: !!Social.user, name: Social.me && Social.me.username, db: null, owner: false };
+    if (Social.sb) {
+      const { data, error } = await Social.sb.rpc('am_owner');
+      if (error) s.db = /could not find|does not exist|PGRST202/i.test((error.message || '') + (error.code || '')) ? false : 'error:' + (error.message || error.code);
+      else { s.db = true; s.owner = data === true; }
+      if (s.owner) { this.owner = true; this.db = null; this.checking = false; Lobby.refresh(); return; }
+    }
+    this.setup = s; this.checking = false; this.render();
+  },
+  renderSetup(box) {
+    const s = this.setup, row = (ok, title, how) => `<div class="pl-step ${ok ? 'ok' : ''}"><b>${ok ? '✔' : '✖'}</b><div><strong>${title}</strong>${ok ? '' : '<div class="hint">' + how + '</div>'}</div></div>`;
+    if (!s) { box.innerHTML = '<div class="hint">Checking your setup…</div>'; return; }
+    const nm = s.name || 'YourPlayerName', sql = "insert into public.owners (id) select id from public.profiles where lower(username) = lower('" + nm.replace(/'/g, '') + "') on conflict do nothing;";
+    box.innerHTML = '<p class="hint">To see who played, how often and for how long, these steps need to be done once. This list checks them for you.</p>'
+      + row(s.ready, 'Accounts are switched on', 'The accounts service has not loaded. Check your internet connection and reload.')
+      + row(s.db === true, 'The database is set up', s.db === false ? 'In Supabase open the <b>SQL Editor</b>, paste <b>all</b> of <code>supabase/schema.sql</code> from the FortDay repo, and press <b>Run</b>.' : s.db ? 'Supabase answered: ' + esc(String(s.db).slice(6, 160)) : 'Waiting for the accounts service…')
+      + row(s.signedIn, 'You are signed in', 'Sign in on the Play tab (Friends card) with your own account.')
+      + row(s.owner, 'Your account is the owner', 'In Supabase’s <b>SQL Editor</b> run this once:<pre class="pl-sql">' + esc(sql) + '</pre>' + (s.name ? '' : 'Put your own player name in place of YourPlayerName.'))
+      + '<div class="pl-acts"><button class="buy equip" id="plCheck" type="button">Check again</button></div>'
+      + '<p class="hint">Players who play without an account are counted too (by the name they typed), from the moment the database is set up.</p>';
+    $('plCheck').onclick = () => { this.setup = null; this.render(); this.check(); };
+  },
   // ---- the owner's account: everyone who has played while signed in, straight from the accounts database
   async loadDb(force) {
     if (this.loading || (!force && this.db && Date.now() - this.at < 60000) || !Social.sb) return;
@@ -10748,9 +10793,9 @@ const Players = {
   },
   renderDb(box) {
     if (this.loading && !this.db) { box.innerHTML = '<div class="hint">Loading players…</div>'; return; }
-    const D = this.db || { players: [], days: [] }, P = (D.players || []).filter(p => p.matches || p.visits), day = 864e5;
+    const D = this.db || { players: [], days: [] }, day = 864e5, P = (D.players || []).filter(p => p.matches || p.visits || p.minutes).concat((D.guests || []).map(g => Object.assign({ guest: true }, g))).sort((a, b) => new Date(b.last || 0) - new Date(a.last || 0));
     const err = this.err ? '<div class="hint pl-err">' + esc(this.err) + '</div>' : '';
-    if (!P.length) { box.innerHTML = err + '<div class="hint">Nobody has played signed in yet. Players show up here once they sign in to FortDay and play.</div>'; return; }
+    if (!P.length) { box.innerHTML = err + '<div class="hint">Nobody has played since the database was set up. Players show up here once they open FortDay.</div>'; return; }
     const now = Date.now(), t0 = new Date(); t0.setHours(0, 0, 0, 0);
     const today = P.filter(p => p.last && new Date(p.last) >= t0).length, week = P.filter(p => p.last && now - new Date(p.last) < 7 * day).length, matches = P.reduce((a, p) => a + p.matches, 0);
     // players per day, last 14 days (the server's dates)
@@ -10774,14 +10819,14 @@ const Players = {
       <div class="pl-tiles">
         <div class="stat"><b>${P.length}</b><span>Players</span></div>
         <div class="stat"><b>${today}</b><span>Played today</span></div>
-        <div class="stat"><b>${matches.toLocaleString()}</b><span>Matches</span></div>
+        <div class="stat"><b>${this.fmtMin(P.reduce((a, p) => a + (p.minutes || 0), 0))}</b><span>Time played</span></div>
         <div class="stat"><b>${week}</b><span>Active this week</span></div>
       </div>
       <h3>Players per day</h3>
       <div class="pl-wrap">${svg}<div class="pl-tip" id="plTip" hidden></div></div>
       <h3>Everyone who played</h3>
-      <table class="pl-table"><thead><tr><th>Player</th><th>Matches</th><th>Days</th><th>Last played</th><th>First played</th></tr></thead><tbody>${P.map(p => `<tr><td>${esc(p.name)}${p.name.toLowerCase() === me ? ' (you)' : ''}</td><td>${p.matches}</td><td>${p.days}</td><td>${esc(when(p.last))}</td><td>${esc(when(p.first))}</td></tr>`).join('')}</tbody></table>
-      <p class="hint">Only signed-in players are counted. Emails are in Supabase: SQL Editor → <code>select * from owner.player_activity;</code></p>`;
+      <table class="pl-table"><thead><tr><th>Player</th><th>Time</th><th>Matches</th><th>Days</th><th>Last played</th><th>First played</th></tr></thead><tbody>${P.map(p => `<tr><td>${esc(p.name)}${p.guest ? ' <span class="hint">(no account)</span>' : ''}${!p.guest && p.name.toLowerCase() === me ? ' (you)' : ''}</td><td>${this.fmtMin(p.minutes || 0)}</td><td>${p.matches}</td><td>${p.days}</td><td>${esc(when(p.last))}</td><td>${esc(when(p.first))}</td></tr>`).join('')}</tbody></table>
+      <p class="hint">Players without an account are listed by the name they typed. Emails of signed-in players are in Supabase: SQL Editor → <code>select * from owner.player_activity;</code></p>`;
     const tip = $('plTip'), wrap = box.querySelector('.pl-wrap');
     wrap.addEventListener('mousemove', e => {
       const t = e.target.closest('.pl-hit'); if (!t) { tip.hidden = true; return; }
@@ -10793,8 +10838,10 @@ const Players = {
   },
   render() {
     const box = $('plBody'); if (!box) return;
-    $('plLink').hidden = this.owner; const hh = document.querySelector('#tab-players .pl-head .hint'); if (hh) hh.textContent = this.owner ? 'Only you can see this' : 'Only on this computer';
+    const dbMode = this.owner || (Profile.d.ownerMode && !this.link());
+    $('plLink').hidden = dbMode; const hh = document.querySelector('#tab-players .pl-head .hint'); if (hh) hh.textContent = dbMode ? 'Only you can see this' : 'Only on this computer';
     if (this.owner) return this.renderDb(box);
+    if (Profile.d.ownerMode && !this.link()) return this.renderSetup(box);
     if (this.loading && !this.rows) { box.innerHTML = '<div class="hint">Loading your Sheet…</div>'; return; }
     if (this.err) { box.innerHTML = '<div class="hint pl-err">' + esc(this.err) + '</div>'; if (!this.rows) return; }
     const R = this.rows || [];
@@ -11114,6 +11161,7 @@ const Lobby = {
     $('rankSeg').addEventListener('click', e => { const b = e.target.closest('[data-ranked]'); if (!b || b.disabled) return; Profile.d.ranked = b.dataset.ranked === '1'; Profile.save(); Sfx.init(); this.refresh(); });
     $('catRow').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (!b) return; this.cat = b.dataset.cat; this.refresh(); });
     $('itemGrid').addEventListener('click', e => {
+      const mo = e.target.closest('[data-more]'); if (mo) { Sfx.init(); this.tab = 'shop'; this.shopFilter = mo.dataset.more; this.refresh(); return; }
       const b = e.target.closest('[data-id]'); if (!b) return; const item = cosById(this.cat, b.dataset.id);
       this.lockSel = { cat: this.cat, id: item.id };
       if (Profile.unlocked(item)) { Profile.d.eq[this.cat] = item.id; Profile.save(); Sfx.init(); Sfx.blip && Sfx.blip(); }
@@ -11210,16 +11258,18 @@ const Lobby = {
     const d = Profile.d, cat = this.cat, catName = COS_CATS.find(c => c[0] === cat)[1];
     if (!this.lockSel || this.lockSel.cat !== cat) this.lockSel = { cat, id: d.eq[cat] };
     const owned = c => Profile.unlocked(c);
-    $('catRow').innerHTML = COS_CATS.map(([k, n]) => `<button role="tab" aria-selected="${k === cat}" data-cat="${k}" class="${k === cat ? 'on' : ''}">${n}<i>${COS[k].filter(owned).length}/${COS[k].length}</i></button>`).join('');
+    $('catRow').innerHTML = COS_CATS.map(([k, n]) => `<button role="tab" aria-selected="${k === cat}" data-cat="${k}" class="${k === cat ? 'on' : ''}">${n}<i>${COS[k].filter(owned).length}</i></button>`).join('');
     const total = COS_CATS.reduce((s, [k]) => s + COS[k].length, 0), have = COS_CATS.reduce((s, [k]) => s + COS[k].filter(owned).length, 0);
     $('lkCount').textContent = have + ' of ' + total + ' collected';
     $('lockerTitle').textContent = 'Locker';
     const how = c => c.unlock === 'chest' ? '1 in 1,000 chests' : c.unlock === 'win' ? 'Win a match' : c.unlock === 'shop' ? 'Item Shop' : c.unlock && c.unlock.startsWith('tier:') ? 'Level ' + c.unlock.slice(5) : '';
-    $('itemGrid').innerHTML = COS[cat].slice().sort((a, b) => owned(b) - owned(a) || a.r - b.r).map(c => {
+    // the Locker only holds what you own; everything else is in the Item Shop
+    if (!owned(cosById(cat, this.lockSel.id))) this.lockSel = { cat, id: d.eq[cat] };
+    $('itemGrid').innerHTML = COS[cat].filter(owned).sort((a, b) => a.r - b.r).map(c => {
       const own = owned(c), eq = d.eq[cat] === c.id, on = this.lockSel.id === c.id, rc = c.premium ? '#ffd23a' : RARITY[c.r].css;
       const foot = eq ? '<span class="scard-foot eq">Equipped</span>' : own ? '<span class="scard-foot owned">Owned</span>' : `<span class="scard-foot lock"><svg class="lk" viewBox="0 0 24 24"><path d="M6 11h12v9H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg>${c.unlock === 'chest' ? 'Chest find' : '<i class="coin"></i>' + itemPrice(c).toLocaleString()}</span>`;
       return `<button class="scard ${on ? 'on' : ''} ${own ? '' : 'locked'}" data-id="${c.id}" style="--rc:${rc}">${c.premium ? '<span class="prem">PREMIUM</span>' : ''}${eq ? '<span class="eqb">EQUIPPED</span>' : ''}<span class="scard-art">${this.shopIcon(cat, c)}</span><span class="scard-body"><b>${esc(c.name)}</b><span>${c.premium ? 'Premium' : RARITY[c.r].name}</span></span>${foot}</button>`;
-    }).join('');
+    }).join('') + (COS[cat].length > COS[cat].filter(owned).length ? `<button class="scard more" data-more="${cat}" type="button"><span class="scard-art">+</span><span class="scard-body"><b>Get more</b><span>Item Shop</span></span></button>` : '');
     const it = cosById(cat, this.lockSel.id), own = owned(it), eq = d.eq[cat] === it.id, rc = it.premium ? '#ffd23a' : RARITY[it.r].css;
     const DESC = { outfit: 'A full character skin with its own face, hair and outfit.', backpack: 'Back bling worn on your character in every match.', pickaxe: 'Swings in place of the standard harvesting tool.', glider: 'Opens when you drop from the bus.', wrap: 'A finish applied to every weapon you hold.', emote: 'A dance you can play with B during a match.', car: 'Any car you get into becomes this one.' };
     $('lkDetail').style.setProperty('--rc', rc);

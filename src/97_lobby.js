@@ -266,6 +266,7 @@ const Lobby = {
     $('rankSeg').addEventListener('click', e => { const b = e.target.closest('[data-ranked]'); if (!b || b.disabled) return; Profile.d.ranked = b.dataset.ranked === '1'; Profile.save(); Sfx.init(); this.refresh(); });
     $('catRow').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (!b) return; this.cat = b.dataset.cat; this.refresh(); });
     $('itemGrid').addEventListener('click', e => {
+      const mo = e.target.closest('[data-more]'); if (mo) { Sfx.init(); this.tab = 'shop'; this.shopFilter = mo.dataset.more; this.refresh(); return; }
       const b = e.target.closest('[data-id]'); if (!b) return; const item = cosById(this.cat, b.dataset.id);
       this.lockSel = { cat: this.cat, id: item.id };
       if (Profile.unlocked(item)) { Profile.d.eq[this.cat] = item.id; Profile.save(); Sfx.init(); Sfx.blip && Sfx.blip(); }
@@ -362,16 +363,18 @@ const Lobby = {
     const d = Profile.d, cat = this.cat, catName = COS_CATS.find(c => c[0] === cat)[1];
     if (!this.lockSel || this.lockSel.cat !== cat) this.lockSel = { cat, id: d.eq[cat] };
     const owned = c => Profile.unlocked(c);
-    $('catRow').innerHTML = COS_CATS.map(([k, n]) => `<button role="tab" aria-selected="${k === cat}" data-cat="${k}" class="${k === cat ? 'on' : ''}">${n}<i>${COS[k].filter(owned).length}/${COS[k].length}</i></button>`).join('');
+    $('catRow').innerHTML = COS_CATS.map(([k, n]) => `<button role="tab" aria-selected="${k === cat}" data-cat="${k}" class="${k === cat ? 'on' : ''}">${n}<i>${COS[k].filter(owned).length}</i></button>`).join('');
     const total = COS_CATS.reduce((s, [k]) => s + COS[k].length, 0), have = COS_CATS.reduce((s, [k]) => s + COS[k].filter(owned).length, 0);
     $('lkCount').textContent = have + ' of ' + total + ' collected';
     $('lockerTitle').textContent = 'Locker';
     const how = c => c.unlock === 'chest' ? '1 in 1,000 chests' : c.unlock === 'win' ? 'Win a match' : c.unlock === 'shop' ? 'Item Shop' : c.unlock && c.unlock.startsWith('tier:') ? 'Level ' + c.unlock.slice(5) : '';
-    $('itemGrid').innerHTML = COS[cat].slice().sort((a, b) => owned(b) - owned(a) || a.r - b.r).map(c => {
+    // the Locker only holds what you own; everything else is in the Item Shop
+    if (!owned(cosById(cat, this.lockSel.id))) this.lockSel = { cat, id: d.eq[cat] };
+    $('itemGrid').innerHTML = COS[cat].filter(owned).sort((a, b) => a.r - b.r).map(c => {
       const own = owned(c), eq = d.eq[cat] === c.id, on = this.lockSel.id === c.id, rc = c.premium ? '#ffd23a' : RARITY[c.r].css;
       const foot = eq ? '<span class="scard-foot eq">Equipped</span>' : own ? '<span class="scard-foot owned">Owned</span>' : `<span class="scard-foot lock"><svg class="lk" viewBox="0 0 24 24"><path d="M6 11h12v9H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg>${c.unlock === 'chest' ? 'Chest find' : '<i class="coin"></i>' + itemPrice(c).toLocaleString()}</span>`;
       return `<button class="scard ${on ? 'on' : ''} ${own ? '' : 'locked'}" data-id="${c.id}" style="--rc:${rc}">${c.premium ? '<span class="prem">PREMIUM</span>' : ''}${eq ? '<span class="eqb">EQUIPPED</span>' : ''}<span class="scard-art">${this.shopIcon(cat, c)}</span><span class="scard-body"><b>${esc(c.name)}</b><span>${c.premium ? 'Premium' : RARITY[c.r].name}</span></span>${foot}</button>`;
-    }).join('');
+    }).join('') + (COS[cat].length > COS[cat].filter(owned).length ? `<button class="scard more" data-more="${cat}" type="button"><span class="scard-art">+</span><span class="scard-body"><b>Get more</b><span>Item Shop</span></span></button>` : '');
     const it = cosById(cat, this.lockSel.id), own = owned(it), eq = d.eq[cat] === it.id, rc = it.premium ? '#ffd23a' : RARITY[it.r].css;
     const DESC = { outfit: 'A full character skin with its own face, hair and outfit.', backpack: 'Back bling worn on your character in every match.', pickaxe: 'Swings in place of the standard harvesting tool.', glider: 'Opens when you drop from the bus.', wrap: 'A finish applied to every weapon you hold.', emote: 'A dance you can play with B during a match.', car: 'Any car you get into becomes this one.' };
     $('lkDetail').style.setProperty('--rc', rc);

@@ -253,11 +253,45 @@ begin
   on conflict (id, day) do update set matches = play_days.matches + excluded.matches;
 end $$;
 
+-- minutes played (signed-in players), added a few minutes at a time while the game is open
+alter table public.plays add column if not exists minutes integer not null default 0;
+create or replace function public.log_time(mins integer) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or not exists (select 1 from profiles where id = auth.uid()) then return; end if;
+  insert into plays (id, minutes, last_day) values (auth.uid(), least(greatest(coalesce(mins, 0), 0), 10), current_date)
+  on conflict (id) do update set minutes = plays.minutes + least(greatest(coalesce(mins, 0), 0), 10), last_played = now();
+end $$;
+
+-- players who play without an account: counted by a random id their browser keeps, with the name they typed
+create table if not exists public.guest_plays (
+  device text primary key check (device ~ '^[a-z0-9]{6,16}$'),
+  name text not null default 'Player',
+  visits integer not null default 0, matches integer not null default 0, minutes integer not null default 0, days integer not null default 0,
+  first_played timestamptz not null default now(), last_played timestamptz not null default now(), last_day date
+);
+alter table public.guest_plays enable row level security;   -- no policies: nobody reads it through the game
+create or replace function public.log_guest(device text, name text, kind text, mins integer) returns void
+language plpgsql security definer set search_path = public as $$
+declare n text := left(regexp_replace(coalesce(name, ''), '[^A-Za-z0-9_ .-]', '', 'g'), 16);
+begin
+  if log_guest.device !~ '^[a-z0-9]{6,16}$' then return; end if;
+  if n = '' then n := 'Player'; end if;
+  insert into guest_plays (device, name, visits, matches, minutes, days, last_day)
+  values (log_guest.device, n, case when kind = 'visit' then 1 else 0 end, case when kind = 'match' then 1 else 0 end, least(greatest(coalesce(mins, 0), 0), 10), 1, current_date)
+  on conflict on constraint guest_plays_pkey do update set name = n,
+    visits = guest_plays.visits + case when kind = 'visit' then 1 else 0 end,
+    matches = guest_plays.matches + case when kind = 'match' then 1 else 0 end,
+    minutes = guest_plays.minutes + case when kind = 'time' then least(greatest(coalesce(mins, 0), 0), 10) else 0 end,
+    days = guest_plays.days + case when guest_plays.last_day is distinct from current_date then 1 else 0 end,
+    last_day = current_date, last_played = now();
+end $$;
+
 -- the owner's list, with emails: lives in its own schema, which the game's API can't reach
 create schema if not exists owner;
 revoke all on schema owner from public, anon, authenticated;
 create or replace view owner.player_activity as
-  select u.email, p.username, coalesce(pl.matches, 0) as matches, coalesce(pl.visits, 0) as visits, coalesce(pl.days, 0) as days_played,
+  select u.email, p.username, coalesce(pl.matches, 0) as matches, coalesce(pl.minutes, 0) as minutes_played, coalesce(pl.visits, 0) as visits, coalesce(pl.days, 0) as days_played,
          pl.first_played, pl.last_played, u.created_at as signed_up
   from auth.users u join public.profiles p on p.id = u.id left join public.plays pl on pl.id = u.id
   order by pl.last_played desc nulls last;
@@ -280,9 +314,11 @@ language plpgsql stable security definer set search_path = public as $$
 begin
   if not exists (select 1 from owners where id = auth.uid()) then raise exception 'Only the owner can see this'; end if;
   return json_build_object(
-    'players', coalesce((select json_agg(json_build_object('name', p.username, 'matches', coalesce(pl.matches, 0), 'visits', coalesce(pl.visits, 0),
+    'players', coalesce((select json_agg(json_build_object('name', p.username, 'matches', coalesce(pl.matches, 0), 'visits', coalesce(pl.visits, 0), 'minutes', coalesce(pl.minutes, 0),
         'days', coalesce(pl.days, 0), 'first', pl.first_played, 'last', pl.last_played, 'joined', p.created_at) order by pl.last_played desc nulls last)
       from profiles p left join plays pl on pl.id = p.id), '[]'::json),
+    'guests', coalesce((select json_agg(json_build_object('name', g.name, 'matches', g.matches, 'visits', g.visits, 'minutes', g.minutes, 'days', g.days, 'first', g.first_played, 'last', g.last_played) order by g.last_played desc)
+      from (select * from guest_plays order by last_played desc limit 300) g), '[]'::json),
     'days', coalesce((select json_agg(json_build_object('day', d.day, 'players', d.n, 'matches', d.m) order by d.day)
       from (select day, count(*) as n, sum(matches) as m from play_days where day > current_date - 14 group by day) d), '[]'::json),
     'today', current_date
@@ -294,11 +330,13 @@ revoke execute on function public.handle_new_user() from public, anon, authentic
 revoke execute on function public.are_friends(uuid, uuid) from public, anon, authenticated;
 revoke execute on function public.username_available(text) from public;
 grant execute on function public.username_available(text) to anon, authenticated;
+revoke execute on function public.log_guest(text, text, text, integer) from public;
+grant execute on function public.log_guest(text, text, text, integer) to anon, authenticated;
 do $$
 declare f text;
 begin
   foreach f in array array['social_state()', 'search_players(text)', 'send_friend_request(uuid)', 'respond_friend_request(bigint, boolean)',
-    'cancel_friend_request(bigint)', 'remove_friend(uuid)', 'set_email_notify(boolean)', 'send_party_invite(uuid, text)', 'dismiss_party_invite(bigint)', 'load_progress()', 'save_progress(jsonb)', 'log_play(text)', 'am_owner()', 'owner_players()'] loop
+    'cancel_friend_request(bigint)', 'remove_friend(uuid)', 'set_email_notify(boolean)', 'send_party_invite(uuid, text)', 'dismiss_party_invite(bigint)', 'load_progress()', 'save_progress(jsonb)', 'log_play(text)', 'am_owner()', 'owner_players()', 'log_time(integer)'] loop
     execute 'revoke execute on function public.' || f || ' from public, anon';
     execute 'grant execute on function public.' || f || ' to authenticated';
   end loop;
